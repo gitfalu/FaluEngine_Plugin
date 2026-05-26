@@ -1,0 +1,74 @@
+#pragma once
+#define SOL_ALL_SAFETIES_ON 1
+#include <sol/sol.hpp>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <string>
+#include <memory>
+#include "Camera.h"
+#include "asset/loaders/MeshLoader.h"
+#include "script/ScriptInstance.h"
+#include "asset/loaders/TextureLoader.h"
+
+namespace FaluEngine {
+
+// ── 名前タグ ──────────────────────────────────────────────────────────────
+struct TagComponent {
+    std::string name;
+    explicit TagComponent(std::string n = "Entity") : name(std::move(n)) {}
+};
+
+// ── トランスフォーム ───────────────────────────────────────────────────────
+struct TransformComponent {
+    glm::vec3 position = { 0.f, 0.f, 0.f };
+    glm::quat rotation = glm::identity<glm::quat>();
+    glm::vec3 scale    = { 1.f, 1.f, 1.f };
+
+    [[nodiscard]] glm::mat4 getMatrix() const {
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), position);
+        glm::mat4 r = glm::mat4_cast(rotation);
+        glm::mat4 s = glm::scale(glm::mat4(1.0f), scale);
+        return t * r * s;
+    }
+
+    // 便利メソッド
+    void setRotationEuler(float pitchDeg, float yawDeg, float rollDeg) {
+        rotation = glm::quat(glm::radians(glm::vec3(pitchDeg, yawDeg, rollDeg)));
+    }
+};
+
+// ── メッシュ参照 ───────────────────────────────────────────────────────────
+struct MeshComponent {
+    std::string meshPath;   // AssetManager に渡すパス
+    std::string texturePath;// 空の場合はカラーのみで表示
+    std::string materialPath;
+    bool visible = true;
+
+    std::shared_ptr<MeshAsset> cachedMesh;
+    std::shared_ptr<TextureAsset> cachedTexture;
+};
+
+// ── カメラ ────────────────────────────────────────────────────────────────
+struct CameraComponent {
+    Camera camera;
+    bool isPrimary = false;
+
+    CameraComponent() {
+        camera.setPerspective(60.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+    }
+};
+
+// ── Lua スクリプト ────────────────────────────────────────────────────────
+struct ScriptComponent {
+    std::string scriptPath; // assets/scripts/xxx.lua
+    std::unique_ptr<ScriptInstance> instance;
+
+    ~ScriptComponent()
+    {
+        instance.release();
+    }
+};
+
+} // namespace FaluEngine

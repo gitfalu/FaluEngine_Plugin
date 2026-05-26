@@ -1,0 +1,21 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "falu-engine",
+    "version": "0.1.0",
+    "description": "Custom 3D Game Engine",
+    "dependencies": [
+       "spdlog",
+        "glm",
+        "entt",
+        "sol2",
+        "lua",
+        {
+            "name": "imgui",
+            "features":["dx11-binding", "win32-binding", "docking-experimental"]
+        },
+        "directxtex",
+        "assimp",
+        "gtest",
+        "nlohmann-json"
+    ]
+}

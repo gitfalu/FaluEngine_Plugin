@@ -1,0 +1,34 @@
+# Build
+/build/
+/out/
+/bin/
+/lib/
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj*
+*.filters
+*.user
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# Compiler
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+
+# Logs
+*.log
+
+# ImGui ini
+imgui.ini
