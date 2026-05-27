@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 # ── 外部ライブラリ ──────────────────────────────────────────────────────────
 include(FetchContent)
 
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     joltphysics
     GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
@@ -36,6 +37,8 @@ engine_add_module(core
         spdlog::spdlog
         glm::glm
         nlohmann_json::nlohmann_json
+    INCLUDE_DIRS
+        ${joltphysics_SOURCE_DIR}
 )
 
 # ── Scene モジュール ────────────────────────────────────────────────────────
@@ -47,6 +50,8 @@ engine_add_module(scene
     DEPS
         engine_core
         EnTT::EnTT
+    INCLUDE_DIRS
+        ${joltphysics_SOURCE_DIR}
 )
 
 # ── Renderer モジュール ─────────────────────────────────────────────────────
@@ -94,7 +99,7 @@ engine_add_module(physics
         engine_core
         engine_scene
         Jolt
-    INCLUDE_DIR
+    INCLUDE_DIRS
         ${joltphysics_SOURCE_DIR}
 )
 

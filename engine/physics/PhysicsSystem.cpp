@@ -72,13 +72,16 @@ namespace FaluEngine
 			auto& rb = view.get<RigidbodyComponent>(entity);
 			auto& transform = view.get<TransformComponent>(entity);
 
-			if (rb.registerd) continue;
+			if (rb.registered) continue;
 
 			JPH::RefConst<JPH::Shape> shape;
+			float minExtent, convexRadius;
 			switch (rb.shape)
 			{
 			case ColliderShape::Box:
-				shape = new JPH::BoxShape(toJPH(rb.halfExtents));
+				minExtent = (std::min)({ rb.halfExtents.x,rb.halfExtents.y,rb.halfExtents.z });
+				convexRadius = (std::min)(minExtent * 0.1f, 0.05f);
+				shape = new JPH::BoxShape(toJPH(rb.halfExtents),convexRadius);
 				break;
 			case ColliderShape::Sphere:
 				shape = new JPH::SphereShape(rb.radius);
@@ -120,7 +123,7 @@ namespace FaluEngine
 				settings.mGravityFactor = 0.0f;
 
 			rb.bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::Activate);
-			rb.registerd = true;
+			rb.registered = true;
 
 			LOG_TRACE("PhysicsSystem: registered body for entity");
 		}
@@ -136,11 +139,11 @@ namespace FaluEngine
 		for(auto entity : view)
 		{ 
 			auto& rb = view.get<RigidbodyComponent>(entity);
-			if (!rb.registerd) continue;
+			if (!rb.registered) continue;
 
 			bodyInterface.RemoveBody(rb.bodyID);
 			bodyInterface.DestroyBody(rb.bodyID);
-			rb.registerd = false;
+			rb.registered = false;
 		}
 	}
 
@@ -160,7 +163,7 @@ namespace FaluEngine
 			auto& rb = view.get<RigidbodyComponent>(entity);
 			auto& transform = view.get<TransformComponent>(entity);
 
-			if (!rb.registerd || rb.bodyType == BodyType::Static) continue;
+			if (!rb.registered || rb.bodyType == BodyType::Static) continue;
 
 			transform.position = toGLM(bodyInterfase.GetPosition(rb.bodyID));
 			transform.rotation = toGLM(bodyInterfase.GetRotation(rb.bodyID));

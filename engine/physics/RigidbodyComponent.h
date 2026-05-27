@@ -31,7 +31,7 @@ namespace FaluEngine
 		bool useGravity = true;
 
 		JPH::BodyID bodyID = JPH::BodyID();
-		bool registerd = false;
+		bool registered = false;
 	};
 }
 
