@@ -14,6 +14,8 @@
 #include <wrl/client.h>
 #include <glm/glm.hpp>
 #include <string>
+#include "RenderTexture.h"
+#include <memory>
 
 using Microsoft::WRL::ComPtr;
 
@@ -76,6 +78,14 @@ public:
         m_clearColor[2] = b; m_clearColor[3] = a;
     }
 
+    void beginOffscreen(uint32_t width, uint32_t height);
+    void endOffscreen();
+
+    [[nodiscard]] ID3D11ShaderResourceView* getSceneSRV() const noexcept {
+        return m_sceneRT ? m_sceneRT->getSRV() : nullptr;
+    }
+    [[nodiscard]] bool isOffscreen() const noexcept { return m_offscreen; }
+
     void setViewProjection(const glm::mat4& view, const glm::mat4& projection) {
         m_view = view;
         m_projection = projection;
@@ -111,6 +121,8 @@ private:
 
     ID3D11Buffer* m_boundVB = nullptr;
     ID3D11Buffer* m_boundIB = nullptr;
+    std::unique_ptr<RenderTexture> m_sceneRT;
+    bool m_offscreen = false;
 
     uint32_t m_width  = 0;
     uint32_t m_height = 0;

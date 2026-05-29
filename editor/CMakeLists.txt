@@ -6,6 +6,7 @@ add_executable(FaluEngineEditor
     main.cpp
     panels/HierarchyPanel.cpp
     panels/InspectorPanel.cpp
+    panels/SceneViewPanel.cpp
 )
 add_executable(FaluEngine::Editor ALIAS FaluEngineEditor)
 

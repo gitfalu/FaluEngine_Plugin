@@ -62,6 +62,7 @@ engine_add_module(renderer
         renderer/dx11/DX11Renderer.cpp
         renderer/dx11/DX11Device.cpp
         renderer/dx11/ImGuiLayer.cpp
+        renderer/dx11/RenderTexture.cpp
     DEPS
         engine_core
         engine_scene

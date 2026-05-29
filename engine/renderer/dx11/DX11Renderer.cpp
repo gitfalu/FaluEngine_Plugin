@@ -374,4 +374,45 @@ void DX11Renderer::drawSubMeshTextured(uint32_t indexOffset, uint32_t indexCount
     m_context->PSSetShaderResources(0, 1, &nullSRV);
 }
 
+void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
+{
+    if (!m_sceneRT)
+        m_sceneRT = std::make_unique<RenderTexture>();
+
+    m_sceneRT->resize(m_device.Get(), width, height);
+
+    float clearColor[4] = {
+        m_clearColor[0],m_clearColor[1],
+        m_clearColor[2],m_clearColor[3] };
+    m_sceneRT->clear(m_context.Get(), clearColor);
+    m_sceneRT->bindAsRenderTarget(m_context.Get());
+
+    m_context->RSSetState(m_rasterizerState.Get());
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(),0);
+    m_context->IASetInputLayout(m_inputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_vertexShader.Get(),nullptr,0);
+    m_context->PSSetShader(m_pixelShader.Get(),nullptr,0);
+    m_context->VSSetConstantBuffers(0,1,m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1,1,m_materialCB.GetAddressOf());
+    m_context->PSSetSamplers(0,1,m_samplerState.GetAddressOf());
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_offscreen = true;
+}
+
+void DX11Renderer::endOffscreen()
+{
+    m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(m_width);
+    vp.Height = static_cast<float>(m_height);
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    m_offscreen = false;
+}
+
 } // namespace FaluEngine

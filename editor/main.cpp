@@ -19,6 +19,7 @@
 #include "renderer/dx11/DX11Renderer.h"
 #include "panels/HierarchyPanel.h"
 #include "panels/InspectorPanel.h"
+#include "panels/SceneViewPanel.h"
 #include <imgui.h>
 
 class EditorScene : public FaluEngine::Scene
@@ -82,11 +83,12 @@ public:
     void onUpdate(float deltaTime) override 
     { 
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
-        if (m_cameraCtrl && !ImGui::GetIO().WantCaptureMouse)
+        if (m_cameraCtrl && m_sceneView.isFocused())
             m_cameraCtrl->onUpdate(deltaTime);
     }
     void onRender()                override 
     {
+        auto* renderer = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
         auto* scene = getSceneManager().getActive();
 
         if (ImGui::BeginMainMenuBar())
@@ -116,7 +118,6 @@ public:
                             FaluEngine::PhysicsSystem::get().registerScene(*scene);
                             FALU_ENGINE_LOG_INFO("Scene loaded: {}", loadPath);
                         }
-
                     }
                 }
 
@@ -156,10 +157,26 @@ public:
         ImGuiID dockId = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockId, { 0.0f,0.0f }, ImGuiDockNodeFlags_PassthruCentralNode);
         ImGui::End();
-
+        // Hierarchy Render
         m_hierarchy.draw(scene);
-
+        // Inspector Render
         m_inspector.draw(scene, m_hierarchy.getSelected());
+
+        m_sceneView.beginFrame();
+
+        if (renderer && scene)
+        {// SceneRender
+            uint32_t w = static_cast<uint32_t>(m_sceneView.getWidth());
+            uint32_t h = static_cast<uint32_t>(m_sceneView.getHeight());
+            if (w < 1) w = 1;
+            if (h < 1) h = 1;
+
+            renderer->beginOffscreen(w, h);
+            scene->onRender();
+            renderer->endOffscreen();
+        }
+        // SceneViewRender
+        m_sceneView.drawImage(renderer);
 
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
@@ -170,7 +187,7 @@ public:
         }
         ImGui::End();
     }
-    void onShutdown()              override 
+    void onShutdown() override 
     {
         LOG_INFO("FaluEngine Editor shutdown");
     }
@@ -180,6 +197,7 @@ private:
     std::unique_ptr<FaluEngine::CameraController> m_cameraCtrl;
     Editor::HierarchyPanel m_hierarchy;
     Editor::InspectorPanel m_inspector;
+    Editor::SceneViewPanel m_sceneView;
 
 };
 
