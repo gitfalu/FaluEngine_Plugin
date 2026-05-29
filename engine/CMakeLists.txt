@@ -47,6 +47,7 @@ engine_add_module(scene
         scene/Scene.cpp
         scene/Entity.cpp
         scene/CameraController.cpp
+        scene/SceneSerializer.cpp
     DEPS
         engine_core
         EnTT::EnTT

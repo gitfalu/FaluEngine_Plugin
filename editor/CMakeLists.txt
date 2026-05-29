@@ -2,8 +2,17 @@ cmake_minimum_required(VERSION 3.25)
 
 find_package(imgui CONFIG REQUIRED)
 
-add_executable(FaluEngineEditor WIN32 main.cpp)
+add_executable(FaluEngineEditor
+    main.cpp
+    panels/HierarchyPanel.cpp
+    panels/InspectorPanel.cpp
+)
 add_executable(FaluEngine::Editor ALIAS FaluEngineEditor)
+
+target_include_directories(FaluEngineEditor PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${joltphysics_SOURCE_DIR}
+)
 
 target_link_libraries(FaluEngineEditor PRIVATE
     FaluEngine::Engine

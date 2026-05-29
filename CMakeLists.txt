@@ -34,6 +34,7 @@ endif()
 # ここではグローバル定義しない（再定義警告の原因になる）
 # ENGINE_DEBUG だけ Debug ビルド時に定義する
 add_compile_definitions($<$<CONFIG:Debug>:ENGINE_DEBUG>)
+add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
 add_subdirectory(engine)
 add_subdirectory(runtime)
