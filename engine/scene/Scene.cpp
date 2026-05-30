@@ -64,27 +64,66 @@ void Scene::onRender() {
         Application::getInstance().getRenderer());
     if (!renderer) return;
 
-    auto view = m_registry.view<CameraComponent>();
-    for (auto entity : view)
-    {
-        auto& cam = view.get<CameraComponent>(entity);
-        if (!cam.isPrimary) continue;
 
-        float aspect = 
-            static_cast<float>(renderer->getWidth()) /
-            static_cast<float>(renderer->getHeight());
-        if (std::abs(aspect - cam.camera.getAspectRatio()) > 0.001f) {
-            cam.camera.setPerspective(
-                cam.camera.getFovDeg(), aspect,
-                cam.camera.getNearClip(), cam.camera.getFarClip());
+    //====== ライト情報を収集して更新 ======
+    {
+        LightCB lightCB;
+        lightCB.lightCount = 0;
+
+        // カメラを更新しつつカメラ位置を取得
+        auto camView = m_registry.view<CameraComponent>();
+        for (auto entity : camView)
+        {
+            auto& cam = camView.get<CameraComponent>(entity);
+            if (!cam.isPrimary) continue;
+
+            float aspect = 
+                static_cast<float>(renderer->getWidth()) /
+                static_cast<float>(renderer->getHeight());
+            if (std::abs(aspect - cam.camera.getAspectRatio()) > 0.001f) {
+                cam.camera.setPerspective(
+                    cam.camera.getFovDeg(), aspect,
+                    cam.camera.getNearClip(), cam.camera.getFarClip());
+            }
+
+            renderer->setViewProjection(
+                cam.camera.getView(), cam.camera.getProjection()
+            );
+
+            if (cam.isPrimary) {
+                lightCB.cameraPos = cam.camera.getPosition();
+            }
+
+            break;
         }
 
-        renderer->setViewProjection(
-            cam.camera.getView(), cam.camera.getProjection()
-        );
+        auto lightView = m_registry.view<LightComponent, TransformComponent>();
+        for (auto entity : lightView)
+        {
+            if (lightCB.lightCount >= 16) break;
+            auto& lc = lightView.get<LightComponent>(entity);
+            auto& lt = lightView.get<TransformComponent>(entity);
+            if (!lc.enable)continue;
 
-        break;
+            LightData& ld = lightCB.lights[lightCB.lightCount++];
+            ld.position = { lt.position.x,lt.position.y,lt.position.z ,1.0f};
+            ld.color = { lc.color.r,lc.color.g ,lc.color.b,lc.intensity };
+            ld.type = static_cast<int>(lc.type);
+            ld.range = lc.range;
+            ld.spotInner = glm::radians(lc.spotInner);
+            ld.spotOuter = glm::radians(lc.spotOuter);
+
+            glm::vec3 forward = lc.type == LightType::Directional ?
+                glm::vec3(0.0f, -1.0f, 0.0f) :
+                glm::normalize(lt.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+
+            ld.direction = { forward.x,forward.y,forward.z ,0.0f};
+                
+        }
+        
+        renderer->updateLights(lightCB);
     }
+
     // MeshComponent を持つエンティティをレンダラーへ送る
     auto meshView = m_registry.view<MeshComponent, TransformComponent>();
     for(auto entity : meshView)
@@ -116,15 +155,23 @@ void Scene::onRender() {
 
         for (const auto& sub : mesh.cachedMesh->subMeshes) {
             if (mesh.cachedTexture && mesh.cachedTexture->srv) {
+                // ノーマルマップのキャッシュ
+                if (!mesh.normalMapPath.empty() && !mesh.cachedNormalMap)
+                    mesh.cachedNormalMap = AssetManager::get()
+                    .load<TextureAsset>(mesh.normalMapPath);
+
                 renderer->drawSubMeshTextured(
                     sub.indexOffset, sub.indexCount,
                     transform.getMatrix(),
-                    mesh.cachedTexture->srv.Get()
+                    mesh.cachedTexture->srv.Get(),
+                    mesh.cachedNormalMap ? mesh.cachedNormalMap->srv.Get() : nullptr
                 );
             }
             else
             {
-                renderer->drawSubMesh(sub.indexOffset, sub.indexCount, transform.getMatrix());
+                renderer->drawSubMesh(
+                    sub.indexOffset, sub.indexCount, 
+                    transform.getMatrix());
             }
         }
     }

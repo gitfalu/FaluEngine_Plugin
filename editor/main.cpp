@@ -20,7 +20,9 @@
 #include "panels/HierarchyPanel.h"
 #include "panels/InspectorPanel.h"
 #include "panels/SceneViewPanel.h"
+#include "core/InputManager.h"
 #include <imgui.h>
+#include <ImGuizmo.h>
 
 class EditorScene : public FaluEngine::Scene
 {
@@ -54,6 +56,13 @@ public:
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
 
+        auto light = createEntity("DirectionalLight");
+        light.getComponent<FaluEngine::TransformComponent>().position = { 0.0f,5.0f,0.0f };
+        auto& lc = light.addComponent<FaluEngine::LightComponent>();
+        lc.type = FaluEngine::LightType::Directional;
+        lc.color = { 1.0f,1.0f,0.0f };
+        lc.intensity = 1.0f;
+
         FaluEngine::PhysicsSystem::get().registerScene(*this);
         FALU_ENGINE_LOG_INFO("EditorScene entered - {} entities", entityCount());
     }
@@ -85,6 +94,12 @@ public:
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
         if (m_cameraCtrl && m_sceneView.isFocused())
             m_cameraCtrl->onUpdate(deltaTime);
+
+        // Gizmo Shortcut
+        auto& input = FaluEngine::InputManager::get();
+        if (input.isKeyPressed(FaluEngine::Key::W)) m_sceneView.setMode(Editor::GizmoMode::Translate);
+        if (input.isKeyPressed(FaluEngine::Key::E)) m_sceneView.setMode(Editor::GizmoMode::Rotate);
+        if (input.isKeyPressed(FaluEngine::Key::R)) m_sceneView.setMode(Editor::GizmoMode::Scale);
     }
     void onRender()                override 
     {
@@ -177,6 +192,9 @@ public:
         }
         // SceneViewRender
         m_sceneView.drawImage(renderer);
+        m_sceneView.drawGizmo(scene, m_hierarchy.getSelected());
+
+        m_sceneView.endFrame();
 
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));

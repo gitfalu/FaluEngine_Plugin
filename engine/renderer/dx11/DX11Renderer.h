@@ -25,15 +25,47 @@ struct Vertex {
     glm::vec3 position;
     glm::vec4 color;
     glm::vec2 uv;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
+};
+
+enum class LightType : int
+{
+    Directional = 0,
+    Point = 1,
+    Spot = 2,
+};
+
+struct LightData {
+    glm::vec4 position;
+    glm::vec4 direction;
+    glm::vec4 color;
+    int type;
+    float range;
+    float spotInner;
+    float spotOuter;
+};
+
+struct LightCB {
+    LightData lights[16];
+    int lightCount = 0;
+    glm::vec3 cameraPos = {};
+    glm::vec4 ambientColor = { 0.1f,0.1f,0.1f,1.0f };
+    float _pad[4];
 };
 
 struct TransformCB {
     glm::mat4 mvp;
+    glm::mat4 world;
+    glm::mat4 normalMatrix;
 };
 
 struct MaterialCB {
     int useTexture = 0;
-    float _pad[3] = {};
+    int useNormalMap = 0;
+    float shininess = 32.0f;
+    float _pad = 0.0f;
 };
 
 class DX11Renderer final : public IRenderer {
@@ -46,6 +78,8 @@ public:
 
     void beginFrame() override;
     void endFrame()   override;
+
+    void updateLights(const LightCB& lightData);
 
     void renderScene(const Scene& scene) override;
     void onResize(uint32_t width, uint32_t height) override;
@@ -71,7 +105,8 @@ public:
 
     void drawSubMeshTextured(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform,
-        ID3D11ShaderResourceView* srv);
+        ID3D11ShaderResourceView* srv,
+        ID3D11ShaderResourceView* normalSRV = nullptr);
 
     void setClearColor(float r, float g, float b, float a = 1.0f) {
         m_clearColor[0] = r; m_clearColor[1] = g;
@@ -114,6 +149,7 @@ private:
 
     ComPtr<ID3D11Buffer> m_transformCB;
     ComPtr<ID3D11Buffer> m_materialCB;
+    ComPtr<ID3D11Buffer> m_lightCB;
     ComPtr<ID3D11SamplerState> m_samplerState;
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;

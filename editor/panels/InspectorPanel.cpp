@@ -36,6 +36,7 @@ namespace Editor
 		drawCameraComponent(scene, selected);
 		drawRigidbodyComponent(scene, selected);
 		drawScriptComponent(scene, selected);
+		drawLightComponent(scene, selected);
 
 		ImGui::Spacing();
 
@@ -151,6 +152,34 @@ namespace Editor
 		}
 	}
 
+	void InspectorPanel::drawLightComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))return;
+
+		if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+			auto& lc = scene->registry().get<FaluEngine::LightComponent>(entity);
+
+			const char* types[] = { "Directional","Point","Spot" };
+			int type = static_cast<int>(lc.type);
+			if (ImGui::Combo("Type", &type, types, 3))
+				lc.type = static_cast<FaluEngine::LightType>(type);
+
+			ImGui::ColorEdit3("Color", glm::value_ptr(lc.color));
+			ImGui::DragFloat("Intensity", &lc.intensity, 0.01f, 0.0f, 100.0f);
+
+			if (lc.type != FaluEngine::LightType::Directional)
+				ImGui::DragFloat("Range", &lc.range, 0.1f, 0.0f, 1000.0f);
+
+			if (lc.type == FaluEngine::LightType::Spot)
+			{
+				ImGui::DragFloat("Inner Angle", &lc.spotInner, 0.5f, 0.0f, 90.0f);
+				ImGui::DragFloat("Outer Angle", &lc.spotOuter, 0.5f, 0.0f, 90.0f);
+			}
+
+			ImGui::Checkbox("Enabled", &lc.enable);
+		}
+	}
+
 	void InspectorPanel::drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity)
 	{
 		if (!ImGui::BeginPopup("AddComponent")) return;
@@ -179,6 +208,12 @@ namespace Editor
 		{
 			if (ImGui::MenuItem("Script Component"))
 				e.addComponent<FaluEngine::ScriptComponent>();
+		}
+
+		if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))
+		{
+			if (ImGui::MenuItem("Light Component"))
+				e.addComponent<FaluEngine::LightComponent>();
 		}
 
 		ImGui::EndPopup();

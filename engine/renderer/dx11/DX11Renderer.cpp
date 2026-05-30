@@ -149,7 +149,14 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         offsetof(Vertex,position),D3D11_INPUT_PER_VERTEX_DATA,0},
         {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,
         offsetof(Vertex,color),D3D11_INPUT_PER_VERTEX_DATA,0},
-        {"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,offsetof(Vertex,uv),}
+        {"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,
+        offsetof(Vertex,uv),D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
+        offsetof(Vertex,normal),D3D11_INPUT_PER_VERTEX_DATA},
+        {"TANGENT",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
+        offsetof(Vertex,tangent),D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"BINORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
+        offsetof(Vertex,bitangent),D3D11_INPUT_PER_VERTEX_DATA,0},
     };
 
     hr = m_device->CreateInputLayout(
@@ -172,6 +179,18 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     hr = m_device->CreateBuffer(&cbd, nullptr, &m_transformCB);
     if (FAILED(hr)) {
         LOG_ERROR("CreateBuffer (TransformCB) failed");
+        return false;
+    }
+
+    D3D11_BUFFER_DESC lbd = {};
+    lbd.ByteWidth = sizeof(LightCB);
+    lbd.Usage = D3D11_USAGE_DYNAMIC;
+    lbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    lbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    hr = m_device->CreateBuffer(&lbd, nullptr, &m_lightCB);
+    if (FAILED(hr))
+    {
+        LOG_ERROR("CreateBuffer (LightCB) failed");
         return false;
     }
 
@@ -232,6 +251,14 @@ void DX11Renderer::updateViewport()
     m_context->RSSetViewports(1, &vp);
 }
 
+void DX11Renderer::updateLights(const LightCB& lightData)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_lightCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &lightData, sizeof(LightCB));
+    m_context->Unmap(m_lightCB.Get(), 0);
+}
+
 void DX11Renderer::shutdown() {
     if (m_context) m_context->ClearState();
     LOG_INFO("DX11Renderer shutdown");
@@ -251,6 +278,7 @@ void DX11Renderer::beginFrame() {
     m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
 
     m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
     m_boundVB = nullptr;
@@ -331,47 +359,60 @@ void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
     //-MaterialCB：テクスチャ無し
     MaterialCB mat;
     mat.useTexture = 0;
+    mat.useNormalMap = 0;
     D3D11_MAPPED_SUBRESOURCE matMapped;
     m_context->Map(m_materialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &matMapped);
     memcpy(matMapped.pData, &mat, sizeof(MaterialCB));
     m_context->Unmap(m_materialCB.Get(), 0);
 
+    TransformCB cb;
     //-mvp 更新
-    glm::mat4 mvp = m_projection * m_view * transform;
-    glm::mat4 mvpT = glm::transpose(mvp);
+    cb.mvp = glm::transpose(m_projection * m_view * transform);
+    cb.world = glm::transpose(transform);
+    cb.normalMatrix = glm::transpose(glm::inverse(transform));
 
     D3D11_MAPPED_SUBRESOURCE mapped;
     m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    memcpy(mapped.pData, &mvpT, sizeof(glm::mat4));
+    memcpy(mapped.pData, &cb, sizeof(TransformCB));
     m_context->Unmap(m_transformCB.Get(), 0);
 
     m_context->DrawIndexed(indexCount, indexOffset, 0);
 }
 
-void DX11Renderer::drawSubMeshTextured(uint32_t indexOffset, uint32_t indexCount, const glm::mat4& transform, ID3D11ShaderResourceView* srv)
+void DX11Renderer::drawSubMeshTextured(
+    uint32_t indexOffset, uint32_t indexCount, 
+    const glm::mat4& transform, ID3D11ShaderResourceView* srv,
+    ID3D11ShaderResourceView* normalSRV)
 {
     MaterialCB mat;
     mat.useTexture = 1;
+    mat.useNormalMap = normalSRV ? 1 : 0;
+    mat.shininess = 32.0f;
     D3D11_MAPPED_SUBRESOURCE matMapped;
     m_context->Map(m_materialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &matMapped);
     memcpy(matMapped.pData, &mat, sizeof(MaterialCB));
     m_context->Unmap(m_materialCB.Get(), 0);
 
-    //-Bind Texture
-    m_context->PSSetShaderResources(0, 1, &srv);
-
     //-Update MVP 
-    glm::mat4 mvp = m_projection * m_view * transform;
-    glm::mat4 mvpT = glm::transpose(mvp);
+    TransformCB cb;
+    cb.mvp = glm::transpose(m_projection * m_view * transform);
+    cb.world = glm::transpose(transform);
+    cb.normalMatrix = glm::transpose(glm::inverse(transform));
+
     D3D11_MAPPED_SUBRESOURCE mapped;
     m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD,0,&mapped);
-    memcpy(mapped.pData, &mvpT, sizeof(glm::mat4));
+    memcpy(mapped.pData, &cb, sizeof(TransformCB));
     m_context->Unmap(m_transformCB.Get(),0);
+
+    //-Bind Texture
+    m_context->PSSetShaderResources(0, 1, &srv);
+    if (normalSRV)
+        m_context->PSSetShaderResources(1, 1, &normalSRV);
 
     m_context->DrawIndexed(indexCount,indexOffset,0);
 
-    ID3D11ShaderResourceView* nullSRV = nullptr;
-    m_context->PSSetShaderResources(0, 1, &nullSRV);
+    ID3D11ShaderResourceView* nullSRV[2] = { nullptr,nullptr };
+    m_context->PSSetShaderResources(0, 2, nullSRV);
 }
 
 void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
@@ -393,8 +434,9 @@ void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_context->VSSetShader(m_vertexShader.Get(),nullptr,0);
     m_context->PSSetShader(m_pixelShader.Get(),nullptr,0);
-    m_context->VSSetConstantBuffers(0,1,m_transformCB.GetAddressOf());
-    m_context->PSSetConstantBuffers(1,1,m_materialCB.GetAddressOf());
+    m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0,1,m_samplerState.GetAddressOf());
 
     m_boundVB = nullptr;

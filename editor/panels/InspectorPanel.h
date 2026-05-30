@@ -20,6 +20,7 @@ namespace Editor
 		void drawCameraComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawRigidbodyComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawScriptComponent(FaluEngine::Scene* scene, entt::entity entity);
+		void drawLightComponent(FaluEngine::Scene* scene, entt::entity entity);
 
 		void drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity);
 	};

@@ -18,6 +18,7 @@ find_package(sol2     CONFIG REQUIRED)  # Lua バインディング
 find_package(Lua      CONFIG REQUIRED)
 find_package(assimp   CONFIG REQUIRED)  # メッシュローダー
 find_package(imgui CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 find_package(directxtex CONFIG REQUIRED)
 find_package(DirectX  REQUIRED)         # DirectX 11 (カスタム Find モジュール)
 find_package(nlohmann_json CONFIG REQUIRED)

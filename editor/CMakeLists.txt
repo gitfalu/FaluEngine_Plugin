@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 find_package(imgui CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 add_executable(FaluEngineEditor
     main.cpp
@@ -18,6 +19,7 @@ target_include_directories(FaluEngineEditor PRIVATE
 target_link_libraries(FaluEngineEditor PRIVATE
     FaluEngine::Engine
     imgui::imgui
+    imguizmo::imguizmo
 )
 
 set_target_properties(FaluEngineEditor PROPERTIES

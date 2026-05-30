@@ -11,6 +11,7 @@
 #include "asset/loaders/MeshLoader.h"
 #include "script/ScriptInstance.h"
 #include "asset/loaders/TextureLoader.h"
+#include "renderer/dx11/DX11Renderer.h"
 
 namespace FaluEngine {
 
@@ -43,11 +44,13 @@ struct TransformComponent {
 struct MeshComponent {
     std::string meshPath;   // AssetManager に渡すパス
     std::string texturePath;// 空の場合はカラーのみで表示
+    std::string normalMapPath;
     std::string materialPath;
     bool visible = true;
 
     std::shared_ptr<MeshAsset> cachedMesh;
     std::shared_ptr<TextureAsset> cachedTexture;
+    std::shared_ptr<TextureAsset> cachedNormalMap;
 };
 
 // ── カメラ ────────────────────────────────────────────────────────────────
@@ -69,6 +72,17 @@ struct ScriptComponent {
     {
         instance.release();
     }
+};
+
+struct LightComponent
+{
+    FaluEngine::LightType type = FaluEngine::LightType::Directional;
+    glm::vec3 color = { 1.0f,1.0f,1.0f };
+    float intensity = 1.0f;
+    float range = 10.0f;
+    float spotInner = 20.0f;
+    float spotOuter = 30.0f;
+    bool enable = true;
 };
 
 } // namespace FaluEngine

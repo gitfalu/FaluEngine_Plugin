@@ -56,7 +56,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
             }
             else
             {
-                vert.color = { 1.0f,1.0f,1.0f,1.0f };
+                vert.color = { 0.9f,0.9f,0.9f,1.0f };
             }
 
             //- UV
@@ -70,6 +70,38 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
             else
             {
                 vert.uv = { 0.0f,0.0f };
+            }
+
+            // normal
+            if (mesh->HasNormals()) {
+                vert.normal = {
+                    mesh->mNormals[v].x,
+                    mesh->mNormals[v].y,
+                    mesh->mNormals[v].z
+                };
+            }
+            else
+            {
+                vert.normal = { 0.0f,1.0f,0.0f };
+            }
+
+            // tangent / bitangent
+            if (mesh->HasTangentsAndBitangents()) {
+                vert.tangent = {
+                    mesh->mTangents[v].x,
+                    mesh->mTangents[v].y,
+                    mesh->mTangents[v].z
+                };
+                vert.bitangent = {
+                    mesh->mBitangents[v].x,
+                    mesh->mBitangents[v].y,
+                    mesh->mBitangents[v].z
+                };
+            }
+            else
+            {
+                vert.tangent = { 1.0f,0.0f,0.0f };
+                vert.bitangent = { 0.0f,0.0f,1.0f };
             }
 
             asset->vertices.push_back(vert);
