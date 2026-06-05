@@ -101,6 +101,35 @@ namespace Editor
 				m.cachedMesh = nullptr;// キャッシュをリセット
 			}
 
+			//===== Drag & Drop ====
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+
+					std::string ext = std::filesystem::path(droppedPath).extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
+						m.meshPath = droppedPath;
+						m.cachedMesh = nullptr;
+					}
+					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
+						std::string stem = std::filesystem::path(droppedPath).stem().string();
+						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
+						if (stem.find("normal") != std::string::npos ||
+							stem.find("_nrm") != std::string::npos) {
+							m.normalMapPath = droppedPath;
+							m.cachedNormalMap = nullptr;
+						}
+						else {
+							m.texturePath = droppedPath;
+							m.cachedTexture = nullptr;
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
 
 			//==== Texture Path =====
 			ImGui::Text("Texture");
@@ -125,6 +154,36 @@ namespace Editor
 				m.cachedTexture = nullptr;
 			}
 
+			//===== Drag & Drop ====
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+
+					std::string ext = std::filesystem::path(droppedPath).extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
+						m.meshPath = droppedPath;
+						m.cachedMesh = nullptr;
+					}
+					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
+						std::string stem = std::filesystem::path(droppedPath).stem().string();
+						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
+						if (stem.find("normal") != std::string::npos ||
+							stem.find("_nrm") != std::string::npos) {
+							m.normalMapPath = droppedPath;
+							m.cachedNormalMap = nullptr;
+						}
+						else {
+							m.texturePath = droppedPath;
+							m.cachedTexture = nullptr;
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			//=== Normal Map Path =====
 			ImGui::Text("Normal Map");
 			ImGui::SameLine();
@@ -147,6 +206,36 @@ namespace Editor
 				auto fullpath = FaluEngine::PathResolver::resolveStr(normalBuf);
 				m.normalMapPath = fullpath;
 				m.cachedNormalMap = nullptr;
+			}
+
+			//===== Drag & Drop ====
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = 
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+
+					std::string ext = std::filesystem::path(droppedPath).extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
+						m.meshPath = droppedPath;
+						m.cachedMesh = nullptr;
+					}
+					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
+						std::string stem = std::filesystem::path(droppedPath).stem().string();
+						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
+						if (stem.find("normal") != std::string::npos ||
+							stem.find("_nrm") != std::string::npos) {
+							m.normalMapPath = droppedPath;
+							m.cachedNormalMap = nullptr;
+						}
+						else {
+							m.texturePath = droppedPath;
+							m.cachedTexture = nullptr;
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
 			}
 
 

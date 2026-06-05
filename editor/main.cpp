@@ -20,6 +20,7 @@
 #include "panels/HierarchyPanel.h"
 #include "panels/InspectorPanel.h"
 #include "panels/SceneViewPanel.h"
+#include "panels/ContentBrowserPanel.h"
 #include "core/InputManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -89,6 +90,9 @@ public:
             if (!m_cameraCtrl)
                 m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(c.camera);
                 });
+
+        m_contentBrowser.init(
+            std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
 
         LOG_INFO("FaluEngine Editor started");
     }
@@ -199,6 +203,8 @@ public:
 
         m_sceneView.endFrame();
 
+        m_contentBrowser.draw(scene, m_hierarchy.getSelected());
+
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
         if (scene)
@@ -219,6 +225,7 @@ private:
     Editor::HierarchyPanel m_hierarchy;
     Editor::InspectorPanel m_inspector;
     Editor::SceneViewPanel m_sceneView;
+    Editor::ContentBrowserPanel m_contentBrowser;
 
 };
 
