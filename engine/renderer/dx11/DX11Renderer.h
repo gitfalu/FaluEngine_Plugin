@@ -14,9 +14,9 @@
 #include <wrl/client.h>
 #include <glm/glm.hpp>
 #include <string>
+#include <memory>
 #include "RenderTexture.h"
 #include "ShadowMap.h"
-#include <memory>
 
 using Microsoft::WRL::ComPtr;
 
