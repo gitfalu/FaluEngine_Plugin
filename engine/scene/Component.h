@@ -83,6 +83,12 @@ struct LightComponent
     float spotInner = 20.0f;
     float spotOuter = 30.0f;
     bool enable = true;
+
+    // Shadow settings
+    bool castShadow = true;
+    bool softShadow = true;
+    float shadowBias = 0.005f;
+    float pcfRadius = 1.5f;
 };
 
 } // namespace FaluEngine

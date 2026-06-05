@@ -3,10 +3,11 @@
 #include "scene/Entity.h"
 #include "scene/Component.h"
 #include "physics/RigidbodyComponent.h"
+#include "core/PathResolver.h"
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
-
+#include <filesystem>
 
 namespace Editor
 {
@@ -75,8 +76,90 @@ namespace Editor
 		{
 			auto& m = scene->registry().get<FaluEngine::MeshComponent>(entity);
 
-			ImGui::Text("Mesh: %s", m.meshPath.empty() ? "(none)" : m.meshPath.c_str());
-			ImGui::Text("Texture: %s", m.texturePath.empty() ? "(none)" : m.texturePath.c_str());
+			//==== Mesh Path ====
+
+			ImGui::Text("Mesh Path");
+			ImGui::SameLine();
+
+			// ファイルの存在を確認
+			bool meshExists = std::filesystem::exists(m.meshPath);
+			if (!m.meshPath.empty() && !meshExists)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
+				ImGui::PopStyleColor();
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not Found");
+			}
+
+			char meshBuf[512];
+			strncpy_s(meshBuf, m.meshPath.c_str(), sizeof(meshBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##MeshPath", meshBuf, sizeof(meshBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				auto fullpath = FaluEngine::PathResolver::resolveStr(meshBuf);
+				m.meshPath = fullpath;
+				m.cachedMesh = nullptr;// キャッシュをリセット
+			}
+
+
+			//==== Texture Path =====
+			ImGui::Text("Texture");
+			ImGui::SameLine();
+
+			bool texExists = std::filesystem::exists(m.texturePath);
+			if (!m.texturePath.empty() && !texExists)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
+				ImGui::PopStyleColor();
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not found");
+			}
+
+			char texBuf[512];
+			strncpy_s(texBuf, m.texturePath.c_str(), sizeof(texBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##TexPath", texBuf, sizeof(texBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				auto fullpath = FaluEngine::PathResolver::resolveStr(texBuf);
+				m.texturePath = fullpath;
+				m.cachedTexture = nullptr;
+			}
+
+			//=== Normal Map Path =====
+			ImGui::Text("Normal Map");
+			ImGui::SameLine();
+
+			bool normalExists = m.normalMapPath.empty() ||
+				std::filesystem::exists(m.normalMapPath);
+			if (!m.normalMapPath.empty() && !normalExists)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
+				ImGui::PopStyleColor();
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not found");
+			}
+
+			char normalBuf[512];
+			strncpy_s(normalBuf, m.normalMapPath.c_str(), sizeof(normalBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##NormalPath", normalBuf, sizeof(normalBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				auto fullpath = FaluEngine::PathResolver::resolveStr(normalBuf);
+				m.normalMapPath = fullpath;
+				m.cachedNormalMap = nullptr;
+			}
+
+
+			//===== Mesh Info ====
+			if (m.cachedMesh)
+			{
+				ImGui::Separator();
+				ImGui::TextDisabled("Vertices: %zu Indices: %zu SubMeshes: %zu",
+					m.cachedMesh->vertices.size(),
+					m.cachedMesh->indices.size(),
+					m.cachedMesh->subMeshes.size());
+			}
+
 			ImGui::Checkbox("Visible", &m.visible);
 		}
 	}
@@ -177,6 +260,16 @@ namespace Editor
 			}
 
 			ImGui::Checkbox("Enabled", &lc.enable);
+
+			ImGui::Separator();
+			ImGui::Text("Shadow");
+			ImGui::Checkbox("Cast Shadow", &lc.castShadow);
+			if (lc.castShadow)
+			{
+				ImGui::Checkbox("Soft Shadow", &lc.softShadow);
+				ImGui::DragFloat("Bias", &lc.shadowBias, 0.0001f, 0.0f, 0.1f, "%.4f");
+				ImGui::DragFloat("PCF Radius", &lc.pcfRadius, 0.1f, 0.0f, 5.0f);
+			}
 		}
 	}
 

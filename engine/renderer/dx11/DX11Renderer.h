@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include "RenderTexture.h"
+#include "ShadowMap.h"
 #include <memory>
 
 using Microsoft::WRL::ComPtr;
@@ -50,9 +51,10 @@ struct LightData {
 struct LightCB {
     LightData lights[16];
     int lightCount = 0;
+    float _pad0[3];
     glm::vec3 cameraPos = {};
-    glm::vec4 ambientColor = { 0.1f,0.1f,0.1f,1.0f };
-    float _pad[4];
+    float _pad1;
+    glm::vec4 ambientColor = { 0.2f,0.2f,0.2f,1.0f };
 };
 
 struct TransformCB {
@@ -67,6 +69,22 @@ struct MaterialCB {
     float shininess = 32.0f;
     float _pad = 0.0f;
 };
+
+struct ShadowCB
+{
+    glm::mat4 lightMVP;
+};
+
+struct ShadowSettingsCB
+{
+    glm::mat4 lightSpaceMatrix;
+    int useShadow = 0;
+    int useSoftShadow = 0;
+    float shadowBias = 0.005f;
+    float pcfRadius = 1.5f;
+};
+
+
 
 class DX11Renderer final : public IRenderer {
 public:
@@ -108,6 +126,7 @@ public:
         ID3D11ShaderResourceView* srv,
         ID3D11ShaderResourceView* normalSRV = nullptr);
 
+
     void setClearColor(float r, float g, float b, float a = 1.0f) {
         m_clearColor[0] = r; m_clearColor[1] = g;
         m_clearColor[2] = b; m_clearColor[3] = a;
@@ -124,6 +143,18 @@ public:
     void setViewProjection(const glm::mat4& view, const glm::mat4& projection) {
         m_view = view;
         m_projection = projection;
+    }
+
+    void beginShadowPass(const glm::mat4& lightView, const glm::mat4& lightProj);
+    void endShadowPass();
+
+    void drawShadowMesh(uint32_t indexOffset, uint32_t indexCount,
+        const glm::mat4& world);
+    
+    void updateShadowSettings(const ShadowSettingsCB& settings);
+    
+    [[nodiscard]] ShadowMap* getDirShadowMap() const noexcept {
+        return m_dirShadowMap.get();
     }
 
 private:
@@ -150,6 +181,13 @@ private:
     ComPtr<ID3D11Buffer> m_transformCB;
     ComPtr<ID3D11Buffer> m_materialCB;
     ComPtr<ID3D11Buffer> m_lightCB;
+    ComPtr<ID3D11Buffer> m_shadowCB;
+    ComPtr<ID3D11Buffer> m_shadowSettingsCB;
+    ComPtr<ID3D11VertexShader> m_shadowVS;
+    ComPtr<ID3D11InputLayout> m_shadowInputLayout;
+    ComPtr<ID3D11RasterizerState> m_shadowRasterizerState;
+    std::unique_ptr<ShadowMap> m_dirShadowMap;
+
     ComPtr<ID3D11SamplerState> m_samplerState;
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;

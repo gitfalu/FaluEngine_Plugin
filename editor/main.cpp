@@ -52,6 +52,7 @@ public:
         bTransform.position = { 0.0f,3.0f,0.0f };
         auto& bMesh = box.addComponent<FaluEngine::MeshComponent>();
         bMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
+        bMesh.texturePath = FaluEngine::PathResolver::resolveStr("assets/textures/box.png");
         auto& bRb = box.addComponent<FaluEngine::RigidbodyComponent>();
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
@@ -62,6 +63,8 @@ public:
         lc.type = FaluEngine::LightType::Directional;
         lc.color = { 1.0f,1.0f,0.0f };
         lc.intensity = 1.0f;
+        lc.castShadow = true;
+        lc.softShadow = true;
 
         FaluEngine::PhysicsSystem::get().registerScene(*this);
         FALU_ENGINE_LOG_INFO("EditorScene entered - {} entities", entityCount());

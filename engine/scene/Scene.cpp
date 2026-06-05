@@ -64,6 +64,7 @@ void Scene::onRender() {
         Application::getInstance().getRenderer());
     if (!renderer) return;
 
+    
 
     //====== ライト情報を収集して更新 ======
     {
@@ -85,7 +86,70 @@ void Scene::onRender() {
                     cam.camera.getFovDeg(), aspect,
                     cam.camera.getNearClip(), cam.camera.getFarClip());
             }
+            
+            // Shadow Pass
+            {
+                auto lightView = m_registry.view<LightComponent, TransformComponent>();
+                for (auto entity : lightView)
+                {
+                    auto& lc = lightView.get<LightComponent>(entity);
+                    auto& lt = lightView.get<TransformComponent>(entity);
+                    if (!lc.enable || lc.type != LightType::Directional) continue;
+                    if (!lc.castShadow) continue;
 
+                    glm::vec3 lightDir = glm::normalize(
+                        lt.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::vec3 lightPos = -lightDir * 20.0f;
+
+                    glm::mat4 lView = glm::lookAtLH(
+                        lightPos, lightPos + lightDir, glm::vec3(0.0f, 1.0f, 0.0f));
+                    glm::mat4 lProj = glm::orthoLH(
+                        -20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f);
+
+                    renderer->beginShadowPass(lView, lProj);
+
+                    auto meshView = m_registry.view<MeshComponent, TransformComponent>();
+                    for (auto meshEntity : meshView)
+                    {
+                        auto& mesh = meshView.get<MeshComponent>(meshEntity);
+                        auto& transform = meshView.get<TransformComponent>(meshEntity);
+                        if (!mesh.visible || !mesh.cachedMesh) continue;
+
+                        auto* vb = mesh.cachedMesh->vertexBuffer.Get();
+                        auto* ib = mesh.cachedMesh->indexBuffer.Get();
+                        if (renderer->getBoundVB() != vb)
+                        {
+                            UINT stride = sizeof(Vertex), offset = 0;
+                            renderer->getContext()->IASetVertexBuffers(
+                                0, 1, &vb, &stride, &offset);
+                            renderer->setBoundVB(vb);
+                        }
+                        if (renderer->getBoundIB() != ib)
+                        {
+                            UINT stride = sizeof(Vertex), offset = 0;
+                            renderer->getContext()->IASetIndexBuffer(
+                                ib, DXGI_FORMAT_R32_UINT, 0);
+                            renderer->setBoundIB(ib);
+                        }
+                        for (const auto& sub : mesh.cachedMesh->subMeshes)
+                            renderer->drawShadowMesh(sub.indexOffset, sub.indexCount,
+                                transform.getMatrix());
+
+                    }
+                    renderer->endShadowPass();
+
+                    ShadowSettingsCB shadowSettings;
+                    shadowSettings.lightSpaceMatrix = glm::transpose(lProj * lView);
+                    shadowSettings.useShadow = 1;
+                    shadowSettings.useSoftShadow = lc.softShadow ? 1 : 0;
+                    shadowSettings.shadowBias = lc.shadowBias;
+                    shadowSettings.pcfRadius = lc.pcfRadius;
+                    renderer->updateShadowSettings(shadowSettings);
+
+                    break;
+                }
+            }
+            
             renderer->setViewProjection(
                 cam.camera.getView(), cam.camera.getProjection()
             );
@@ -113,9 +177,10 @@ void Scene::onRender() {
             ld.spotInner = glm::radians(lc.spotInner);
             ld.spotOuter = glm::radians(lc.spotOuter);
 
-            glm::vec3 forward = lc.type == LightType::Directional ?
-                glm::vec3(0.0f, -1.0f, 0.0f) :
+            glm::vec3 forward = (lc.type == LightType::Directional) ?
+                glm::normalize(lt.rotation * glm::vec3(0.0f, 0.0f, 1.0f)) :
                 glm::normalize(lt.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+                
 
             ld.direction = { forward.x,forward.y,forward.z ,0.0f};
                 

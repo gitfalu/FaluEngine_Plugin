@@ -217,6 +217,71 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     sd.MaxLOD = D3D11_FLOAT32_MAX;
     m_device->CreateSamplerState(&sd, &m_samplerState);
 
+    //===== Shadow Depth Shader =======
+    std::string shadowVSPath = PathResolver::resolveStr("assets/shaders/ShadowDepth.vert.hlsl");
+    if (!std::filesystem::exists(shadowVSPath)) {
+        LOG_ERROR("Shadow vertex shader nor found: {}", shadowVSPath);
+        return false;
+    }
+
+    ComPtr<ID3DBlob> shadowVSBlob, shadowErrorBlob;
+    hr = D3DCompileFromFile(
+        std::wstring(shadowVSPath.begin(), shadowVSPath.end()).c_str(),
+        nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+        &shadowVSBlob, &shadowErrorBlob
+    );
+    if (FAILED(hr)) {
+        LOG_ERROR("Shadow VS error: {}", 
+            static_cast<char*>(shadowErrorBlob->GetBufferPointer()));
+        return false;
+    }
+
+    m_device->CreateVertexShader(
+        shadowVSBlob->GetBufferPointer(),
+        shadowVSBlob->GetBufferSize(),
+        nullptr,&m_shadowVS
+        );
+    D3D11_INPUT_ELEMENT_DESC shadowLayout[] = {
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
+        offsetof(Vertex,position),D3D11_INPUT_PER_VERTEX_DATA,0},
+    };
+
+    m_device->CreateInputLayout(
+        shadowLayout, 1,
+        shadowVSBlob->GetBufferPointer(),
+        shadowVSBlob->GetBufferSize(),
+        &m_shadowInputLayout
+    );
+
+    D3D11_BUFFER_DESC scbd = {};
+    scbd.ByteWidth = sizeof(ShadowCB);
+    scbd.Usage = D3D11_USAGE_DYNAMIC;
+    scbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    scbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    m_device->CreateBuffer(&scbd, nullptr, &m_shadowCB);
+
+    D3D11_BUFFER_DESC sscbd = {};
+    sscbd.ByteWidth = sizeof(ShadowSettingsCB);
+    sscbd.Usage = D3D11_USAGE_DYNAMIC;
+    sscbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    sscbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    m_device->CreateBuffer(&sscbd, nullptr, &m_shadowSettingsCB);
+
+    m_dirShadowMap = std::make_unique<ShadowMap>();
+    m_dirShadowMap->create(m_device.Get(), 2048);
+
+    D3D11_RASTERIZER_DESC srd = {};
+    srd.FillMode = D3D11_FILL_SOLID;
+    srd.CullMode = D3D11_CULL_BACK;
+    srd.FrontCounterClockwise = FALSE;
+    srd.DepthBias = 1000;
+    srd.DepthBiasClamp = 0.0f;
+    srd.SlopeScaledDepthBias = 1.0f;
+    srd.DepthClipEnable = TRUE;
+    m_device->CreateRasterizerState(&srd, &m_shadowRasterizerState);
+
+    LOG_INFO("Shadow shaders initialized");
+
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
     return true;
 }
@@ -235,6 +300,22 @@ bool DX11Renderer::createDefaultStates()
     dsd.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     dsd.DepthFunc = D3D11_COMPARISON_LESS;
     m_device->CreateDepthStencilState(&dsd, &m_depthStencilState);
+
+    D3D11_SAMPLER_DESC shadowSD = {};
+    shadowSD.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+    shadowSD.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSD.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSD.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSD.BorderColor[0] = 1.0f;
+    shadowSD.BorderColor[1] = 1.0f;
+    shadowSD.BorderColor[2] = 1.0f;
+    shadowSD.BorderColor[3] = 1.0f;
+    shadowSD.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+    shadowSD.MaxLOD = D3D11_FLOAT32_MAX;
+
+    ComPtr<ID3D11SamplerState> shadowSampler;
+    m_device->CreateSamplerState(&shadowSD, &shadowSampler);
+    m_context->PSSetSamplers(1, 1, shadowSampler.GetAddressOf());
 
     return true;
 }
@@ -280,6 +361,8 @@ void DX11Renderer::beginFrame() {
     m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
     m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    if (m_dirShadowMap && m_dirShadowMap->isValid())
+        m_dirShadowMap->bindForRead(m_context.Get(), 2);
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
@@ -369,7 +452,7 @@ void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
     //-mvp 更新
     cb.mvp = glm::transpose(m_projection * m_view * transform);
     cb.world = glm::transpose(transform);
-    cb.normalMatrix = glm::transpose(glm::inverse(transform));
+    cb.normalMatrix = glm::inverse(transform);
 
     D3D11_MAPPED_SUBRESOURCE mapped;
     m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -377,6 +460,10 @@ void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
     m_context->Unmap(m_transformCB.Get(), 0);
 
     m_context->DrawIndexed(indexCount, indexOffset, 0);
+
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_context->PSSetShaderResources(0, 1, &nullSRV);
+    m_context->PSSetShaderResources(1, 1, &nullSRV);
 }
 
 void DX11Renderer::drawSubMeshTextured(
@@ -397,7 +484,7 @@ void DX11Renderer::drawSubMeshTextured(
     TransformCB cb;
     cb.mvp = glm::transpose(m_projection * m_view * transform);
     cb.world = glm::transpose(transform);
-    cb.normalMatrix = glm::transpose(glm::inverse(transform));
+    cb.normalMatrix = glm::inverse(transform);
 
     D3D11_MAPPED_SUBRESOURCE mapped;
     m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD,0,&mapped);
@@ -410,9 +497,6 @@ void DX11Renderer::drawSubMeshTextured(
         m_context->PSSetShaderResources(1, 1, &normalSRV);
 
     m_context->DrawIndexed(indexCount,indexOffset,0);
-
-    ID3D11ShaderResourceView* nullSRV[2] = { nullptr,nullptr };
-    m_context->PSSetShaderResources(0, 2, nullSRV);
 }
 
 void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
@@ -438,6 +522,8 @@ void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
     m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
     m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0,1,m_samplerState.GetAddressOf());
+    if (m_dirShadowMap && m_dirShadowMap->isValid())
+        m_dirShadowMap->bindForRead(m_context.Get(), 2);
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
@@ -455,6 +541,77 @@ void DX11Renderer::endOffscreen()
     m_context->RSSetViewports(1, &vp);
 
     m_offscreen = false;
+}
+
+void DX11Renderer::beginShadowPass(const glm::mat4& lightView, const glm::mat4& lightProj)
+{
+    m_dirShadowMap->lightView = lightView;
+    m_dirShadowMap->lightProjection = lightProj;
+    m_dirShadowMap->clear(m_context.Get());
+    m_dirShadowMap->bindForWrite(m_context.Get());
+
+    m_context->RSSetState(m_shadowRasterizerState.Get());
+    m_context->IASetInputLayout(m_shadowInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_shadowVS.Get(), nullptr, 0);
+    m_context->PSSetShader(nullptr, nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_shadowCB.GetAddressOf());
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+}
+
+void DX11Renderer::endShadowPass()
+{
+    if (m_offscreen && m_sceneRT->isValid())
+    {
+        m_sceneRT->bindAsRenderTarget(m_context.Get());
+    }
+    else
+    {
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+        updateViewport();
+    }
+
+    // シェーダーを通常描画用に戻す ← 追加
+    m_context->IASetInputLayout(m_inputLayout.Get());
+    m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+    m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
+    m_context->RSSetState(m_rasterizerState.Get());
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+
+    m_dirShadowMap->bindForRead(m_context.Get(), 2);
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+}
+
+void DX11Renderer::drawShadowMesh(uint32_t indexOffset, uint32_t indexCount, const glm::mat4& world)
+{
+    ShadowCB cb;
+    cb.lightMVP = glm::transpose(m_dirShadowMap->lightProjection *
+        m_dirShadowMap->lightView * world);
+    
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_shadowCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &cb, sizeof(ShadowCB));
+    m_context->Unmap(m_shadowCB.Get(), 0);
+
+    m_context->DrawIndexed(indexCount, indexOffset,0);
+}
+
+void DX11Renderer::updateShadowSettings(const ShadowSettingsCB& settings)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_shadowSettingsCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &settings, sizeof(ShadowSettingsCB));
+    m_context->Unmap(m_shadowSettingsCB.Get(), 0);
+
+    m_context->PSSetConstantBuffers(3, 1, m_shadowSettingsCB.GetAddressOf());
 }
 
 } // namespace FaluEngine
