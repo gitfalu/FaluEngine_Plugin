@@ -45,13 +45,19 @@ namespace FaluEngine
 		root["version"] = "1.0";
 		root["entities"] = json::array();
 
+		std::unordered_map<entt::entity, uint32_t> entityToId;
+		uint32_t idCounter = 0;
+
 		auto view = m_scene.registry().view<TagComponent>();
+		for (auto entity : view)
+			entityToId[entity] = idCounter++;
+
 		for (auto entity : view)
 		{
 			json entityJson;
 			auto& tag = view.get<TagComponent>(entity);
 			entityJson["name"] = tag.name;
-			entityJson["id"] = static_cast<uint32_t>(entity);
+			entityJson["id"] = entityToId[entity];
 
 			if (m_scene.registry().all_of<TransformComponent>(entity))
 			{
@@ -111,6 +117,16 @@ namespace FaluEngine
 				};
 			}
 
+			// RelationshipComponent
+			if (m_scene.registry().all_of<RelationshipComponent>(entity))
+			{
+				auto& rel = m_scene.registry().get<RelationshipComponent>(entity);
+				if (rel.parent != entt::null && entityToId.count(rel.parent))
+				{
+					entityJson["parent"] = entityToId[rel.parent];
+				}
+			}
+
 			root["entities"].push_back(entityJson);
 		}
 
@@ -158,10 +174,14 @@ namespace FaluEngine
 			m_scene.destroyEntity(e);
 		}
 
+		std::unordered_map<uint32_t, entt::entity> idMap;
+
 		// restoration
 		for (const auto& entityJson : root["entities"]) {
 			std::string name = entityJson.value("name", "Entity");
 			Entity entity = m_scene.createEntity(name);
+			uint32_t savedId = entityJson.value("id", 0u);
+			idMap[savedId] = static_cast<entt::entity>(entity);
 
 			// TransformComponent
 			if (entityJson.contains("transform")) {
@@ -219,7 +239,27 @@ namespace FaluEngine
 				auto& sc = entity.addComponent<ScriptComponent>();
 				sc.scriptPath = sj.value("scriptPath", "");
 			}
+
+			
 		}
+
+		// eŽqŠÖŒW‚Ì•œŒ³
+		for (const auto& entityJson : root["entities"])
+		{
+			if (!entityJson.contains("parent")) continue;
+
+			uint32_t savedId = entityJson.value("id", 0u);
+			uint32_t savedParentId = entityJson.value("parent", 0u);
+
+			auto itChild = idMap.find(savedId);
+			auto itParent = idMap.find(savedParentId);
+			if (itChild == idMap.end() || itParent == idMap.end()) continue;
+
+			Entity child(itChild->second, &m_scene);
+			Entity parent(itParent->second, &m_scene);
+			child.setParent(parent);
+		}
+
 
 		LOG_INFO("SceneSerializer: loaded '{}' ({} entities)", 
 			path, root["entities"].size());

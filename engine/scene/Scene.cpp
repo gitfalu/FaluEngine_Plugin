@@ -23,14 +23,40 @@ Entity Scene::createEntity(const std::string& name) {
     Entity e(m_registry.create(), this);
     e.addComponent<TagComponent>(name);
     e.addComponent<TransformComponent>();
+    e.addComponent<RelationshipComponent>();
     LOG_TRACE("Entity created: '{}'", name);
     return e;
 }
 
 void Scene::destroyEntity(Entity entity) {
-    if (entity.hasComponent<TagComponent>()) {
-        LOG_TRACE("Entity destroyed: '{}'", entity.getComponent<TagComponent>().name);
+    if (!entity.isValid()) return;
+
+    if (m_registry.all_of<RelationshipComponent>(entity))
+    {
+        auto& rel = m_registry.get<RelationshipComponent>(entity);
+
+        auto children = rel.children;
+        for (auto child : children)
+        {
+            Entity childEntity(child, this);
+            destroyEntity(childEntity);
+        }
+
+        if (rel.parent != entt::null)
+        {
+            auto& parentRel = m_registry.get<RelationshipComponent>(rel.parent);
+            parentRel.children.erase(
+                std::remove(parentRel.children.begin(),
+                    parentRel.children.end(),
+                    static_cast<entt::entity>(entity)),
+                parentRel.children.end());
+        }
     }
+
+    if (entity.hasComponent<TagComponent>())
+        LOG_TRACE("Entity destroyed: '{}'",
+            entity.getComponent<TagComponent>().name);
+
     m_registry.destroy(entity);
 }
 
@@ -58,13 +84,37 @@ void Scene::onUpdate(float deltaTime) {
     }
 }
 
-void Scene::onRender() {
+static void computeWorldMatrix(entt::registry& registry, entt::entity entity,
+    const glm::mat4& parentWorld)
+{
+    auto& transform = registry.get<TransformComponent>(entity);
+    transform.worldMatrix = parentWorld * transform.getMatrix();
 
+    if (registry.all_of<RelationshipComponent>(entity))
+    {
+        auto& rel = registry.get<RelationshipComponent>(entity);
+        for (auto child : rel.children)
+            computeWorldMatrix(registry, child, transform.worldMatrix);
+    }
+}
+
+void Scene::onRender() {
     auto* renderer = static_cast<DX11Renderer*>(
         Application::getInstance().getRenderer());
     if (!renderer) return;
 
-    
+    auto relView = m_registry.view<RelationshipComponent, TransformComponent>();
+    for (auto entity : relView)
+    {
+        auto& rel = relView.get<RelationshipComponent>(entity);
+        if (rel.parent == entt::null)
+        {
+            auto& t = relView.get<TransformComponent>(entity);
+            t.worldMatrix = t.getMatrix();
+            for (auto child : rel.children)
+                computeWorldMatrix(m_registry, child, t.worldMatrix);
+        }
+    }
 
     //====== ライト情報を収集して更新 ======
     {
@@ -227,7 +277,7 @@ void Scene::onRender() {
 
                 renderer->drawSubMeshTextured(
                     sub.indexOffset, sub.indexCount,
-                    transform.getMatrix(),
+                    transform.worldMatrix,
                     mesh.cachedTexture->srv.Get(),
                     mesh.cachedNormalMap ? mesh.cachedNormalMap->srv.Get() : nullptr
                 );
@@ -236,7 +286,7 @@ void Scene::onRender() {
             {
                 renderer->drawSubMesh(
                     sub.indexOffset, sub.indexCount, 
-                    transform.getMatrix());
+                    transform.worldMatrix);
             }
         }
     }

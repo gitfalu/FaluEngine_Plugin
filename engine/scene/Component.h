@@ -15,6 +15,13 @@
 
 namespace FaluEngine {
 
+//=== 親子関係 =========================================
+struct RelationshipComponent {
+    entt::entity parent = entt::null;
+    std::vector<entt::entity> children;
+};
+
+
 // ── 名前タグ ──────────────────────────────────────────────────────────────
 struct TagComponent {
     std::string name;
@@ -33,6 +40,8 @@ struct TransformComponent {
         glm::mat4 s = glm::scale(glm::mat4(1.0f), scale);
         return t * r * s;
     }
+
+    glm::mat4 worldMatrix = glm::mat4(1.0f);
 
     // 便利メソッド
     void setRotationEuler(float pitchDeg, float yawDeg, float rollDeg) {

@@ -96,7 +96,7 @@ namespace Editor
 
 		if (!scene->registry().all_of<FaluEngine::TransformComponent>(selected))return;
 		auto& transform = scene->registry().get<FaluEngine::TransformComponent>(selected);
-		glm::mat4 worldMatrix = transform.getMatrix();
+		glm::mat4 worldMatrix = transform.worldMatrix;
 
 		ImGuizmo::OPERATION operation;
 		switch (m_mode)
@@ -127,8 +127,18 @@ namespace Editor
 			glm::quat rotation;
 			glm::decompose(worldMatrix, scale, rotation, translation, skew, perspective);
 
+
+			auto& rel = scene->registry().get<FaluEngine::RelationshipComponent>(selected);
+			if (rel.parent != entt::null)
+			{
+				auto& parentTransform = scene->registry()
+					.get<FaluEngine::TransformComponent>(rel.parent);
+				glm::mat4 parentInv = glm::inverse(parentTransform.worldMatrix);
+				glm::mat4 local = parentInv * worldMatrix;
+				glm::decompose(local, scale, rotation, translation, skew, perspective);
+			}
 			transform.position = translation;
-			transform.rotation = rotation;
+			transform.rotation = glm::normalize(rotation);
 			transform.scale = scale;
 		}
 	}

@@ -37,6 +37,17 @@ public:
         getRegistry().remove<T>(m_handle);
     }
 
+    //===== 親子関係 =====
+    void setParent(Entity parent);
+    void removeParent();
+    void addChild(Entity child);
+    void removeChild(Entity child);
+
+    [[nodiscard]] Entity getParent() const;
+    [[nodiscard]] std::vector<Entity> getChildren() const;
+    [[nodiscard]] bool hasParent() const;
+    [[nodiscard]] bool hasChildren() const;
+
     [[nodiscard]] bool isValid() const noexcept {
         return m_handle != entt::null && m_scene != nullptr;
     }
