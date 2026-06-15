@@ -94,6 +94,35 @@ public:
         m_contentBrowser.init(
             std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
 
+        FaluEngine::EventBus::get().subscribe<FaluEngine::MouseMovedEvent>(
+            [this](const FaluEngine::MouseMovedEvent& e) {
+                if (!m_cameraCtrl) return;
+                if (m_sceneView.isFocused())
+                    m_cameraCtrl->onMouseMove(e.x, e.y);
+                else
+                    m_cameraCtrl->resetMouseState();
+        });
+
+        FaluEngine::EventBus::get().subscribe<FaluEngine::MouseButtonPressedEvent>(
+            [this](const FaluEngine::MouseButtonPressedEvent& e) {
+                if (m_cameraCtrl && m_sceneView.isFocused())
+                    m_cameraCtrl->onMouseButtonDown(
+                        static_cast<int>(e.button));
+            });
+
+        FaluEngine::EventBus::get().subscribe<FaluEngine::MouseButtonReleasedEvent>(
+            [this](const FaluEngine::MouseButtonReleasedEvent& e) {
+                if (m_cameraCtrl && m_sceneView.isFocused())
+                    m_cameraCtrl->onMouseButtonUp(
+                        static_cast<int>(e.button));
+            });
+
+        FaluEngine::EventBus::get().subscribe<FaluEngine::MouseScrolledEvent>(
+            [this](const FaluEngine::MouseScrolledEvent& e) {
+                if (m_cameraCtrl && m_sceneView.isFocused())
+                    m_cameraCtrl->onMouseScroll(e.offsetY);
+            });
+
         LOG_INFO("FaluEngine Editor started");
     }
     void onUpdate(float deltaTime) override 
@@ -102,8 +131,24 @@ public:
         if (m_cameraCtrl && m_sceneView.isFocused())
             m_cameraCtrl->onUpdate(deltaTime);
 
-        // Gizmo Shortcut
+        // F key focus
         auto& input = FaluEngine::InputManager::get();
+        if (input.isKeyPressed(FaluEngine::Key::F) &&
+            m_sceneView.isFocused() &&
+            m_hierarchy.getSelected() != entt::null)
+        {
+            auto* scene = getSceneManager().getActive();
+            if (scene && scene->registry()
+                .all_of<FaluEngine::TransformComponent>(
+                    m_hierarchy.getSelected())) {
+                auto& t = scene->registry().get<FaluEngine::TransformComponent>(
+                    m_hierarchy.getSelected());
+                if (m_cameraCtrl)
+                    m_cameraCtrl->focusOn(t.worldMatrix[3]);
+            }
+        }
+
+        // Gizmo Shortcut
         if (input.isKeyPressed(FaluEngine::Key::W)) m_sceneView.setMode(Editor::GizmoMode::Translate);
         if (input.isKeyPressed(FaluEngine::Key::E)) m_sceneView.setMode(Editor::GizmoMode::Rotate);
         if (input.isKeyPressed(FaluEngine::Key::R)) m_sceneView.setMode(Editor::GizmoMode::Scale);
@@ -185,6 +230,16 @@ public:
         m_inspector.draw(scene, m_hierarchy.getSelected());
 
         m_sceneView.beginFrame();
+
+        if (m_cameraCtrl)
+        {
+            m_cameraCtrl->setViewRect(
+                m_sceneView.getWindowPosX(),
+                m_sceneView.getWindowPosY(),
+                m_sceneView.getWidth(),
+                m_sceneView.getHeight()
+            );
+        }
 
         if (renderer && scene)
         {// SceneRender

@@ -41,6 +41,7 @@ namespace FaluEngine {
 		[[nodiscard]] const glm::vec3& getPosition() const noexcept { return m_position; }
 		[[nodiscard]] const glm::vec3& getFront() const noexcept { return m_front; }
 		[[nodiscard]] const glm::vec3& getRight() const noexcept { return m_right; }
+		[[nodiscard]] const glm::vec3& getUp() const noexcept { return m_up; }
 
 		void setPosition(const glm::vec3& pos) { m_position = pos; recalculate(); }
 		void setYaw(float yaw) { m_yaw = yaw; recalculate(); }

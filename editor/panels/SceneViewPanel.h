@@ -29,6 +29,8 @@ namespace Editor
 		void endFrame();
 
 		[[nodiscard]] bool isFocused() const noexcept { return m_focused; }
+		[[nodiscard]] float getWindowPosX()const noexcept { return m_windowPos.x; }
+		[[nodiscard]] float getWindowPosY()const noexcept { return m_windowPos.y; }
 		[[nodiscard]] float getWidth() const noexcept { return m_width; }
 		[[nodiscard]] float getHeight() const noexcept { return m_height; }
 		[[nodiscard]] GizmoMode getMode() const noexcept { return m_mode; }
