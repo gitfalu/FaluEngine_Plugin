@@ -282,6 +282,122 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     LOG_INFO("Shadow shaders initialized");
 
+    //==== SkySphere Shader ========
+    {
+        std::string skyVSPath = PathResolver::resolveStr("assets/shaders/SkySphere.vert.hlsl");
+        std::string skyPSPath = PathResolver::resolveStr("assets/shaders/SkySphere.pixel.hlsl");
+
+        ComPtr<ID3DBlob> skyVSBlob, skyPSBlob, skyErrBlob;
+
+        hr = D3DCompileFromFile(
+            std::wstring(skyVSPath.begin(), skyVSPath.end()).c_str(),
+            nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+            &skyVSBlob, &skyErrBlob);
+        if (FAILED(hr))
+        {
+            if (skyErrBlob)
+                LOG_ERROR("Sky VS error: {}",
+                    static_cast<char*>(skyErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        hr = D3DCompileFromFile(
+            std::wstring(skyPSPath.begin(), skyPSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &skyPSBlob, &skyErrBlob);
+        if (FAILED(hr))
+        {
+            if (skyErrBlob)
+                LOG_ERROR("Sky PS error: {}",
+                    static_cast<char*>(skyErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        m_device->CreateVertexShader(
+            skyVSBlob->GetBufferPointer(), skyVSBlob->GetBufferSize(),
+            nullptr, &m_skyVS
+        );
+
+        m_device->CreatePixelShader(
+            skyPSBlob->GetBufferPointer(), skyPSBlob->GetBufferSize(),
+            nullptr, &m_skyPS
+        );
+
+        // InputLayout
+        D3D11_INPUT_ELEMENT_DESC skyLayout[] = {
+            {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,
+            D3D11_INPUT_PER_VERTEX_DATA,0},
+        };
+
+        m_device->CreateInputLayout(
+            skyLayout, 1,
+            skyVSBlob->GetBufferPointer(), skyVSBlob->GetBufferSize(),
+            &m_skyInputLayout);
+
+        auto makeCB = [&](UINT size, ComPtr<ID3D11Buffer>& buf)
+            {
+                D3D11_BUFFER_DESC d = {};
+                d.ByteWidth = size;
+                d.Usage = D3D11_USAGE_DYNAMIC;
+                d.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+                d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+                m_device->CreateBuffer(&d, nullptr, &buf);
+            };
+
+        makeCB(sizeof(SkyCB), m_skyCB);
+        makeCB(sizeof(SkySettingsCB), m_skySettingsCB);
+
+        //=== 球のメッシュを生成 ========
+        const int stacks = 32;
+        const int slices = 32;
+        const float radius = 1.0f;
+        std::vector<glm::vec3> verts;
+        std::vector<uint32_t> idxs;
+
+        for (int i = 0; i <= stacks; ++i)
+        {
+            float phi = glm::pi<float>() * i / stacks;
+            for (int j = 0; j <= slices; ++j)
+            {
+                float theta = 2.0f * glm::pi<float>() * j / slices;
+                glm::vec3 v;
+                v.x = radius * sinf(phi) * cosf(theta);
+                v.y = radius * cosf(phi);
+                v.z = radius * sinf(phi) * sinf(theta);
+                verts.push_back(v);
+            }
+        }
+        for (int i = 0; i < stacks; ++i) 
+        {
+            for (int j = 0; j < slices; ++j)
+            {
+                uint32_t a = i * (slices + 1) + j;
+                uint32_t b = a + slices + 1;
+                idxs.push_back(a); idxs.push_back(b); idxs.push_back(a + 1);
+                idxs.push_back(b); idxs.push_back(b + 1); idxs.push_back(a + 1);
+            }
+        }
+        m_skyIndexCount = static_cast<uint32_t>(idxs.size());
+
+        D3D11_BUFFER_DESC vbd = {};
+        vbd.ByteWidth = static_cast<UINT>(sizeof(glm::vec3) * verts.size());
+        vbd.Usage = D3D11_USAGE_IMMUTABLE;
+        vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA vd = {};
+        vd.pSysMem = verts.data();
+        m_device->CreateBuffer(&vbd, &vd, &m_skyVB);
+
+        D3D11_BUFFER_DESC ibd = {};
+        ibd.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * idxs.size());
+        ibd.Usage = D3D11_USAGE_IMMUTABLE;
+        ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA id = {};
+        id.pSysMem = idxs.data();
+        m_device->CreateBuffer(&ibd, &id, &m_skyIB);
+
+        LOG_INFO("SkySphere shaders initialized");
+    }
+
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
     return true;
 }
@@ -316,6 +432,12 @@ bool DX11Renderer::createDefaultStates()
     ComPtr<ID3D11SamplerState> shadowSampler;
     m_device->CreateSamplerState(&shadowSD, &shadowSampler);
     m_context->PSSetSamplers(1, 1, shadowSampler.GetAddressOf());
+
+    D3D11_DEPTH_STENCIL_DESC skyDSD = {};
+    skyDSD.DepthEnable = TRUE;
+    skyDSD.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    skyDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+    m_device->CreateDepthStencilState(&skyDSD, &m_skyDepthState);
 
     return true;
 }
@@ -366,6 +488,8 @@ void DX11Renderer::beginFrame() {
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
 }
 
 void DX11Renderer::endFrame() {
@@ -437,8 +561,28 @@ void DX11Renderer::drawMesh(const Vertex* vertices, uint32_t vertexCount, const 
 }
 
 void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
-    const glm::mat4& transform)
+    const glm::mat4& transform, ShaderAsset* customShader)
 {
+    //===== Shader切り替え =======
+    ID3D11VertexShader* vs = customShader && customShader->valid
+        ? customShader->vertexShader.Get() : m_vertexShader.Get();
+    ID3D11PixelShader* ps = customShader && customShader->valid
+        ? customShader->pixelShader.Get() : m_pixelShader.Get();
+    ID3D11InputLayout* layout = customShader && customShader->valid
+        ? customShader->inputLayout.Get() : m_inputLayout.Get();
+
+    if (m_boundVS != vs)
+    {
+        m_context->VSSetShader(vs, nullptr, 0);
+        m_boundVS = vs;
+    }
+    if (m_boundPS != ps)
+    {
+        m_context->PSSetShader(ps, nullptr, 0);
+        m_boundPS = ps;
+    }
+    m_context->IASetInputLayout(layout);
+
     //-MaterialCB：テクスチャ無し
     MaterialCB mat;
     mat.useTexture = 0;
@@ -469,8 +613,29 @@ void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
 void DX11Renderer::drawSubMeshTextured(
     uint32_t indexOffset, uint32_t indexCount, 
     const glm::mat4& transform, ID3D11ShaderResourceView* srv,
-    ID3D11ShaderResourceView* normalSRV)
+    ID3D11ShaderResourceView* normalSRV,
+    ShaderAsset* customShader)
 {
+    //===== Shader切り替え =======
+    ID3D11VertexShader* vs = customShader && customShader->valid
+        ? customShader->vertexShader.Get() : m_vertexShader.Get();
+    ID3D11PixelShader* ps = customShader && customShader->valid
+        ? customShader->pixelShader.Get() : m_pixelShader.Get();
+    ID3D11InputLayout* layout = customShader && customShader->valid
+        ? customShader->inputLayout.Get() : m_inputLayout.Get();
+
+    if (m_boundVS != vs)
+    {
+        m_context->VSSetShader(vs, nullptr, 0);
+        m_boundVS = vs;
+    }
+    if (m_boundPS != ps)
+    {
+        m_context->PSSetShader(ps, nullptr, 0);
+        m_boundPS = ps;
+    }
+    m_context->IASetInputLayout(layout);
+
     MaterialCB mat;
     mat.useTexture = 1;
     mat.useNormalMap = normalSRV ? 1 : 0;
@@ -497,6 +662,58 @@ void DX11Renderer::drawSubMeshTextured(
         m_context->PSSetShaderResources(1, 1, &normalSRV);
 
     m_context->DrawIndexed(indexCount,indexOffset,0);
+}
+
+void DX11Renderer::drawSkySphere(const glm::mat4& view, const glm::mat4& proj, const SkySettingsCB& settings, ID3D11ShaderResourceView* srv)
+{
+    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
+
+    SkyCB skyCB;
+    skyCB.viewProj = glm::transpose(proj * viewNoTrans);
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_skyCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &skyCB, sizeof(SkyCB));
+    m_context->Unmap(m_skyCB.Get(), 0);
+
+    m_context->Map(m_skySettingsCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &settings, sizeof(SkySettingsCB));
+    m_context->Unmap(m_skySettingsCB.Get(), 0);
+
+    m_context->OMSetDepthStencilState(m_skyDepthState.Get(), 0);
+
+    m_context->RSSetState(nullptr);
+
+    m_context->IASetInputLayout(m_skyInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_skyVS.Get(), nullptr, 0);
+    m_context->PSSetShader(m_skyPS.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_skyCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_skySettingsCB.GetAddressOf());
+
+    if (srv) m_context->PSSetShaderResources(0, 1, &srv);
+
+    UINT stride = sizeof(glm::vec3), offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_skyVB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+    m_context->DrawIndexed(m_skyIndexCount, 0, 0);
+
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+    m_context->IASetInputLayout(m_inputLayout.Get());
+    m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+    m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+
+    if (srv)
+    {
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        m_context->PSSetShaderResources(0, 1, &nullSRV);
+    }
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
 }
 
 void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
@@ -527,6 +744,8 @@ void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
     m_offscreen = true;
 }
 
@@ -588,6 +807,8 @@ void DX11Renderer::endShadowPass()
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
 }
 
 void DX11Renderer::drawShadowMesh(uint32_t indexOffset, uint32_t indexCount, const glm::mat4& world)

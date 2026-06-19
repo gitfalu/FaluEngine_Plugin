@@ -67,6 +67,12 @@ public:
         lc.castShadow = true;
         lc.softShadow = true;
 
+        auto sky = createEntity("Sky");
+        auto& skyComp = sky.addComponent<FaluEngine::SkySphereComponent>();
+        skyComp.topColor = { 0.1f,0.3f,0.8f,1.0f };
+        skyComp.horizonColor = { 0.6f,0.75f,0.9f,1.0f };
+        skyComp.bottomColor = { 0.2f,0.15f,0.1f,1.0f };
+
         FaluEngine::PhysicsSystem::get().registerScene(*this);
         FALU_ENGINE_LOG_INFO("EditorScene entered - {} entities", entityCount());
     }

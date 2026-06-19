@@ -12,6 +12,7 @@
 #include "script/ScriptInstance.h"
 #include "asset/loaders/TextureLoader.h"
 #include "renderer/dx11/DX11Renderer.h"
+#include "asset/loaders/ShaderLoader.h"
 
 namespace FaluEngine {
 
@@ -54,12 +55,15 @@ struct MeshComponent {
     std::string meshPath;   // AssetManager に渡すパス
     std::string texturePath;// 空の場合はカラーのみで表示
     std::string normalMapPath;
+    std::string vertexShaderPath;
+    std::string pixelShaderPath;
     std::string materialPath;
     bool visible = true;
 
     std::shared_ptr<MeshAsset> cachedMesh;
     std::shared_ptr<TextureAsset> cachedTexture;
     std::shared_ptr<TextureAsset> cachedNormalMap;
+    std::shared_ptr<ShaderAsset> cachedShader;
 };
 
 // ── カメラ ────────────────────────────────────────────────────────────────
@@ -98,6 +102,18 @@ struct LightComponent
     bool softShadow = true;
     float shadowBias = 0.005f;
     float pcfRadius = 1.5f;
+};
+
+struct SkySphereComponent
+{
+    std::string texturePath;
+    glm::vec4 topColor = { 0.1f,0.3f,0.7f,1.0f };
+    glm::vec4 horizonColor = { 0.6f,0.7f,0.8f,1.0f };
+    glm::vec4 bottomColor = { 0.2f,0.15f,0.1f,1.0f };
+    float exposure = 1.0f;
+    bool enabled = true;
+
+    std::shared_ptr<FaluEngine::TextureAsset> cachedTexture;
 };
 
 } // namespace FaluEngine

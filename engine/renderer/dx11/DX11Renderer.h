@@ -17,6 +17,7 @@
 #include <memory>
 #include "RenderTexture.h"
 #include "ShadowMap.h"
+#include "asset/loaders/ShaderLoader.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -84,7 +85,20 @@ struct ShadowSettingsCB
     float pcfRadius = 1.5f;
 };
 
+struct SkyCB
+{
+    glm::mat4 viewProj;
+};
 
+struct SkySettingsCB
+{
+    glm::vec4 topColor;
+    glm::vec4 bottomColor;
+    glm::vec4 horizonColor;
+    int useTexture = 0;
+    float exposure = 1.0f;
+    float _pad[2] = {};
+};
 
 class DX11Renderer final : public IRenderer {
 public:
@@ -108,24 +122,33 @@ public:
     // DirectX オブジェクトへの直接アクセス（他サブシステムから使う場合）
     [[nodiscard]] ID3D11Device*        getDevice()  const noexcept { return m_device.Get(); }
     [[nodiscard]] ID3D11DeviceContext* getContext() const noexcept { return m_context.Get(); }
+    [[nodiscard]] const glm::mat4& getView() const noexcept { return m_view; }
+    [[nodiscard]] const glm::mat4& getProjection() const noexcept { return m_projection; }
 
     [[nodiscard]] ID3D11Buffer* getBoundVB() const noexcept { return m_boundVB; }
     [[nodiscard]] ID3D11Buffer* getBoundIB() const noexcept { return m_boundIB; }
     void setBoundVB(ID3D11Buffer* vb)noexcept { m_boundVB = vb; }
     void setBoundIB(ID3D11Buffer* ib)noexcept { m_boundIB = ib; }
+    [[nodiscard]] ID3D11VertexShader* getBoundVS() const noexcept { return m_boundVS; }
+    [[nodiscard]] ID3D11PixelShader* getBoundPS() const noexcept { return m_boundPS; }
 
     void drawMesh(const Vertex* vertices, uint32_t vertexCount,
         const uint32_t* indices, uint32_t indexCount,
         const glm::mat4& transform
     );
     void drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
-        const glm::mat4& transform);
+        const glm::mat4& transform,
+        ShaderAsset* customShader = nullptr);
 
     void drawSubMeshTextured(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform,
         ID3D11ShaderResourceView* srv,
-        ID3D11ShaderResourceView* normalSRV = nullptr);
+        ID3D11ShaderResourceView* normalSRV = nullptr,
+        ShaderAsset* customShader = nullptr);
 
+    void drawSkySphere(const glm::mat4& view, const glm::mat4& proj,
+        const SkySettingsCB& settings,
+        ID3D11ShaderResourceView* srv = nullptr);
 
     void setClearColor(float r, float g, float b, float a = 1.0f) {
         m_clearColor[0] = r; m_clearColor[1] = g;
@@ -193,8 +216,21 @@ private:
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;
 
+    // SkySphere
+    ComPtr<ID3D11VertexShader> m_skyVS;
+    ComPtr<ID3D11PixelShader> m_skyPS;
+    ComPtr<ID3D11InputLayout> m_skyInputLayout;
+    ComPtr<ID3D11Buffer> m_skyCB;
+    ComPtr<ID3D11Buffer> m_skySettingsCB;
+    ComPtr<ID3D11Buffer> m_skyVB;
+    ComPtr<ID3D11Buffer> m_skyIB;
+    ComPtr<ID3D11DepthStencilState> m_skyDepthState;
+    uint32_t m_skyIndexCount = 0;
+
     ID3D11Buffer* m_boundVB = nullptr;
     ID3D11Buffer* m_boundIB = nullptr;
+    ID3D11VertexShader* m_boundVS = nullptr;
+    ID3D11PixelShader* m_boundPS = nullptr;
     std::unique_ptr<RenderTexture> m_sceneRT;
     bool m_offscreen = false;
 

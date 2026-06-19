@@ -269,6 +269,18 @@ void Scene::onRender() {
         }
 
         for (const auto& sub : mesh.cachedMesh->subMeshes) {
+            ShaderAsset* customShader = nullptr;
+            if (!mesh.vertexShaderPath.empty() && !mesh.pixelShaderPath.empty())
+            {
+                if (!mesh.cachedShader)
+                {
+                    std::string key = mesh.vertexShaderPath + "|" + mesh.pixelShaderPath;
+                    mesh.cachedShader = AssetManager::get().load<ShaderAsset>(key);
+                }
+                if (mesh.cachedShader && mesh.cachedShader->valid)
+                    customShader = mesh.cachedShader.get();
+            }
+            
             if (mesh.cachedTexture && mesh.cachedTexture->srv) {
                 // ノーマルマップのキャッシュ
                 if (!mesh.normalMapPath.empty() && !mesh.cachedNormalMap)
@@ -279,15 +291,44 @@ void Scene::onRender() {
                     sub.indexOffset, sub.indexCount,
                     transform.worldMatrix,
                     mesh.cachedTexture->srv.Get(),
-                    mesh.cachedNormalMap ? mesh.cachedNormalMap->srv.Get() : nullptr
+                    mesh.cachedNormalMap ? mesh.cachedNormalMap->srv.Get() : nullptr,
+                    customShader
                 );
             }
             else
             {
                 renderer->drawSubMesh(
                     sub.indexOffset, sub.indexCount, 
-                    transform.worldMatrix);
+                    transform.worldMatrix,
+                    customShader);
             }
+        }
+    }
+
+    {
+        auto skyView = m_registry.view<SkySphereComponent>();
+        for (auto entity : skyView)
+        {
+            auto& sky = skyView.get<SkySphereComponent>(entity);
+            if (!sky.enabled) continue;
+
+            if (!sky.texturePath.empty() && !sky.cachedTexture)
+                sky.cachedTexture = AssetManager::get()
+                .load<TextureAsset>(sky.texturePath);
+
+            SkySettingsCB settings;
+            settings.topColor = sky.topColor;
+            settings.bottomColor = sky.bottomColor;
+            settings.horizonColor = sky.horizonColor;
+            settings.useTexture = (!sky.texturePath.empty() &&
+                sky.cachedTexture) ? 1 : 0;
+            settings.exposure = sky.exposure;
+
+            renderer->drawSkySphere(
+                renderer->getView(), renderer->getProjection(),
+                settings,
+                settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr );
+            break;
         }
     }
 }

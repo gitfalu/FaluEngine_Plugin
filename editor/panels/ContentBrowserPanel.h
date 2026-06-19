@@ -40,17 +40,25 @@ namespace Editor {
 		void clearDragged() { m_draggedPath.clear(); }
 
 	private:
-		void refresh();
+		//= 左ペイン：フォルダツリー
+		void drawFolderTree(const std::filesystem::path& path);
+
+		//= 右ペイン：フォルダツリー
+		void drawFilePanel(FaluEngine::Scene* scene, entt::entity selected);
 		void drawGridView(FaluEngine::Scene* scene, entt::entity selected);
 		void drawListView(FaluEngine::Scene* scene, entt::entity selected);
 		void drawEntry(const ContentEntry& entry,
 			FaluEngine::Scene* scene, entt::entity selected,
 			bool isGrid);
 
+		void refresh();
 		void navigateTo(const std::filesystem::path& path);
 		AssetType detectType(const std::filesystem::path& path);
 		const char* getTypeIcon(AssetType type);
 		ImVec4 getTypeColor(AssetType type);
+
+		void applyToEntity(const ContentEntry& entry,
+			FaluEngine::Scene* scene, entt::entity selected);
 
 	private:
 		std::filesystem::path m_rootPath;
@@ -64,5 +72,7 @@ namespace Editor {
 		AssetType m_draggedType = AssetType::Unknown;
 
 		char m_searchBuf[256] = {};
+
+		float m_leftPaneWidth = 180.0f;
 	};
 }

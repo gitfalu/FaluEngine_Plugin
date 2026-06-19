@@ -22,10 +22,12 @@ namespace Editor{
 		{
 			std::vector<std::filesystem::path> crumbs;
 			std::filesystem::path p = m_currentPath;
-			while (p != m_rootPath.parent_path()) {
+			while (true) {
 				crumbs.push_back(p);
 				if (p == m_rootPath) break;
-				p = p.parent_path();
+				auto parent = p.parent_path();
+				if (parent == p) break;
+				p = parent;
 			}
 			std::reverse(crumbs.begin(), crumbs.end());
 
@@ -66,9 +68,9 @@ namespace Editor{
 
 		if (ImGui::SmallButton("[Refresh]")) refresh();
 
-		ImGui::SameLine();
 
 		if (m_gridView) {
+			ImGui::SameLine();
 			ImGui::SetNextItemWidth(80.0f);
 			ImGui::SliderFloat("##IconSize", &m_iconSize, 48.0f, 128.0f, "%.0f");
 		}
@@ -82,13 +84,29 @@ namespace Editor{
 
 		ImGui::Separator();
 
-		if (m_gridView) {
-			drawGridView(scene, selected);
-		}
-		else
+		//==== 左右ペイン =======
+		//-左ペイン：フォルダツリー
+		ImGui::BeginChild("##FolderTree", { m_leftPaneWidth,0 }, true);
+		drawFolderTree(m_rootPath);
+		ImGui::EndChild();
+
+		// リサイザー
+		ImGui::SameLine();
+		ImGui::PushStyleColor(ImGuiCol_Button, { 0.3f,0.3f,0.3f,1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f,0.5f,0.5f,1.0f });
+		ImGui::Button("##Resizer", { 4.0f,-1.0f });
+		ImGui::PopStyleColor(2);
+		if (ImGui::IsItemActive())
 		{
-			drawListView(scene, selected);
+			m_leftPaneWidth += ImGui::GetIO().MouseDelta.x;
+			m_leftPaneWidth = std::clamp(m_leftPaneWidth,80.0f,400.0f);
 		}
+
+		//-右ペイン：ファイル一覧
+		ImGui::SameLine();
+		ImGui::BeginChild("FilePanel", { 0,0 }, false);
+		drawFilePanel(scene,selected);
+		ImGui::EndChild();
 
 		ImGui::End();
 	}
@@ -98,20 +116,9 @@ namespace Editor{
 		m_entries.clear();
 		if (!std::filesystem::exists(m_currentPath)) return;
 
-		//-親ディレクトリの戻りエントリ
-		if (m_currentPath != m_rootPath)
-		{
-			ContentEntry parent;
-			parent.path = m_currentPath.parent_path();
-			parent.name = "..";
-			parent.type = AssetType::Folder;
-			parent.isDirectory = true;
-			m_entries.push_back(parent);
-		}
-
 		//-フォルダを先に、ファイルを後に並べる
 		std::vector<ContentEntry> dirs, files;
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(m_currentPath))
+		for (const auto& entry : std::filesystem::directory_iterator(m_currentPath))
 		{
 			ContentEntry ce;
 			ce.path = entry.path();
@@ -131,6 +138,60 @@ namespace Editor{
 		for (auto& d : dirs)m_entries.push_back(d);
 		for (auto& f : files) m_entries.push_back(f);
 
+	}
+
+	void ContentBrowserPanel::drawFolderTree(const std::filesystem::path& path)
+	{
+		if (!std::filesystem::exists(path)) return;
+
+		std::string name = (path == m_rootPath)
+			? "assets" : path.filename().string();
+
+		bool hasSubDirs = false;
+		for (const auto& e : std::filesystem::directory_iterator(path))
+		{
+			if (e.is_directory()) { hasSubDirs = true; break; }
+		}
+
+		ImGuiTreeNodeFlags flags =
+			ImGuiTreeNodeFlags_OpenOnArrow |
+			ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		if (!hasSubDirs) flags |= ImGuiTreeNodeFlags_Leaf;
+		if (path == m_currentPath)
+			flags |= ImGuiTreeNodeFlags_Selected;
+		if (path == m_rootPath)
+			flags |= ImGuiTreeNodeFlags_DefaultOpen;
+		
+		ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.8f,0.2f,1.0f });
+		bool opened = ImGui::TreeNodeEx(
+			path.string().c_str(), flags, "%s", name.c_str());
+		ImGui::PopStyleColor();
+
+		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+			navigateTo(path);
+
+		if (opened)
+		{
+			std::vector<std::filesystem::path> subDirs;
+			for (const auto& e : std::filesystem::directory_iterator(path))
+			{
+				if (e.is_directory()) subDirs.push_back(e.path());
+			}
+			std::sort(subDirs.begin(), subDirs.end());
+			for (auto& sub : subDirs)
+				drawFolderTree(sub);
+
+			ImGui::TreePop();
+		}
+	}
+
+	void ContentBrowserPanel::drawFilePanel(FaluEngine::Scene* scene, entt::entity selected)
+	{
+		if (m_gridView)
+			drawGridView(scene, selected);
+		else
+			drawListView(scene, selected);
 	}
 
 	void ContentBrowserPanel::drawGridView(FaluEngine::Scene* scene, entt::entity selected)
@@ -177,10 +238,22 @@ namespace Editor{
 		{
 			ImGui::BeginGroup();
 			ImGui::PushStyleColor(ImGuiCol_Button, { 0.2f,0.2f,0.2f,1.0f });
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.3f,0.3f,0.3f,1.0f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.35f,0.35f,0.35f,1.0f });
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.45f,0.45f,0.45f,1.0f });
 
+			ImGui::PushStyleColor(ImGuiCol_Text, color);
 			ImGui::Button(icon, { m_iconSize,m_iconSize });
+			ImGui::PopStyleColor(4);
 
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+			{
+				if (entry.isDirectory)
+					navigateTo(entry.path);
+				else
+					applyToEntity(entry, scene, selected);
+			}
+
+			//-ドラック操作
 			if (!entry.isDirectory && ImGui::BeginDragDropSource()) {
 				ImGui::SetDragDropPayload("ASSET_PATH", pathStr.c_str(),
 					pathStr.size() + 1);
@@ -190,39 +263,11 @@ namespace Editor{
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::PopStyleColor(2);
-
-			// ダブルクリック処理
-			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-				if (entry.isDirectory) {
-					navigateTo(entry.path);
-				}
-				else if (scene && selected != entt::null)
-				{
-					if (scene->registry().all_of<FaluEngine::MeshComponent>(selected)) {
-						auto& m = scene->registry().get<FaluEngine::MeshComponent>(selected);
-						if (entry.type == AssetType::Mesh)
-						{
-							m.meshPath = pathStr;
-							m.cachedMesh = nullptr;
-						}
-						else if (entry.type == AssetType::Texture) {
-							m.texturePath = pathStr;
-							m.cachedTexture = nullptr;
-						}
-						else if (entry.type == AssetType::NormalMap) {
-							m.normalMapPath = pathStr;
-							m.cachedNormalMap = nullptr;
-						}
-					}
-				}
-			}
-
 			std::string displayName = entry.name;
 			if (displayName.size() > 10)
 				displayName = displayName.substr(0, 9) + "..";
 			ImGui::TextColored(color, "%s", displayName.c_str());
-			if (ImGui::IsItemHovered() && entry.name.size() > 10)
+			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("%s", entry.name.c_str());
 
 			ImGui::EndGroup();
@@ -237,26 +282,10 @@ namespace Editor{
 			if (ImGui::Selectable(entry.name.c_str(), &selected_item,
 				ImGuiSelectableFlags_AllowDoubleClick)) {
 				if (ImGui::IsMouseDoubleClicked(0)) {
-					if (entry.isDirectory) {
+					if (entry.isDirectory)
 						navigateTo(entry.path);
-					}
-					else if (scene && selected != entt::null) {
-						if (scene->registry().all_of<FaluEngine::MeshComponent>(selected)) {
-							auto& m = scene->registry().get<FaluEngine::MeshComponent>(selected);
-							if (entry.type == AssetType::Mesh) {
-								m.meshPath = pathStr;
-								m.cachedMesh = nullptr;
-							}
-							else if (entry.type == AssetType::Texture) {
-								m.texturePath = pathStr;
-								m.cachedTexture = nullptr;
-							}
-							else if (entry.type == AssetType::NormalMap) {
-								m.normalMapPath = pathStr;
-								m.cachedNormalMap = nullptr;
-							}
-						}
-					}
+					else
+						applyToEntity(entry, scene, selected);
 				}
 			}
 
@@ -277,7 +306,11 @@ namespace Editor{
 
 	void ContentBrowserPanel::navigateTo(const std::filesystem::path& path)
 	{
-
+		if (std::filesystem::exists(path) && std::filesystem::is_directory(path))
+		{
+			m_currentPath = path;
+			refresh();
+		}
 	}
 
 	AssetType ContentBrowserPanel::detectType(const std::filesystem::path& path)
@@ -338,5 +371,30 @@ namespace Editor{
 		default: return { 0.7f,0.7f,0.7f,1.0f };
 		}
 
+	}
+	void ContentBrowserPanel::applyToEntity(const ContentEntry& entry, FaluEngine::Scene* scene, entt::entity selected)
+	{
+		if (!scene || selected == entt::null) return;
+		if (!scene->registry().all_of<FaluEngine::MeshComponent>(selected)) return;
+
+		auto& m = scene->registry().get<FaluEngine::MeshComponent>(selected);
+
+		const std::string pathStr = entry.path.string();
+		switch (entry.type)
+		{
+		case AssetType::Mesh:
+			m.meshPath = pathStr;
+			m.cachedMesh = nullptr;
+			break;
+		case AssetType::Texture:
+			m.texturePath = pathStr;
+			m.cachedTexture = nullptr;
+			break;
+		case AssetType::NormalMap:
+			m.normalMapPath = pathStr;
+			m.cachedNormalMap = nullptr;
+			break;
+		default: break;
+		}
 	}
 }

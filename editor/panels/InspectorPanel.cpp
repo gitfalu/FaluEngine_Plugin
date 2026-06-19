@@ -38,6 +38,7 @@ namespace Editor
 		drawRigidbodyComponent(scene, selected);
 		drawScriptComponent(scene, selected);
 		drawLightComponent(scene, selected);
+		drawSkyComponent(scene, selected);
 
 		ImGui::Spacing();
 
@@ -238,6 +239,60 @@ namespace Editor
 				ImGui::EndDragDropTarget();
 			}
 
+			//=== Shader Path ====
+			ImGui::Separator();
+			ImGui::Text("Custom Shader (optional)");
+
+			ImGui::Text("Vertex Shader");
+			ImGui::SameLine();
+			char vsBuf[512];
+			strncpy_s(vsBuf, m.vertexShaderPath.c_str(), sizeof(vsBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##VSPath", vsBuf, sizeof(vsBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				auto fullPath = FaluEngine::PathResolver::resolveStr(vsBuf);
+				m.vertexShaderPath = fullPath;
+				m.cachedShader = nullptr;
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+					m.vertexShaderPath = droppedPath;
+					m.cachedShader = nullptr;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Text("Pixel Shader");
+			ImGui::SameLine();
+			char psBuf[512];
+			strncpy_s(psBuf, m.pixelShaderPath.c_str(), sizeof(psBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##PSPath", psBuf, sizeof(psBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				auto fullPath = FaluEngine::PathResolver::resolveStr(psBuf);
+				m.pixelShaderPath = fullPath;
+				m.cachedShader = nullptr;
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+					m.pixelShaderPath = droppedPath;
+					m.cachedShader = nullptr;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			if (m.cachedShader && !m.cachedShader->valid)
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "Shader compile failed");
 
 			//===== Mesh Info ====
 			if (m.cachedMesh)
@@ -362,6 +417,46 @@ namespace Editor
 		}
 	}
 
+	void InspectorPanel::drawSkyComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity)) return;
+
+		if (ImGui::CollapsingHeader("SkySphere", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			auto& sky = scene->registry().get<FaluEngine::SkySphereComponent>(entity);
+
+			ImGui::Text("Texture");
+			ImGui::SameLine();
+			char buf[512];
+			strncpy_s(buf, sky.texturePath.c_str(), sizeof(buf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##SkyTex", buf, sizeof(buf),
+				ImGuiInputTextFlags_EnterReturnsTrue)) {
+				sky.texturePath = buf;
+				sky.cachedTexture = nullptr;
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string droppedPath = static_cast<const char*>(payload->Data);
+					sky.texturePath = droppedPath;
+					sky.cachedTexture = nullptr;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Separator();
+			ImGui::Text("Gradient (used when no texture)");
+			ImGui::ColorEdit4("Top", glm::value_ptr(sky.topColor));
+			ImGui::ColorEdit4("Horizon", glm::value_ptr(sky.horizonColor));
+			ImGui::ColorEdit4("Bottom", glm::value_ptr(sky.bottomColor));
+			ImGui::DragFloat("Exposure", &sky.exposure, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox("Enabled", &sky.enabled);
+		}
+	}
+
 	void InspectorPanel::drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity)
 	{
 		if (!ImGui::BeginPopup("AddComponent")) return;
@@ -396,6 +491,12 @@ namespace Editor
 		{
 			if (ImGui::MenuItem("Light Component"))
 				e.addComponent<FaluEngine::LightComponent>();
+		}
+
+		if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity))
+		{
+			if (ImGui::MenuItem("SkySphere Component"))
+				e.addComponent<FaluEngine::SkySphereComponent>();
 		}
 
 		ImGui::EndPopup();
