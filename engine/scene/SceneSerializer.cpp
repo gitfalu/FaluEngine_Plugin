@@ -38,7 +38,7 @@ namespace FaluEngine
 			j["y"].get<float>(),j["z"].get<float>() };
 	}
 	
-	bool SceneSerializr::serialize(const std::string& path) const
+	bool SceneSerializer::serialize(const std::string& path) const
 	{
 		json root;
 		root["scene"] = m_scene.getName();
@@ -144,7 +144,7 @@ namespace FaluEngine
 
 		return true;
 	}
-	bool SceneSerializr::deserialize(const std::string& path)
+	bool SceneSerializer::deserialize(const std::string& path)
 	{
 		if (!std::filesystem::exists(path))
 		{

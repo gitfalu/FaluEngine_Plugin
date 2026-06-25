@@ -49,6 +49,7 @@ engine_add_module(scene
         scene/Entity.cpp
         scene/CameraController.cpp
         scene/SceneSerializer.cpp
+        scene/SceneManager.cpp
     DEPS
         engine_core
         EnTT::EnTT
@@ -79,7 +80,7 @@ engine_add_module(asset
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp
         asset/loaders/TextureLoader.cpp
-       
+        asset/loaders/ShaderLoader.cpp
     DEPS
         engine_core
         assimp::assimp

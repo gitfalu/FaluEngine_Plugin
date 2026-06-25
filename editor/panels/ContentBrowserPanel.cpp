@@ -2,6 +2,7 @@
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
+#include "scene/SceneManager.h"
 #include "core/PathResolver.h"
 #include <imgui.h>
 #include <algorithm>
@@ -15,8 +16,9 @@ namespace Editor{
 		refresh();
 	}
 
-	void ContentBrowserPanel::draw(FaluEngine::Scene* scene, entt::entity selected)
+	bool ContentBrowserPanel::draw(FaluEngine::Scene* scene, entt::entity selected)
 	{
+		bool sceneChanged = false;
 		ImGui::Begin("Content Browser");
 
 		{
@@ -105,10 +107,12 @@ namespace Editor{
 		//-右ペイン：ファイル一覧
 		ImGui::SameLine();
 		ImGui::BeginChild("FilePanel", { 0,0 }, false);
-		drawFilePanel(scene,selected);
+		sceneChanged = drawFilePanel(scene,selected);
 		ImGui::EndChild();
 
 		ImGui::End();
+
+		return sceneChanged;
 	}
 
 	void ContentBrowserPanel::refresh()
@@ -186,16 +190,16 @@ namespace Editor{
 		}
 	}
 
-	void ContentBrowserPanel::drawFilePanel(FaluEngine::Scene* scene, entt::entity selected)
+	bool ContentBrowserPanel::drawFilePanel(FaluEngine::Scene* scene, entt::entity selected)
 	{
-		if (m_gridView)
-			drawGridView(scene, selected);
-		else
+		return m_gridView ?
+			drawGridView(scene, selected) : 
 			drawListView(scene, selected);
 	}
 
-	void ContentBrowserPanel::drawGridView(FaluEngine::Scene* scene, entt::entity selected)
+	bool ContentBrowserPanel::drawGridView(FaluEngine::Scene* scene, entt::entity selected)
 	{
+		bool changed = false;
 		float panelWidth = ImGui::GetContentRegionAvail().x;
 		int columns = (std::max)(1,static_cast<int>(panelWidth / (m_iconSize + 16.0f)));
 
@@ -204,22 +208,29 @@ namespace Editor{
 			for (auto& entry : m_entries)
 			{
 				ImGui::TableNextColumn();
-				drawEntry(entry, scene, selected, true);
+				if (drawEntry(entry, scene, selected, true))
+					changed = true;
 			}
 			ImGui::EndTable();
 		}
+		return changed;
 	}
 
-	void ContentBrowserPanel::drawListView(FaluEngine::Scene* scene, entt::entity selected)
+	bool ContentBrowserPanel::drawListView(FaluEngine::Scene* scene, entt::entity selected)
 	{
+		bool changed = false;
 		for (auto& entry : m_entries)
 		{
-			drawEntry(entry, scene, selected, false);
+			if (drawEntry(entry, scene, selected, false))
+				changed = true;
 		}
+		return changed;
 	}
 
-	void ContentBrowserPanel::drawEntry(const ContentEntry& entry, FaluEngine::Scene* scene, entt::entity selected, bool isGrid)
+	bool ContentBrowserPanel::drawEntry(const ContentEntry& entry, FaluEngine::Scene* scene, entt::entity selected, bool isGrid)
 	{
+		bool sceneChanged = false;
+
 		const std::string pathStr = entry.path.string();
 		const char* icon = getTypeIcon(entry.type);
 		ImVec4 color = getTypeColor(entry.type);
@@ -229,7 +240,7 @@ namespace Editor{
 			std::string filter = m_searchBuf;
 			std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 			std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
-			if (name.find(filter) == std::string::npos) return;
+			if (name.find(filter) == std::string::npos) return false;
 		}
 
 		ImGui::PushID(pathStr.c_str());
@@ -249,6 +260,11 @@ namespace Editor{
 			{
 				if (entry.isDirectory)
 					navigateTo(entry.path);
+				else if (entry.type == AssetType::Scene)
+				{
+					FaluEngine::SceneManager::get().loadSceneFromFile(entry.path.string());
+					sceneChanged = true;
+				}
 				else
 					applyToEntity(entry, scene, selected);
 			}
@@ -284,8 +300,15 @@ namespace Editor{
 				if (ImGui::IsMouseDoubleClicked(0)) {
 					if (entry.isDirectory)
 						navigateTo(entry.path);
+					else if (entry.type == AssetType::Scene)
+					{
+						FaluEngine::SceneManager::get().loadSceneFromFile(entry.path.string());
+						sceneChanged = true;
+					}
 					else
+					{
 						applyToEntity(entry, scene, selected);
+					}
 				}
 			}
 
@@ -302,6 +325,7 @@ namespace Editor{
 				ImGui::SetTooltip("%s", pathStr.c_str());
 		}
 		ImGui::PopID();
+		return sceneChanged;
 	}
 
 	void ContentBrowserPanel::navigateTo(const std::filesystem::path& path)

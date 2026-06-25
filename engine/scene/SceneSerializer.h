@@ -6,10 +6,10 @@ namespace FaluEngine
 {
 	class Scene;
 
-	class SceneSerializr
+	class SceneSerializer
 	{
 	public:
-		explicit SceneSerializr(Scene& scene) : m_scene(scene) {}
+		explicit SceneSerializer(Scene& scene) : m_scene(scene) {}
 
 		/// @brief シリアライズ
 		/// @param path 

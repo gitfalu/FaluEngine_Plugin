@@ -762,6 +762,20 @@ void DX11Renderer::endOffscreen()
     m_offscreen = false;
 }
 
+// Game View
+
+void DX11Renderer::beginGameOffscreen(uint32_t width, uint32_t height)
+{
+    if (!m_gameRT)
+        m_gameRT = std::make_unique<RenderTexture>();
+}
+
+void DX11Renderer::endGameOffscreen()
+{
+
+}
+//=========== 
+
 void DX11Renderer::beginShadowPass(const glm::mat4& lightView, const glm::mat4& lightProj)
 {
     m_dirShadowMap->lightView = lightView;

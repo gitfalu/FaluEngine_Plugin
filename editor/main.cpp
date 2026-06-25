@@ -86,8 +86,25 @@ public:
     EditorApp() : Application({ .title = L"FaluEngine Editor", .width = 1280, .height = 720 }) {}
     void onInit()                  override 
     {
-        getSceneManager().registerScene<EditorScene>("editor");
-        getSceneManager().switchTo("editor");
+        getSceneManager().scanSceneFolder(
+            std::filesystem::path(
+                FaluEngine::PathResolver::resolveStr("assets/scenes")));
+
+        if (getSceneManager().getSceneNames().empty()) {
+            getSceneManager().registerScene<EditorScene>("editor");
+        }
+
+        auto names = getSceneManager().getSceneNames();
+        if (!names.empty()) {
+            getSceneManager().switchTo(names[0]);
+
+            std::string path = getSceneManager().getScenePath(names[0]);
+            if (!path.empty()) {
+                FaluEngine::SceneSerializer serializer(
+                    *getSceneManager().getActive());
+                serializer.deserialize(path);
+            }
+        }
 
         auto* scene = getSceneManager().getActive();
         scene->registry()
@@ -168,44 +185,81 @@ public:
         {
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("New"))
+                {
+                    m_openNewScenePopup = true;
+                }
+
+                ImGui::Separator();
+
                 if (ImGui::MenuItem("Save Scene", "Ctrl + S"))
                 {
                     auto* scene = getSceneManager().getActive();
                     if (scene) {
-                        FaluEngine::SceneSerializr serializer(*scene);
-                        std::string savePath = FaluEngine::PathResolver::resolveStr(
-                            "assets/scenes/" + scene->getName() + ".scene");
+                        FaluEngine::SceneSerializer serializer(*scene);
+                        std::string savePath = getSceneManager().getScenePath(scene->getName());
+                        if (savePath.empty())
+                        {
+                            savePath = FaluEngine::PathResolver::resolveStr(
+                                "assets/scenes/" + scene->getName() + ".scene");
+                            getSceneManager().setScenePath(scene->getName(), savePath);
+                        }
                         if (serializer.serialize(savePath))
                             FALU_ENGINE_LOG_INFO("Scene saved: {}", savePath);
                     }
                 }
-                if (ImGui::MenuItem("Load Scene", "Ctrl + O")) {
-                    auto* scene = getSceneManager().getActive();
-                    if (scene) {
-                        FaluEngine::SceneSerializr serializer(*scene);
-                        std::string loadPath = FaluEngine::PathResolver::resolveStr(
-                            "assets/scenes/" + scene->getName() + ".scene");
-                        if (serializer.deserialize(loadPath))
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit")) quit();
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Scene")) {
+                if (ImGui::MenuItem("Create Entity") && scene)
+                    scene->createEntity("New Entity");
+
+                ImGui::Separator();
+                ImGui::TextDisabled("Switch Scene");
+
+                for (auto& name : getSceneManager().getSceneNames()) {
+                    bool isActive = scene && scene->getName() == name;
+                    if (ImGui::MenuItem(name.c_str(), nullptr, isActive)) {
+                        getSceneManager().switchTo(name);
+                        m_hierarchy.clearSelected();
+
+                        std::string path = getSceneManager().getScenePath(name);
+                        if (!path.empty())
                         {
-                            FaluEngine::PhysicsSystem::get().unregisterScene(*scene);
-                            FaluEngine::PhysicsSystem::get().registerScene(*scene);
-                            FALU_ENGINE_LOG_INFO("Scene loaded: {}", loadPath);
+                            FaluEngine::SceneSerializer serializer(
+                                *getSceneManager().getActive());
+                            serializer.deserialize(path);
                         }
                     }
                 }
-
-                ImGui::Separator();
-                if (ImGui::MenuItem("Exit"))quit();
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("Scene"))
-            {
-                if (ImGui::MenuItem("Create Entity") && scene)
-                    scene->createEntity("New Entity");
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
+        }
+
+        if (m_openNewScenePopup)
+        {
+            ImGui::OpenPopup("NewSceneName");
+            m_openNewScenePopup = false;
+        }
+
+        if (ImGui::BeginPopup("NewSceneName"))
+        {
+            static char nameBuf[128] = "NewScene";
+            ImGui::InputText("Scene Name", nameBuf, sizeof(nameBuf));
+            if (ImGui::Button("Create"))
+            {
+                getSceneManager().createNewScene(nameBuf);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+                ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
         }
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -264,7 +318,8 @@ public:
 
         m_sceneView.endFrame();
 
-        m_contentBrowser.draw(scene, m_hierarchy.getSelected());
+        if (m_contentBrowser.draw(scene, m_hierarchy.getSelected()))
+            m_hierarchy.clearSelected();
 
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
@@ -287,6 +342,8 @@ private:
     Editor::InspectorPanel m_inspector;
     Editor::SceneViewPanel m_sceneView;
     Editor::ContentBrowserPanel m_contentBrowser;
+
+    bool m_openNewScenePopup = false;
 
 };
 

@@ -33,7 +33,7 @@ namespace Editor {
 	class ContentBrowserPanel {
 	public:
 		void init(const std::filesystem::path& rootPath);
-		void draw(FaluEngine::Scene* scene, entt::entity selected);
+		bool draw(FaluEngine::Scene* scene, entt::entity selected);
 
 		[[nodiscard]] const std::string& getDraggedPath() const noexcept { return m_draggedPath; }
 		[[nodiscard]] AssetType getDraggedAssetType() const noexcept { return m_draggedType; }
@@ -44,10 +44,10 @@ namespace Editor {
 		void drawFolderTree(const std::filesystem::path& path);
 
 		//= 右ペイン：フォルダツリー
-		void drawFilePanel(FaluEngine::Scene* scene, entt::entity selected);
-		void drawGridView(FaluEngine::Scene* scene, entt::entity selected);
-		void drawListView(FaluEngine::Scene* scene, entt::entity selected);
-		void drawEntry(const ContentEntry& entry,
+		bool drawFilePanel(FaluEngine::Scene* scene, entt::entity selected);
+		bool drawGridView(FaluEngine::Scene* scene, entt::entity selected);
+		bool drawListView(FaluEngine::Scene* scene, entt::entity selected);
+		bool drawEntry(const ContentEntry& entry,
 			FaluEngine::Scene* scene, entt::entity selected,
 			bool isGrid);
 

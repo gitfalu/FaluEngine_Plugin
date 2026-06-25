@@ -158,10 +158,19 @@ public:
     void beginOffscreen(uint32_t width, uint32_t height);
     void endOffscreen();
 
+    // Scene View
     [[nodiscard]] ID3D11ShaderResourceView* getSceneSRV() const noexcept {
         return m_sceneRT ? m_sceneRT->getSRV() : nullptr;
     }
     [[nodiscard]] bool isOffscreen() const noexcept { return m_offscreen; }
+
+    // Game View
+    void beginGameOffscreen(uint32_t width, uint32_t height);
+    void endGameOffscreen();
+
+    [[nodiscard]] ID3D11ShaderResourceView* getGameSceneSRV() const noexcept {
+        return m_gameRT ? m_gameRT->getSRV() : nullptr;
+    }
 
     void setViewProjection(const glm::mat4& view, const glm::mat4& projection) {
         m_view = view;
@@ -232,6 +241,7 @@ private:
     ID3D11VertexShader* m_boundVS = nullptr;
     ID3D11PixelShader* m_boundPS = nullptr;
     std::unique_ptr<RenderTexture> m_sceneRT;
+    std::unique_ptr<RenderTexture> m_gameRT;
     bool m_offscreen = false;
 
     uint32_t m_width  = 0;
