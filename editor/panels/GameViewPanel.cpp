@@ -11,8 +11,10 @@ namespace Editor
 		ImGui::PopStyleVar();
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		if (size.x < 1.0f) size.x = 1.0f;
-		if (size.y < 1.0f) size.y = 1.0f;
+		if (size.x < 1.0f) 
+			size.x = 1.0f;
+		if (size.y < 1.0f) 
+			size.y = 1.0f;
 		m_width = size.x;
 		m_height = size.y;
 

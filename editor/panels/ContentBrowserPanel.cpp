@@ -362,6 +362,7 @@ namespace Editor{
 		if (ext == ".hlsl") return AssetType::Shader;
 		if (ext == ".scene")return AssetType::Scene;
 		if (ext == ".lua")return AssetType::Script;
+		if (ext == ".mat") return AssetType::Material;
 
 		return AssetType::Unknown;
 	}
@@ -411,12 +412,12 @@ namespace Editor{
 			m.cachedMesh = nullptr;
 			break;
 		case AssetType::Texture:
-			m.texturePath = pathStr;
-			m.cachedTexture = nullptr;
 			break;
 		case AssetType::NormalMap:
-			m.normalMapPath = pathStr;
-			m.cachedNormalMap = nullptr;
+			break;
+		case AssetType::Material:
+			m.materialPath = pathStr;
+			m.cachedMaterial = nullptr;
 			break;
 		default: break;
 		}

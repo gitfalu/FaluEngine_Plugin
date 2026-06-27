@@ -21,6 +21,7 @@ namespace Editor {
 		Scene, // .scene
 		Script, // .lua
 		Folder, 
+		Material,// .mat
 	};
 
 	struct ContentEntry {

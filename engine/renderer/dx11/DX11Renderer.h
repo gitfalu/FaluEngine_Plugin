@@ -18,6 +18,7 @@
 #include "RenderTexture.h"
 #include "ShadowMap.h"
 #include "asset/loaders/ShaderLoader.h"
+#include "asset/loaders/MaterialLoader.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -65,10 +66,17 @@ struct TransformCB {
 };
 
 struct MaterialCB {
-    int useTexture = 0;
+    glm::vec4 albedoColor = { 1.0f,1.0f,1.0f,1.0f };
+    float metallic = 0.0f;
+    float roughness = 0.5f;
+    int useAlbedoMap = 0;
+    int useMetallicMap = 0;
     int useNormalMap = 0;
-    float shininess = 32.0f;
-    float _pad = 0.0f;
+    int useAOMap = 0;
+    int useEmissiveMap = 0;
+    float emissiveStrength = 1.0f;
+    glm::vec3 emissiveColor = { 0.0f,0.0f,0.0f };
+    float _matPad = 0.0f;
 };
 
 struct ShadowCB
@@ -136,15 +144,9 @@ public:
         const uint32_t* indices, uint32_t indexCount,
         const glm::mat4& transform
     );
-    void drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
+    void drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform,
-        ShaderAsset* customShader = nullptr);
-
-    void drawSubMeshTextured(uint32_t indexOffset, uint32_t indexCount,
-        const glm::mat4& transform,
-        ID3D11ShaderResourceView* srv,
-        ID3D11ShaderResourceView* normalSRV = nullptr,
-        ShaderAsset* customShader = nullptr);
+        class MaterialAsset* material);
 
     void drawSkySphere(const glm::mat4& view, const glm::mat4& proj,
         const SkySettingsCB& settings,
@@ -243,6 +245,7 @@ private:
     std::unique_ptr<RenderTexture> m_sceneRT;
     std::unique_ptr<RenderTexture> m_gameRT;
     bool m_offscreen = false;
+    bool m_gameOffscreen = false;
 
     uint32_t m_width  = 0;
     uint32_t m_height = 0;

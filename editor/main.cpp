@@ -21,6 +21,7 @@
 #include "panels/InspectorPanel.h"
 #include "panels/SceneViewPanel.h"
 #include "panels/ContentBrowserPanel.h"
+#include "panels/GameViewPanel.h"
 #include "core/InputManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -32,7 +33,7 @@ public:
 
     void onEnter() override
     {
-        auto cam = createEntity("EditorCamera");
+        auto cam = createEntity("Camera");
         auto& camComp = cam.addComponent<FaluEngine::CameraComponent>();
         camComp.isPrimary = true;
         camComp.camera.setPosition({ 0.0f,3.0f,-5.0f });
@@ -53,7 +54,7 @@ public:
         bTransform.position = { 0.0f,3.0f,0.0f };
         auto& bMesh = box.addComponent<FaluEngine::MeshComponent>();
         bMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
-        bMesh.texturePath = FaluEngine::PathResolver::resolveStr("assets/textures/box.png");
+        bMesh.materialPath = FaluEngine::PathResolver::resolveStr("");
         auto& bRb = box.addComponent<FaluEngine::RigidbodyComponent>();
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
@@ -106,13 +107,9 @@ public:
             }
         }
 
-        auto* scene = getSceneManager().getActive();
-        scene->registry()
-            .view<FaluEngine::CameraComponent>()
-            .each([&](auto, FaluEngine::CameraComponent& c) {
-            if (!m_cameraCtrl)
-                m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(c.camera);
-                });
+        m_editorCamera.setPerspective(60.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+        m_editorCamera.setPosition({ 0.0f,3.0f,-5.0f });
+        m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(m_editorCamera);
 
         m_contentBrowser.init(
             std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
@@ -176,7 +173,7 @@ public:
         if (input.isKeyPressed(FaluEngine::Key::E)) m_sceneView.setMode(Editor::GizmoMode::Rotate);
         if (input.isKeyPressed(FaluEngine::Key::R)) m_sceneView.setMode(Editor::GizmoMode::Scale);
     }
-    void onRender()                override 
+    void onRender() override 
     {
         auto* renderer = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
         auto* scene = getSceneManager().getActive();
@@ -308,16 +305,40 @@ public:
             if (w < 1) w = 1;
             if (h < 1) h = 1;
 
+            float aspect = static_cast<float>(w) / static_cast<float>(h);
+            m_editorCamera.setPerspective(
+                m_editorCamera.getFovDeg(), aspect,
+                m_editorCamera.getNearClip(), m_editorCamera.getFarClip());
+
             renderer->beginOffscreen(w, h);
-            scene->onRender();
+            renderer->setViewProjection(
+                m_editorCamera.getView(), m_editorCamera.getProjection());
+            scene->onRender(false);
             renderer->endOffscreen();
         }
         // SceneViewRender
         m_sceneView.drawImage(renderer);
-        m_sceneView.drawGizmo(scene, m_hierarchy.getSelected());
-
+        m_sceneView.drawGizmo(
+            scene, m_hierarchy.getSelected(),renderer);
         m_sceneView.endFrame();
 
+        // GameView
+        m_gameView.beginFrame();
+
+        if (renderer && scene)
+        {
+            uint32_t gw = static_cast<uint32_t>(m_gameView.getWidth());
+            uint32_t gh = static_cast<uint32_t>(m_gameView.getHeight());
+
+            if (gw < 1) gw = 1;
+            if (gh < 1) gh = 1;
+
+            renderer->beginGameOffscreen(gw, gh);
+            scene->onRender();
+            renderer->endGameOffscreen();
+        }
+        m_gameView.drawImage(renderer);
+        
         if (m_contentBrowser.draw(scene, m_hierarchy.getSelected()))
             m_hierarchy.clearSelected();
 
@@ -342,6 +363,8 @@ private:
     Editor::InspectorPanel m_inspector;
     Editor::SceneViewPanel m_sceneView;
     Editor::ContentBrowserPanel m_contentBrowser;
+    Editor::GameViewPanel m_gameView;
+    FaluEngine::Camera m_editorCamera;
 
     bool m_openNewScenePopup = false;
 

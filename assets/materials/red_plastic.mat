@@ -1,0 +1,10 @@
+{
+    "albedoColor": { "x": 0.8, "y": 0.1, "z": 0.1, "w": 1.0 },
+    "metallic": 0.0,
+    "roughness": 0.4,
+    "albedoMapPath": "",
+    "metallicMapPath": "",
+    "normalMapPath": "",
+    "vertexShaderPath": "",
+    "pixelShaderPath": ""
+}

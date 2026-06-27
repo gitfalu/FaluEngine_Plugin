@@ -50,7 +50,6 @@ public:
         meshComp.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
         meshComp.cachedMesh = FaluEngine::AssetManager::get()
             .load<FaluEngine::MeshAsset>(meshComp.meshPath);
-        meshComp.texturePath = FaluEngine::PathResolver::resolveStr("assets/textures/box.png");
         
         // 物理ワールドに登録
         FaluEngine::PhysicsSystem::get().registerScene(*this);

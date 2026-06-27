@@ -5,6 +5,7 @@
 namespace FaluEngine
 {
 	class Scene;
+	struct MaterialAsset;
 }
 
 namespace Editor
@@ -22,6 +23,8 @@ namespace Editor
 		void drawScriptComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawLightComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawSkyComponent(FaluEngine::Scene* scene, entt::entity entity);
+		void drawMaterialEditor(FaluEngine::MaterialAsset* material,
+			const std::string& materialPath);
 
 		void drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity);
 	};

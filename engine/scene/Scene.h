@@ -5,6 +5,7 @@
 
 namespace FaluEngine {
 
+    class DX11Renderer;
 class Entity;
 
 class Scene {
@@ -28,13 +29,20 @@ public:
     virtual void onEnter() {}
     virtual void onExit() {}
     void onUpdate(float deltaTime);
-    void onRender();
+    void onRender(bool useOwnCamera = true);
 
     [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
     [[nodiscard]] entt::registry& registry() noexcept { return m_registry; }
     [[nodiscard]] uint32_t entityCount() const noexcept {
         return static_cast<uint32_t>(m_registry.storage<entt::entity>()->size());
     }
+
+private:
+    void updateWorldMatrices();
+    void renderShadowPass(class DX11Renderer* renderer);
+    void collectLights(class DX11Renderer* renderer, bool useOwnCamera);
+    void renderMeshes(class DX11Renderer* renderer);
+    void renderSky(class DX11Renderer* renderer);
 
 private:
     std::string    m_name;

@@ -21,8 +21,8 @@ bool DX11Renderer::init(void* windowHandle, uint32_t width, uint32_t height) {
     if (!createRenderTargetView())    return false;
     if (!createDepthStencilView())    return false;
     if (!createShaders(
-        PathResolver::resolveStr("assets/shaders/Basic.vert.hlsl"),
-        PathResolver::resolveStr("assets/shaders/Basic.pixel.hlsl"))) 
+        PathResolver::resolveStr("assets/shaders/PBR.vert.hlsl"),
+        PathResolver::resolveStr("assets/shaders/PBR.pixel.hlsl"))) 
         return false;
     if (!createDefaultStates()) return false;
 
@@ -484,7 +484,7 @@ void DX11Renderer::beginFrame() {
     m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     if (m_dirShadowMap && m_dirShadowMap->isValid())
-        m_dirShadowMap->bindForRead(m_context.Get(), 2);
+        m_dirShadowMap->bindForRead(m_context.Get(), 5);
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
@@ -560,40 +560,47 @@ void DX11Renderer::drawMesh(const Vertex* vertices, uint32_t vertexCount, const 
     m_context->DrawIndexed(indexCount, 0, 0);
 }
 
-void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
-    const glm::mat4& transform, ShaderAsset* customShader)
+void DX11Renderer::drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
+    const glm::mat4& transform,
+    class MaterialAsset* material)
 {
-    //===== Shader切り替え =======
-    ID3D11VertexShader* vs = customShader && customShader->valid
-        ? customShader->vertexShader.Get() : m_vertexShader.Get();
-    ID3D11PixelShader* ps = customShader && customShader->valid
-        ? customShader->pixelShader.Get() : m_pixelShader.Get();
-    ID3D11InputLayout* layout = customShader && customShader->valid
-        ? customShader->inputLayout.Get() : m_inputLayout.Get();
+    bool hasCustom = material && material->cachedShader &&
+        material->cachedShader->valid;
 
-    if (m_boundVS != vs)
-    {
-        m_context->VSSetShader(vs, nullptr, 0);
-        m_boundVS = vs;
-    }
-    if (m_boundPS != ps)
-    {
-        m_context->PSSetShader(ps, nullptr, 0);
-        m_boundPS = ps;
-    }
+    ID3D11VertexShader* vs = hasCustom
+        ? material->cachedShader->vertexShader.Get() : m_vertexShader.Get();
+    ID3D11PixelShader* ps = hasCustom
+        ? material->cachedShader->pixelShader.Get() : m_pixelShader.Get();
+    ID3D11InputLayout* layout = hasCustom
+        ? material->cachedShader->inputLayout.Get() : m_inputLayout.Get();
+
+    if (m_boundVS != vs) { m_context->VSSetShader(vs, nullptr, 0); m_boundVS = vs; }
+    if (m_boundPS != ps) { m_context->PSSetShader(ps, nullptr, 0); m_boundPS = ps; }
     m_context->IASetInputLayout(layout);
 
-    //-MaterialCB：テクスチャ無し
+    //==== Material Parameter =========
     MaterialCB mat;
-    mat.useTexture = 0;
-    mat.useNormalMap = 0;
+    if (material)
+    {
+        mat.albedoColor = material->albedoColor;
+        mat.metallic = material->metallic;
+        mat.roughness = material->roughness;
+        mat.useAlbedoMap = (material->cachedAlbedoMap && material->cachedAlbedoMap->srv) ? 1 : 0;
+        mat.useMetallicMap = (material->cachedMetallicMap && material->cachedMetallicMap->srv) ? 1 : 0;
+        mat.useNormalMap = (material->cachedNormalMap && material->cachedNormalMap->srv) ? 1 : 0;
+        mat.useAOMap = (material->cachedAOMap && material->cachedAOMap->srv) ? 1 : 0;
+        mat.useEmissiveMap = (material->cachedEmissiveMap && material->cachedEmissiveMap->srv) ? 1 : 0;
+        mat.emissiveStrength = material->emissiveStrength;
+        mat.emissiveColor = material->emissiveColor;
+    }
+
     D3D11_MAPPED_SUBRESOURCE matMapped;
     m_context->Map(m_materialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &matMapped);
     memcpy(matMapped.pData, &mat, sizeof(MaterialCB));
     m_context->Unmap(m_materialCB.Get(), 0);
 
+    //===== TransformCB =======
     TransformCB cb;
-    //-mvp 更新
     cb.mvp = glm::transpose(m_projection * m_view * transform);
     cb.world = glm::transpose(transform);
     cb.normalMatrix = glm::inverse(transform);
@@ -603,65 +610,23 @@ void DX11Renderer::drawSubMesh(uint32_t indexOffset, uint32_t indexCount,
     memcpy(mapped.pData, &cb, sizeof(TransformCB));
     m_context->Unmap(m_transformCB.Get(), 0);
 
+    //===== Texture Bind =======
+    ID3D11ShaderResourceView* srvs[5] = { nullptr,nullptr,nullptr,nullptr,nullptr };
+    if (material)
+    {
+        if (mat.useAlbedoMap) srvs[0] = material->cachedAlbedoMap->srv.Get();
+        if (mat.useMetallicMap) srvs[1] = material->cachedMetallicMap->srv.Get();
+        if (mat.useNormalMap) srvs[2] = material->cachedNormalMap->srv.Get();
+        if (mat.useAOMap) srvs[3] = material->cachedAOMap->srv.Get();
+        if (mat.useEmissiveMap) srvs[4] = material->cachedEmissiveMap->srv.Get();
+    }
+    m_context->PSSetShaderResources(0, 5, srvs);
+
     m_context->DrawIndexed(indexCount, indexOffset, 0);
 
-    ID3D11ShaderResourceView* nullSRV = nullptr;
-    m_context->PSSetShaderResources(0, 1, &nullSRV);
-    m_context->PSSetShaderResources(1, 1, &nullSRV);
-}
+    ID3D11ShaderResourceView* nullSRVs[5] = { nullptr,nullptr,nullptr,nullptr,nullptr };
+    m_context->PSSetShaderResources(0, 5, nullSRVs);
 
-void DX11Renderer::drawSubMeshTextured(
-    uint32_t indexOffset, uint32_t indexCount, 
-    const glm::mat4& transform, ID3D11ShaderResourceView* srv,
-    ID3D11ShaderResourceView* normalSRV,
-    ShaderAsset* customShader)
-{
-    //===== Shader切り替え =======
-    ID3D11VertexShader* vs = customShader && customShader->valid
-        ? customShader->vertexShader.Get() : m_vertexShader.Get();
-    ID3D11PixelShader* ps = customShader && customShader->valid
-        ? customShader->pixelShader.Get() : m_pixelShader.Get();
-    ID3D11InputLayout* layout = customShader && customShader->valid
-        ? customShader->inputLayout.Get() : m_inputLayout.Get();
-
-    if (m_boundVS != vs)
-    {
-        m_context->VSSetShader(vs, nullptr, 0);
-        m_boundVS = vs;
-    }
-    if (m_boundPS != ps)
-    {
-        m_context->PSSetShader(ps, nullptr, 0);
-        m_boundPS = ps;
-    }
-    m_context->IASetInputLayout(layout);
-
-    MaterialCB mat;
-    mat.useTexture = 1;
-    mat.useNormalMap = normalSRV ? 1 : 0;
-    mat.shininess = 32.0f;
-    D3D11_MAPPED_SUBRESOURCE matMapped;
-    m_context->Map(m_materialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &matMapped);
-    memcpy(matMapped.pData, &mat, sizeof(MaterialCB));
-    m_context->Unmap(m_materialCB.Get(), 0);
-
-    //-Update MVP 
-    TransformCB cb;
-    cb.mvp = glm::transpose(m_projection * m_view * transform);
-    cb.world = glm::transpose(transform);
-    cb.normalMatrix = glm::inverse(transform);
-
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD,0,&mapped);
-    memcpy(mapped.pData, &cb, sizeof(TransformCB));
-    m_context->Unmap(m_transformCB.Get(),0);
-
-    //-Bind Texture
-    m_context->PSSetShaderResources(0, 1, &srv);
-    if (normalSRV)
-        m_context->PSSetShaderResources(1, 1, &normalSRV);
-
-    m_context->DrawIndexed(indexCount,indexOffset,0);
 }
 
 void DX11Renderer::drawSkySphere(const glm::mat4& view, const glm::mat4& proj, const SkySettingsCB& settings, ID3D11ShaderResourceView* srv)
@@ -740,7 +705,7 @@ void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
     m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
     m_context->PSSetSamplers(0,1,m_samplerState.GetAddressOf());
     if (m_dirShadowMap && m_dirShadowMap->isValid())
-        m_dirShadowMap->bindForRead(m_context.Get(), 2);
+        m_dirShadowMap->bindForRead(m_context.Get(), 5);
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
@@ -768,11 +733,51 @@ void DX11Renderer::beginGameOffscreen(uint32_t width, uint32_t height)
 {
     if (!m_gameRT)
         m_gameRT = std::make_unique<RenderTexture>();
+
+    m_gameRT->resize(m_device.Get(), width, height);
+
+    float clearColor[4] = { m_clearColor[0],m_clearColor[1],
+                            m_clearColor[2],m_clearColor[3] };
+
+    m_gameRT->clear(m_context.Get(), clearColor);
+    m_gameRT->bindAsRenderTarget(m_context.Get());
+
+    m_context->RSSetState(m_rasterizerState.Get());
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->IASetInputLayout(m_inputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+    m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    if (m_dirShadowMap && m_dirShadowMap->isValid())
+        m_dirShadowMap->bindForRead(m_context.Get(), 5);
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
+    m_gameOffscreen = true;
 }
 
 void DX11Renderer::endGameOffscreen()
 {
+    m_gameOffscreen = false;
 
+    m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(m_width);
+    vp.Height = static_cast<float>(m_height);
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
 }
 //=========== 
 
@@ -796,9 +801,13 @@ void DX11Renderer::beginShadowPass(const glm::mat4& lightView, const glm::mat4& 
 
 void DX11Renderer::endShadowPass()
 {
-    if (m_offscreen && m_sceneRT->isValid())
+    if (m_offscreen && m_sceneRT && m_sceneRT->isValid())
     {
         m_sceneRT->bindAsRenderTarget(m_context.Get());
+    }
+    else if (m_gameOffscreen && m_gameRT && m_gameRT->isValid())
+    {
+        m_gameRT->bindAsRenderTarget(m_context.Get());
     }
     else
     {
@@ -817,12 +826,10 @@ void DX11Renderer::endShadowPass()
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
-    m_dirShadowMap->bindForRead(m_context.Get(), 2);
+    m_dirShadowMap->bindForRead(m_context.Get(), 5);
 
     m_boundVB = nullptr;
     m_boundIB = nullptr;
-    m_boundVS = nullptr;
-    m_boundPS = nullptr;
 }
 
 void DX11Renderer::drawShadowMesh(uint32_t indexOffset, uint32_t indexCount, const glm::mat4& world)

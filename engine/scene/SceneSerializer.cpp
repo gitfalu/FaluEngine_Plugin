@@ -74,7 +74,7 @@ namespace FaluEngine
 				auto& m = m_scene.registry().get<MeshComponent>(entity);
 				entityJson["mesh"] = {
 					{"meshPath",m.meshPath},
-					{"texturePath",m.texturePath},
+					{"materialPath",m.materialPath},
 					{"visible",m.visible}
 				};
 			}
@@ -197,7 +197,7 @@ namespace FaluEngine
 				auto& mj = entityJson["mesh"];
 				auto& mesh = entity.addComponent<MeshComponent>();
 				mesh.meshPath = mj.value("meshPath", "");
-				mesh.texturePath = mj.value("texturePath", "");
+				mesh.materialPath = mj.value("materialPath", "");
 				mesh.visible = mj.value("visible", true);
 			}
 

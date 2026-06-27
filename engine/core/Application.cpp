@@ -11,6 +11,7 @@
 #include "InputManager.h"
 #include "PathResolver.h"
 #include "asset/loaders/ShaderLoader.h"
+#include "asset/loaders/MaterialLoader.h"
 
 #ifdef _WIN32
     #include "platform/win32/Win32Platform.h"
@@ -90,6 +91,7 @@ bool Application::initRenderer() {
     registerMeshLoader(renderer->getDevice());
     registerTextureLoader(renderer->getDevice(), renderer->getContext());
     registerShaderLoader(renderer->getDevice());
+    registerMaterialLoader();
     LOG_INFO("AssetManager loader registered");
 
     return true;

@@ -7,6 +7,8 @@
 #include <imgui_impl_win32.h>
 #include <ImGuizmo.h>
 
+#include "core/PathResolver.h"
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -31,6 +33,15 @@ namespace FaluEngine{
 			style.WindowRounding = 0.0f;
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
+
+		auto font = io.Fonts->AddFontFromFileTTF(
+			PathResolver::resolveStr("assets/fonts/CascadiaCode.ttf").c_str(),
+			15.0f,
+			NULL,
+			io.Fonts->GetGlyphRangesJapanese());
+
+		IM_ASSERT(font != nullptr);
+		
 
 		if (!ImGui_ImplWin32_Init(hwnd)) {
 			LOG_ERROR("ImGui_ImplWin32_Init failed");

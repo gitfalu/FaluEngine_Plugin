@@ -24,7 +24,8 @@ namespace Editor
 		void beginFrame();
 		void drawImage(FaluEngine::DX11Renderer* renderer);
 
-		void drawGizmo(FaluEngine::Scene* scene, entt::entity selected);
+		void drawGizmo(FaluEngine::Scene* scene, 
+			entt::entity selected,FaluEngine::DX11Renderer* renderer);
 
 		void endFrame();
 

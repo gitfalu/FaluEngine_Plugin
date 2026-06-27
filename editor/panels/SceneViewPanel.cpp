@@ -64,7 +64,7 @@ namespace Editor
 			}
 		}
 	}
-	void SceneViewPanel::drawGizmo(FaluEngine::Scene* scene, entt::entity selected)
+	void SceneViewPanel::drawGizmo(FaluEngine::Scene* scene, entt::entity selected,FaluEngine::DX11Renderer* renderer)
 	{
 		if (!scene || selected == entt::null) return;
 		if (!scene->registry().all_of<FaluEngine::TransformComponent,
@@ -72,10 +72,14 @@ namespace Editor
 		{
 			// Find the has CameraComponent
 		}
-
+		/*
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
+		*/
+		glm::mat4 view = renderer->getView();
+		glm::mat4 projection = renderer->getProjection();
 
+		/*
 		auto camView = scene->registry().view<FaluEngine::CameraComponent>();
 		for (auto entity : camView)
 		{
@@ -85,6 +89,7 @@ namespace Editor
 			projection = cam.camera.getProjection();
 			break;
 		}
+		*/
 
 		ImGuizmo::SetOrthographic(false);
 

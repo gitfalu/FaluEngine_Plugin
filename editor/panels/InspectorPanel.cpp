@@ -2,6 +2,7 @@
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
+#include "asset/loaders/MaterialLoader.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/PathResolver.h"
 #include <imgui.h>
@@ -83,7 +84,7 @@ namespace Editor
 			ImGui::SameLine();
 
 			// ファイルの存在を確認
-			bool meshExists = std::filesystem::exists(m.meshPath);
+			bool meshExists = std::filesystem::exists(m.meshPath) && std::filesystem::exists(m.meshPath);
 			if (!m.meshPath.empty() && !meshExists)
 			{
 				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
@@ -107,192 +108,36 @@ namespace Editor
 			{
 				if (const ImGuiPayload* payload =
 					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-
-					std::string ext = std::filesystem::path(droppedPath).extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
-						m.meshPath = droppedPath;
+					
+						m.meshPath = static_cast<const char*>(payload->Data);
 						m.cachedMesh = nullptr;
-					}
-					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
-						std::string stem = std::filesystem::path(droppedPath).stem().string();
-						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
-						if (stem.find("normal") != std::string::npos ||
-							stem.find("_nrm") != std::string::npos) {
-							m.normalMapPath = droppedPath;
-							m.cachedNormalMap = nullptr;
-						}
-						else {
-							m.texturePath = droppedPath;
-							m.cachedTexture = nullptr;
-						}
-					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 
-			//==== Texture Path =====
-			ImGui::Text("Texture");
+			//====== Material Path =======
+			ImGui::Text("Material Path");
 			ImGui::SameLine();
-
-			bool texExists = std::filesystem::exists(m.texturePath);
-			if (!m.texturePath.empty() && !texExists)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
-				ImGui::PopStyleColor();
-				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not found");
-			}
-
-			char texBuf[512];
-			strncpy_s(texBuf, m.texturePath.c_str(), sizeof(texBuf));
+			char matBuf[512];
+			strncpy_s(matBuf, m.materialPath.c_str(), sizeof(matBuf));
 			ImGui::SetNextItemWidth(-1);
-			if (ImGui::InputText("##TexPath", texBuf, sizeof(texBuf),
+			if (ImGui::InputText("##MatPath", matBuf, sizeof(matBuf),
 				ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				auto fullpath = FaluEngine::PathResolver::resolveStr(texBuf);
-				m.texturePath = fullpath;
-				m.cachedTexture = nullptr;
+				m.materialPath = matBuf;
+				m.cachedMaterial = nullptr;
 			}
 
-			//===== Drag & Drop ====
+			// Drag & Drop
 			if (ImGui::BeginDragDropTarget())
 			{
-				if (const ImGuiPayload* payload =
-					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-
-					std::string ext = std::filesystem::path(droppedPath).extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
-						m.meshPath = droppedPath;
-						m.cachedMesh = nullptr;
-					}
-					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
-						std::string stem = std::filesystem::path(droppedPath).stem().string();
-						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
-						if (stem.find("normal") != std::string::npos ||
-							stem.find("_nrm") != std::string::npos) {
-							m.normalMapPath = droppedPath;
-							m.cachedNormalMap = nullptr;
-						}
-						else {
-							m.texturePath = droppedPath;
-							m.cachedTexture = nullptr;
-						}
-					}
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					m.materialPath = static_cast<const char*>(payload->Data);
+					m.cachedMaterial = nullptr;
 				}
 				ImGui::EndDragDropTarget();
 			}
-
-			//=== Normal Map Path =====
-			ImGui::Text("Normal Map");
-			ImGui::SameLine();
-
-			bool normalExists = m.normalMapPath.empty() ||
-				std::filesystem::exists(m.normalMapPath);
-			if (!m.normalMapPath.empty() && !normalExists)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
-				ImGui::PopStyleColor();
-				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not found");
-			}
-
-			char normalBuf[512];
-			strncpy_s(normalBuf, m.normalMapPath.c_str(), sizeof(normalBuf));
-			ImGui::SetNextItemWidth(-1);
-			if (ImGui::InputText("##NormalPath", normalBuf, sizeof(normalBuf),
-				ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				auto fullpath = FaluEngine::PathResolver::resolveStr(normalBuf);
-				m.normalMapPath = fullpath;
-				m.cachedNormalMap = nullptr;
-			}
-
-			//===== Drag & Drop ====
-			if (ImGui::BeginDragDropTarget())
-			{
-				if (const ImGuiPayload* payload = 
-					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-
-					std::string ext = std::filesystem::path(droppedPath).extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-					if (ext == ".obj" || ext == ".fbx" || ext == ".gltf") {
-						m.meshPath = droppedPath;
-						m.cachedMesh = nullptr;
-					}
-					else if (ext == ".png" || ext == ".jpg" || ext == ".dds") {
-						std::string stem = std::filesystem::path(droppedPath).stem().string();
-						std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
-						if (stem.find("normal") != std::string::npos ||
-							stem.find("_nrm") != std::string::npos) {
-							m.normalMapPath = droppedPath;
-							m.cachedNormalMap = nullptr;
-						}
-						else {
-							m.texturePath = droppedPath;
-							m.cachedTexture = nullptr;
-						}
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			//=== Shader Path ====
-			ImGui::Separator();
-			ImGui::Text("Custom Shader (optional)");
-
-			ImGui::Text("Vertex Shader");
-			ImGui::SameLine();
-			char vsBuf[512];
-			strncpy_s(vsBuf, m.vertexShaderPath.c_str(), sizeof(vsBuf));
-			ImGui::SetNextItemWidth(-1);
-			if (ImGui::InputText("##VSPath", vsBuf, sizeof(vsBuf),
-				ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				auto fullPath = FaluEngine::PathResolver::resolveStr(vsBuf);
-				m.vertexShaderPath = fullPath;
-				m.cachedShader = nullptr;
-			}
-
-			if (ImGui::BeginDragDropTarget())
-			{
-				if (const ImGuiPayload* payload =
-					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-					m.vertexShaderPath = droppedPath;
-					m.cachedShader = nullptr;
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			ImGui::Text("Pixel Shader");
-			ImGui::SameLine();
-			char psBuf[512];
-			strncpy_s(psBuf, m.pixelShaderPath.c_str(), sizeof(psBuf));
-			ImGui::SetNextItemWidth(-1);
-			if (ImGui::InputText("##PSPath", psBuf, sizeof(psBuf),
-				ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				auto fullPath = FaluEngine::PathResolver::resolveStr(psBuf);
-				m.pixelShaderPath = fullPath;
-				m.cachedShader = nullptr;
-			}
-
-			if (ImGui::BeginDragDropTarget())
-			{
-				if (const ImGuiPayload* payload =
-					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-					m.pixelShaderPath = droppedPath;
-					m.cachedShader = nullptr;
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			if (m.cachedShader && !m.cachedShader->valid)
-				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "Shader compile failed");
 
 			//===== Mesh Info ====
 			if (m.cachedMesh)
@@ -305,6 +150,11 @@ namespace Editor
 			}
 
 			ImGui::Checkbox("Visible", &m.visible);
+
+			if (m.cachedMaterial && m.cachedMaterial->valid)
+			{
+				drawMaterialEditor(m.cachedMaterial.get(), m.materialPath);
+			}
 		}
 	}
 
@@ -455,6 +305,220 @@ namespace Editor
 			ImGui::DragFloat("Exposure", &sky.exposure, 0.01f, 0.0f, 10.0f);
 			ImGui::Checkbox("Enabled", &sky.enabled);
 		}
+	}
+
+	void InspectorPanel::drawMaterialEditor(FaluEngine::MaterialAsset* material, const std::string& materialPath)
+	{
+		if (!material) return;
+
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Mateiral (PBR)", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			bool changed = false;
+
+			//=== Albedo ====
+			ImGui::Text("Albedo Color");
+			if (ImGui::ColorEdit4("##Albedo", glm::value_ptr(material->albedoColor)))
+				changed = true;
+
+			ImGui::Text("Albedo Map");
+			ImGui::SameLine();
+			char albedoBuf[512];
+			strncpy_s(albedoBuf, material->albedoMapPath.c_str(), sizeof(albedoBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##AlbedoMap", albedoBuf, sizeof(albedoBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->albedoMapPath = albedoBuf;
+				material->cachedAlbedoMap = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->albedoMapPath = static_cast<const char*>(payload->Data);
+					material->cachedAlbedoMap = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Separator();
+
+			//=== Metallic / Roughness ====
+			if (ImGui::SliderFloat("Metallic", &material->metallic, 0.1f, 1.0f)) changed = true;
+			if (ImGui::SliderFloat("Roughness", &material->roughness, 0.1f, 1.0f)) changed = true;
+
+			ImGui::Text("Metallic/Roughness Map (R=Metal,G=Rough)");
+			ImGui::SameLine();
+			char metalBuf[512];
+			strncpy_s(metalBuf, material->metallicMapPath.c_str(), sizeof(metalBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##MetallicMap", metalBuf, sizeof(metalBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->metallicMapPath = metalBuf;
+				material->cachedMetallicMap = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->metallicMapPath = static_cast<const char*>(payload->Data);
+					material->cachedMetallicMap = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::Separator();
+
+			//==== Normal Map =====
+			ImGui::Text("Normal Map");
+			ImGui::SameLine();
+			char normalBuf[512];
+			strncpy_s(normalBuf, material->normalMapPath.c_str(), sizeof(normalBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##NormalMap", normalBuf, sizeof(normalBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->normalMapPath = normalBuf;
+				material->cachedNormalMap = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->normalMapPath = static_cast<const char*>(payload->Data);
+					material->cachedNormalMap = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			//==== AO Map =====
+			ImGui::Text("AO Map");
+			ImGui::SameLine();
+			char aoBuf[512];
+			strncpy_s(aoBuf, material->aoMapPath.c_str(), sizeof(aoBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##AOMap", aoBuf, sizeof(aoBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->aoMapPath = aoBuf;
+				material->cachedAOMap = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->aoMapPath = static_cast<const char*>(payload->Data);
+					material->cachedAOMap = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Separator();
+
+			//==== Emissive =====
+			if (ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material->emissiveColor)))
+				changed = true;
+			if (ImGui::DragFloat("Emissive Strength", &material->emissiveStrength, 0.01f, 0.0f, 50.0f))
+				changed = true;
+
+			ImGui::Text("Emissive Map");
+			ImGui::SameLine();
+			char emissiveBuf[512];
+			strncpy_s(emissiveBuf, material->emissiveMapPath.c_str(), sizeof(emissiveBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("##EmissiveMap", emissiveBuf, sizeof(emissiveBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->emissiveMapPath = emissiveBuf;
+				material->cachedEmissiveMap = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->emissiveMapPath = static_cast<const char*>(payload->Data);
+					material->cachedEmissiveMap = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::Separator();
+
+			//=== Custom Shader ====
+			ImGui::Text("Vertex Shader (optional)");
+			ImGui::SameLine();
+			char vsBuf[512];
+			strncpy_s(vsBuf, material->vertexShaderPath.c_str(), sizeof(vsBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("###VSPath", vsBuf, sizeof(vsBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->vertexShaderPath = vsBuf;
+				material->cachedShader = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->vertexShaderPath = static_cast<const char*>(payload->Data);
+					material->cachedShader = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Text("Pixel Shader (optional)");
+			ImGui::SameLine();
+			char psBuf[512];
+			strncpy_s(psBuf, material->pixelShaderPath.c_str(), sizeof(psBuf));
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::InputText("###PSPath", psBuf, sizeof(psBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				material->pixelShaderPath = psBuf;
+				material->cachedShader = nullptr;
+				changed = true;
+			}
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					material->pixelShaderPath = static_cast<const char*>(payload->Data);
+					material->cachedShader = nullptr;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			//=== Save Button =====
+			ImGui::Spacing();
+			if (ImGui::Button("Save Material", { -1,0 }))
+			{
+				if (!materialPath.empty())
+				{
+					FaluEngine::saveMaterial(materialPath, *material);
+				}
+			}
+
+			if (changed)
+			{
+				ImGui::TextColored({ 1.0f,0.8f,0.3f,1.0f },
+					"Modified (not saved yet)");
+			}
+			
+		}
+
 	}
 
 	void InspectorPanel::drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity)

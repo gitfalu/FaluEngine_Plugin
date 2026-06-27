@@ -81,6 +81,7 @@ engine_add_module(asset
         asset/loaders/MeshLoader.cpp
         asset/loaders/TextureLoader.cpp
         asset/loaders/ShaderLoader.cpp
+        asset/loaders/MaterialLoader.cpp
     DEPS
         engine_core
         assimp::assimp

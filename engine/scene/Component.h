@@ -13,6 +13,7 @@
 #include "asset/loaders/TextureLoader.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "asset/loaders/ShaderLoader.h"
+#include "asset/loaders/MaterialLoader.h"
 
 namespace FaluEngine {
 
@@ -53,17 +54,11 @@ struct TransformComponent {
 // ── メッシュ参照 ───────────────────────────────────────────────────────────
 struct MeshComponent {
     std::string meshPath;   // AssetManager に渡すパス
-    std::string texturePath;// 空の場合はカラーのみで表示
-    std::string normalMapPath;
-    std::string vertexShaderPath;
-    std::string pixelShaderPath;
     std::string materialPath;
     bool visible = true;
 
     std::shared_ptr<MeshAsset> cachedMesh;
-    std::shared_ptr<TextureAsset> cachedTexture;
-    std::shared_ptr<TextureAsset> cachedNormalMap;
-    std::shared_ptr<ShaderAsset> cachedShader;
+    std::shared_ptr<MaterialAsset> cachedMaterial;
 };
 
 // ── カメラ ────────────────────────────────────────────────────────────────
