@@ -66,6 +66,7 @@ engine_add_module(renderer
         renderer/dx11/ImGuiLayer.cpp
         renderer/dx11/RenderTexture.cpp
         renderer/dx11/ShadowMap.cpp
+        renderer/dx11/EnvironmentMap.cpp
     DEPS
         engine_core
         engine_scene

@@ -344,6 +344,17 @@ void Scene::renderSky(DX11Renderer* renderer)
             renderer->getView(), renderer->getProjection(),
             settings,
             settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
+
+        static bool generated = false;
+        if (!generated)
+        {
+            renderer->generateEnvironmentMap(settings,
+                settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
+            renderer->generateIrradianceMap();
+            renderer->generatePrefilterMap();
+            generated = true;
+        }
+
         break;
     }
 }

@@ -367,7 +367,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
                 verts.push_back(v);
             }
         }
-        for (int i = 0; i < stacks; ++i) 
+        for (int i = 0; i < stacks; ++i)
         {
             for (int j = 0; j < slices; ++j)
             {
@@ -396,6 +396,123 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         m_device->CreateBuffer(&ibd, &id, &m_skyIB);
 
         LOG_INFO("SkySphere shaders initialized");
+    }
+
+    // EquirectToCubemap
+    {
+        std::string cubeVSPath = PathResolver::resolveStr("assets/shaders/EquirectToCubemap.vert.hlsl");
+        std::string cubePSPath = PathResolver::resolveStr("assets/shaders/EquirectToCubemap.pixel.hlsl");
+
+        ComPtr<ID3DBlob> cubeVSBlob, cubePSBlob, cubeErrBlob;
+
+        hr = D3DCompileFromFile(
+            std::wstring(cubeVSPath.begin(), cubeVSPath.end()).c_str(),
+            nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+            &cubeVSBlob, &cubeErrBlob);
+        if (FAILED(hr))
+        {
+            if (cubeErrBlob)
+                LOG_ERROR("Cubemap VS error: {}", static_cast<char*>(cubeErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        hr = D3DCompileFromFile(
+            std::wstring(cubePSPath.begin(), cubePSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &cubePSBlob, &cubeErrBlob);
+        if (FAILED(hr))
+        {
+            if (cubeErrBlob)
+                LOG_ERROR("Cubemap PS error: {}", static_cast<char*>(cubeErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        m_device->CreateVertexShader(
+            cubeVSBlob->GetBufferPointer(), cubeVSBlob->GetBufferSize(),
+            nullptr, &m_cubemapVS);
+        m_device->CreatePixelShader(
+            cubePSBlob->GetBufferPointer(), cubePSBlob->GetBufferSize(),
+            nullptr, &m_cubemapPS);
+
+        D3D11_INPUT_ELEMENT_DESC cubeLayout[] = {
+            {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,
+            D3D11_INPUT_PER_VERTEX_DATA,0},
+        };
+        m_device->CreateInputLayout(
+            cubeLayout, 1,
+            cubeVSBlob->GetBufferPointer(), cubeVSBlob->GetBufferSize(),
+            &m_cubemapInputLayout);
+
+        D3D11_BUFFER_DESC cbd = {};
+        cbd.ByteWidth = sizeof(SkyCB);
+        cbd.Usage = D3D11_USAGE_DYNAMIC;
+        cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        m_device->CreateBuffer(&cbd, nullptr, &m_cubemapCB);
+
+        m_environmentMap = std::make_unique<EnvironmentMap>();
+        m_environmentMap->create(m_device.Get(), 512);
+
+        LOG_INFO("EquirectToCubemap shaders initialized");
+    }
+
+    // IrradianceConvolution
+    {
+        std::string irrPSPath = PathResolver::resolveStr("assets/shaders/IrradianceConvolution.pixel.hlsl");
+
+        ComPtr<ID3DBlob> irrPSBlob, irrErrBlob;
+        hr = D3DCompileFromFile(
+            std::wstring(irrPSPath.begin(), irrPSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &irrPSBlob, &irrErrBlob);
+        if (FAILED(hr))
+        {
+            if (irrErrBlob)
+                LOG_ERROR("Irradiance PS error: {}", static_cast<char*>(irrErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        m_device->CreatePixelShader(
+            irrPSBlob->GetBufferPointer(), irrPSBlob->GetBufferSize(),
+            nullptr, &m_irradiancePS);
+
+        m_irradianceMap = std::make_unique<EnvironmentMap>();
+        m_irradianceMap->create(m_device.Get(), 32);
+
+        LOG_INFO("IrradianceConvolution shader initialized");
+    }
+
+    // PrefilterEnvironment
+    {
+        std::string prefPSPath = PathResolver::resolveStr("assets/shaders/PrefilterEnvironment.pixel.hlsl");
+
+        ComPtr<ID3DBlob> prefPSBlob, prefErrBlob;
+        hr = D3DCompileFromFile(
+            std::wstring(prefPSPath.begin(), prefPSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &prefPSBlob, &prefErrBlob);
+        if (FAILED(hr))
+        {
+            if (prefErrBlob)
+                LOG_ERROR("Prefilter PS error: {}", static_cast<char*>(prefErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        m_device->CreatePixelShader(
+            prefPSBlob->GetBufferPointer(), prefPSBlob->GetBufferSize(),
+            nullptr, &m_prefilterPS);
+
+        D3D11_BUFFER_DESC pcbd = {};
+        pcbd.ByteWidth = sizeof(PrefilterCB);
+        pcbd.Usage = D3D11_USAGE_DYNAMIC;
+        pcbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        pcbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        m_device->CreateBuffer(&pcbd, nullptr, &m_prefilterCB);
+
+        m_prefilterMap = std::make_unique<EnvironmentMap>();
+        m_prefilterMap->create(m_device.Get(), 128, 5);
+
+        LOG_INFO("PrefilterEnvitornment shader initialized");
     }
 
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
@@ -854,6 +971,201 @@ void DX11Renderer::updateShadowSettings(const ShadowSettingsCB& settings)
     m_context->Unmap(m_shadowSettingsCB.Get(), 0);
 
     m_context->PSSetConstantBuffers(3, 1, m_shadowSettingsCB.GetAddressOf());
+}
+
+void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11ShaderResourceView* skySRV)
+{
+    if (!m_environmentMap) return;
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_skySettingsCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &settings, sizeof(SkySettingsCB));
+    m_context->Unmap(m_skySettingsCB.Get(), 0);
+
+    m_context->IASetInputLayout(m_cubemapInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_cubemapVS.Get(), nullptr, 0);
+    m_context->PSSetShader(m_cubemapPS.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_cubemapCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_skySettingsCB.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    if (skySRV) m_context->PSSetShaderResources(0, 1, &skySRV);
+
+    UINT stride = sizeof(glm::vec3), offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_skyVB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    glm::mat4 proj = EnvironmentMap::getCubeProjectionMatrix();
+    uint32_t size = m_environmentMap->getSize();
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(size);
+    vp.Height = static_cast<float>(size);
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    m_context->OMSetDepthStencilState(m_skyDepthState.Get(), 0);
+    m_context->RSSetState(nullptr);
+
+    for(int face = 0 ; face < 6;++face)
+    {
+        ID3D11RenderTargetView* rtv = m_environmentMap->getFaceRTV(face);
+        m_context->OMSetRenderTargets(1, &rtv, nullptr);
+
+        glm::mat4 view = EnvironmentMap::getFaceViewMatrix(face);
+        SkyCB skyCB;
+        skyCB.viewProj = glm::transpose(proj * view);
+
+        D3D11_MAPPED_SUBRESOURCE cbMapped;
+        m_context->Map(m_cubemapCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &cbMapped);
+        memcpy(cbMapped.pData, &skyCB, sizeof(SkyCB));
+        m_context->Unmap(m_cubemapCB.Get(), 0);
+
+        m_context->DrawIndexed(m_skyIndexCount, 0, 0);
+    }
+
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+    updateViewport();
+
+    if (skySRV)
+    {
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        m_context->PSSetShaderResources(0, 1, &nullSRV);
+    }
+
+    LOG_INFO("EnvironmentMap generated from SkySphere");
+}
+
+void DX11Renderer::generateIrradianceMap()
+{
+    if (!m_irradianceMap || !m_environmentMap) return;
+    auto* envSRV = m_environmentMap->getSRV();
+    if (!envSRV) return;
+
+    m_context->IASetInputLayout(m_cubemapInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_cubemapVS.Get(), nullptr, 0);
+    m_context->PSSetShader(m_irradiancePS.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_cubemapCB.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    m_context->PSSetShaderResources(0, 1, &envSRV);
+
+    UINT stride = sizeof(glm::vec3), offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_skyVB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    glm::mat4 proj = EnvironmentMap::getCubeProjectionMatrix();
+    uint32_t size = m_irradianceMap->getSize();
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(size);
+    vp.Height = static_cast<float>(size);
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    m_context->OMSetDepthStencilState(m_skyDepthState.Get(), 0);
+    m_context->RSSetState(nullptr);
+
+    for (int face = 0; face < 6; ++face)
+    {
+        ID3D11RenderTargetView* rtv = m_irradianceMap->getFaceRTV(face);
+        m_context->OMSetRenderTargets(1, &rtv, nullptr);
+
+        glm::mat4 view = EnvironmentMap::getFaceViewMatrix(face);
+        SkyCB skyCB;
+        skyCB.viewProj = glm::transpose(proj * view);
+
+        D3D11_MAPPED_SUBRESOURCE cbMapped;
+        m_context->Map(m_cubemapCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &cbMapped);
+        memcpy(cbMapped.pData, &skyCB, sizeof(SkyCB));
+        m_context->Unmap(m_cubemapCB.Get(), 0);
+
+        m_context->DrawIndexed(m_skyIndexCount, 0, 0);
+    }
+
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+    updateViewport();
+
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_context->PSSetShaderResources(0, 1, &nullSRV);
+
+    LOG_INFO("IrradianceMap generated ({}x{} x6)", size, size);
+}
+
+void DX11Renderer::generatePrefilterMap()
+{
+    if (!m_prefilterMap || !m_environmentMap) return;
+
+    auto* envSRV = m_environmentMap->getSRV();
+    if (!envSRV) return;
+
+    m_context->IASetInputLayout(m_cubemapInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_cubemapVS.Get(), nullptr, 0);
+    m_context->PSSetShader(m_prefilterPS.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_cubemapCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_prefilterCB.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    m_context->PSSetShaderResources(0, 1, &envSRV);
+
+    UINT stride = sizeof(glm::vec3), offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_skyCB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    glm::mat4 proj = EnvironmentMap::getCubeProjectionMatrix();
+
+    m_context->OMSetDepthStencilState(m_skyDepthState.Get(), 0);
+    m_context->RSSetState(nullptr);
+
+    uint32_t maxMips = m_prefilterMap->getMipLevels();
+    for (uint32_t mip = 0; mip < maxMips; ++mip)
+    {
+        float roughness = static_cast<float>(mip) / static_cast<float>(maxMips - 1);
+
+        PrefilterCB prefCB;
+        prefCB.roughness = roughness;
+        D3D11_MAPPED_SUBRESOURCE prefMapped;
+        m_context->Map(m_prefilterCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &prefMapped);
+        memcpy(prefMapped.pData, &prefCB, sizeof(PrefilterCB));
+        m_context->Unmap(m_prefilterCB.Get(), 0);
+
+        uint32_t mipSize = m_prefilterMap->getSize() >> mip;
+        if (mipSize < 1)mipSize = 1;
+
+        D3D11_VIEWPORT vp = {};
+        vp.Width = static_cast<float>(mipSize);
+        vp.Height = static_cast<float>(mipSize);
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
+
+        for (int face = 0; face < 6; ++face)
+        {
+            ID3D11RenderTargetView* rtv = m_prefilterMap->getFaceRTV(face, mip);
+            m_context->OMSetRenderTargets(1, &rtv, nullptr);
+
+            glm::mat4 view = EnvironmentMap::getFaceViewMatrix(face);
+            SkyCB skyCB;
+            skyCB.viewProj = glm::transpose(proj * view);
+
+            D3D11_MAPPED_SUBRESOURCE cbMapped;
+            m_context->Map(m_cubemapCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &cbMapped);
+            memcpy(cbMapped.pData, &skyCB, sizeof(SkyCB));
+            m_context->Unmap(m_cubemapCB.Get(), 0);
+
+            m_context->DrawIndexed(m_skyIndexCount, 0, 0);
+        }
+    }
+
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+    updateViewport();
+
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_context->PSSetShaderResources(0, 1, &nullSRV);
+
+    LOG_INFO("PrefilterMap generated ({} mips)", maxMips);
 }
 
 } // namespace FaluEngine

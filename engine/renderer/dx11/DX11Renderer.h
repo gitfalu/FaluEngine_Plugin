@@ -17,6 +17,7 @@
 #include <memory>
 #include "RenderTexture.h"
 #include "ShadowMap.h"
+#include "EnvironmentMap.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
 
@@ -108,6 +109,12 @@ struct SkySettingsCB
     float _pad[2] = {};
 };
 
+struct PrefilterCB
+{
+    float roughness = 0.0f;
+    glm::vec3 _pad = {};
+};
+
 class DX11Renderer final : public IRenderer {
 public:
     DX11Renderer()  = default;
@@ -191,6 +198,23 @@ public:
         return m_dirShadowMap.get();
     }
 
+    void generateEnvironmentMap(const SkySettingsCB& settings,
+        ID3D11ShaderResourceView* skySRV);
+    void generateIrradianceMap();
+    void generatePrefilterMap();
+
+    [[nodiscard]] ID3D11ShaderResourceView* getEnvironmentMapSRV() const noexcept
+    {
+        return m_environmentMap ? m_environmentMap->getSRV() : nullptr;
+    }
+    [[nodiscard]] ID3D11ShaderResourceView* getIrradianceMapSRV() const noexcept
+    {
+        return m_irradianceMap ? m_irradianceMap->getSRV() : nullptr;
+    }
+    [[nodiscard]] ID3D11ShaderResourceView* getPrefilterMapSRV() const noexcept {
+        return m_prefilterMap ? m_prefilterMap->getSRV() : nullptr;
+    }
+
 private:
     bool createDeviceAndSwapChain(HWND hwnd);
     bool createRenderTargetView();
@@ -226,6 +250,24 @@ private:
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+    // EnvironmentMap
+    std::unique_ptr<EnvironmentMap> m_environmentMap;
+    ComPtr<ID3D11VertexShader> m_cubemapVS;
+    ComPtr<ID3D11PixelShader> m_cubemapPS;
+    ComPtr<ID3D11InputLayout> m_cubemapInputLayout;
+    ComPtr<ID3D11Buffer> m_cubemapCB;
+
+    // IrradianceMap
+    std::unique_ptr<EnvironmentMap> m_irradianceMap;
+    ComPtr<ID3D11VertexShader> m_irradianceVS;
+    ComPtr<ID3D11PixelShader> m_irradiancePS;
+    ComPtr<ID3D11InputLayout> m_irradianceInputLayout;
+
+    // Prefilter
+    std::unique_ptr<EnvironmentMap> m_prefilterMap;
+    ComPtr<ID3D11PixelShader> m_prefilterPS;
+    ComPtr<ID3D11Buffer> m_prefilterCB;
 
     // SkySphere
     ComPtr<ID3D11VertexShader> m_skyVS;
