@@ -202,6 +202,7 @@ public:
         ID3D11ShaderResourceView* skySRV);
     void generateIrradianceMap();
     void generatePrefilterMap();
+    void generateBRDFLUT();
 
     [[nodiscard]] ID3D11ShaderResourceView* getEnvironmentMapSRV() const noexcept
     {
@@ -213,6 +214,9 @@ public:
     }
     [[nodiscard]] ID3D11ShaderResourceView* getPrefilterMapSRV() const noexcept {
         return m_prefilterMap ? m_prefilterMap->getSRV() : nullptr;
+    }
+    [[nodiscard]] ID3D11ShaderResourceView* getBRDFLutSRV() const noexcept {
+        return m_brdfLutSRV.Get();
     }
 
 private:
@@ -247,6 +251,7 @@ private:
     std::unique_ptr<ShadowMap> m_dirShadowMap;
 
     ComPtr<ID3D11SamplerState> m_samplerState;
+    ComPtr<ID3D11SamplerState> m_lutSampler;
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;
@@ -268,6 +273,13 @@ private:
     std::unique_ptr<EnvironmentMap> m_prefilterMap;
     ComPtr<ID3D11PixelShader> m_prefilterPS;
     ComPtr<ID3D11Buffer> m_prefilterCB;
+
+    // BRDFLut
+    ComPtr<ID3D11VertexShader> m_brdfLutVS;
+    ComPtr<ID3D11PixelShader> m_brdfLutPS;
+    ComPtr<ID3D11Texture2D> m_brdfLutTexture;
+    ComPtr<ID3D11RenderTargetView> m_brdfLutRTV;
+    ComPtr<ID3D11ShaderResourceView> m_brdfLutSRV;
 
     // SkySphere
     ComPtr<ID3D11VertexShader> m_skyVS;

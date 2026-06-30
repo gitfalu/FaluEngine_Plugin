@@ -269,8 +269,14 @@ void Scene::renderMeshes(DX11Renderer* renderer)
         if (!mesh.cachedMesh || !mesh.cachedMesh->vertexBuffer || !mesh.cachedMesh->indexBuffer) continue;
 
         // Load Material
+        LOG_INFO("Mesh: '{}', materialPath: '{}'",
+            mesh.meshPath, mesh.materialPath);
+
         if (!mesh.materialPath.empty() && !mesh.cachedMaterial)
             mesh.cachedMaterial = AssetManager::get().load<MaterialAsset>(mesh.materialPath);
+
+        LOG_INFO("cachedMaterial: {}",
+            mesh.cachedMaterial ? (mesh.cachedMaterial->valid ? "valid" : "invalid") : "nullptr");
 
         MaterialAsset* mat = (mesh.cachedMaterial && mesh.cachedMaterial->valid)
             ? mesh.cachedMaterial.get() : nullptr;
@@ -345,14 +351,14 @@ void Scene::renderSky(DX11Renderer* renderer)
             settings,
             settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
 
-        static bool generated = false;
-        if (!generated)
+        if (!sky.environmentBaked)
         {
             renderer->generateEnvironmentMap(settings,
                 settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
             renderer->generateIrradianceMap();
             renderer->generatePrefilterMap();
-            generated = true;
+            renderer->generateBRDFLUT();
+            sky.environmentBaked = true;
         }
 
         break;

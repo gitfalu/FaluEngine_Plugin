@@ -55,8 +55,13 @@ Texture2D gNormalMap : register(t2);
 Texture2D gAOMap : register(t3);
 Texture2D gEmissiveMap : register(t4);
 Texture2D gShadowMap : register(t5);
+TextureCube gIrradianceMap : register(t6);
+TextureCube gPrefilterMap : register(t7);
+Texture2D gBRDFLut : register(t8);
+
 SamplerState gSampler : register(s0);
 SamplerComparisonState gShadowSampler : register(s1);
+SamplerState gLutSampler : register(s2);
 
 struct PSInput
 {
@@ -70,7 +75,7 @@ struct PSInput
 
 //========= Cook-Torrance BRDF ============
 /// GGX •ª•z
-float distributionGGX(float3 N,float3 H,float3 roughness)
+float distributionGGX(float3 N,float3 H,float roughness)
 {
     float a = roughness * roughness;
     float a2 = a * a;
@@ -107,6 +112,15 @@ float geometrySmith(float3 N,float3 V,float3 L , float roughness)
 float3 fresnelSchlick(float cosTheta,float3 F0)
 {
     return F0 + (1.0f - F0) * pow(saturate(1.0f - cosTheta), 5.0f);
+}
+
+float3 fresnelSchlickRoughness(float cosTheta,float3 F0,float roughness)
+{
+    return F0 + (max(float3(
+    1.0f - roughness,
+    1.0f - roughness, 
+    1.0f - roughness),
+    F0) - F0) * pow(saturate(1.0f - cosTheta), 5.0f);
 }
 
 //====== Calclation Shadow ========
@@ -222,7 +236,7 @@ float4 PS(PSInput pin) : SV_TARGET
             float cosAngle = dot(L, normalize(-light.direction.xyz));
             float cosInner = cos(light.spotInner);
             float cosOuter = cos(light.spotOuter);
-            attenuation = saturate((cosAngle - cosOuter) / cosInner - cosOuter);
+            attenuation = saturate((cosAngle - cosOuter) / (cosInner - cosOuter));
             attenuation *= 1.0f - saturate(dist / light.range);
         }
         
@@ -250,10 +264,25 @@ float4 PS(PSInput pin) : SV_TARGET
         
         Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL * shadow;
     }
-
-    // ambient
-    float3 ambient = ambientColor.rgb * albedo.rgb * ao;
     
+    //=== IBL ====
+    float3 F_roughness = fresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, rough);
+
+    // Diffuse IBL
+    float3 kS_ibl = F_roughness;
+    float3 kD_ibl = (1.0f - kS_ibl) * (1.0f - metal);
+    float3 irradiance = gIrradianceMap.Sample(gSampler, N).rgb;
+    float3 diffuseIBL = kD_ibl * irradiance * albedo.rgb;
+    
+    // Specular IBL
+    float3 R = reflect(-V, N);
+    const float MAX_REFLECTION_LOD = 4.0f;
+    float3 prefilterdColor = gPrefilterMap.SampleLevel(gSampler, R, rough * MAX_REFLECTION_LOD).rgb;
+    float2 envBRDF = gBRDFLut.Sample(gLutSampler, float2(max(dot(N, V), 0.0f), rough)).rg;
+    float3 specularIBL = prefilterdColor * (F_roughness * envBRDF.x + envBRDF.y);
+    
+    // ambient
+    float3 ambient = (diffuseIBL + specularIBL) * ao;
     float3 color = ambient + Lo + emissive;
     
     // Tone Mapping

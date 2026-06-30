@@ -107,6 +107,7 @@ struct SkySphereComponent
     glm::vec4 bottomColor = { 0.2f,0.15f,0.1f,1.0f };
     float exposure = 1.0f;
     bool enabled = true;
+    bool environmentBaked = false;
 
     std::shared_ptr<FaluEngine::TextureAsset> cachedTexture;
 };

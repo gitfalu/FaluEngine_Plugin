@@ -515,6 +515,59 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         LOG_INFO("PrefilterEnvitornment shader initialized");
     }
 
+    // BRDF LUT
+    {
+        std::string lutVSPath = PathResolver::resolveStr("assets/shaders/BRDFLUT.vert.hlsl");
+        std::string lutPSPath = PathResolver::resolveStr("assets/shaders/BRDFLUT.pixel.hlsl");
+
+        ComPtr<ID3DBlob> lutVSBlob, lutPSBlob, lutErrBlob;
+
+        hr = D3DCompileFromFile(
+            std::wstring(lutVSPath.begin(), lutVSPath.end()).c_str(),
+            nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+            &lutVSBlob, &lutErrBlob);
+        if (FAILED(hr))
+        {
+            if (lutErrBlob)
+                LOG_ERROR("BRDFLUT VS error: {}", static_cast<char*>(lutErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        hr = D3DCompileFromFile(
+            std::wstring(lutPSPath.begin(), lutPSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &lutPSBlob, &lutErrBlob);
+        if (FAILED(hr))
+        {
+            if (lutErrBlob)
+                LOG_ERROR("BRDFLUT VS error: {}", static_cast<char*>(lutErrBlob->GetBufferPointer()));
+            return false;
+        }
+
+        m_device->CreateVertexShader(
+            lutVSBlob->GetBufferPointer(), lutVSBlob->GetBufferSize(),
+            nullptr, &m_brdfLutVS);
+        m_device->CreateVertexShader(
+            lutVSBlob->GetBufferPointer(), lutVSBlob->GetBufferSize(),
+            nullptr, &m_brdfLutVS);
+
+        D3D11_TEXTURE2D_DESC lutDesc = {};
+        lutDesc.Width = 512;
+        lutDesc.Height = 512;
+        lutDesc.MipLevels = 1;
+        lutDesc.ArraySize = 1;
+        lutDesc.Format = DXGI_FORMAT_R16G16_FLOAT;
+        lutDesc.SampleDesc.Count = 1;
+        lutDesc.Usage = D3D11_USAGE_DEFAULT;
+        lutDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+        m_device->CreateTexture2D(&lutDesc, nullptr, &m_brdfLutTexture);
+        m_device->CreateRenderTargetView(m_brdfLutTexture.Get(), nullptr, &m_brdfLutRTV);
+        m_device->CreateShaderResourceView(m_brdfLutTexture.Get(), nullptr, &m_brdfLutSRV);
+
+        LOG_INFO("BRDFLUT shaders initialized");
+    }
+
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
     return true;
 }
@@ -555,6 +608,16 @@ bool DX11Renderer::createDefaultStates()
     skyDSD.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
     skyDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
     m_device->CreateDepthStencilState(&skyDSD, &m_skyDepthState);
+
+    // BRDF lut
+    D3D11_SAMPLER_DESC lutSD = {};
+    lutSD.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    lutSD.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    lutSD.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    lutSD.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    lutSD.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+    lutSD.MaxLOD = D3D11_FLOAT32_MAX;
+    m_device->CreateSamplerState(&lutSD, &m_lutSampler);
 
     return true;
 }
@@ -739,10 +802,22 @@ void DX11Renderer::drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
     }
     m_context->PSSetShaderResources(0, 5, srvs);
 
+    // IBL Texture
+    ID3D11ShaderResourceView* iblSRVs[3] = {
+        m_irradianceMap ? m_irradianceMap->getSRV() : nullptr,
+        m_prefilterMap ? m_prefilterMap->getSRV() : nullptr,
+        m_brdfLutSRV.Get()
+    };
+
+    m_context->PSSetShaderResources(6, 3, iblSRVs);
+    m_context->PSSetSamplers(2, 1, m_lutSampler.GetAddressOf());
+
     m_context->DrawIndexed(indexCount, indexOffset, 0);
 
-    ID3D11ShaderResourceView* nullSRVs[5] = { nullptr,nullptr,nullptr,nullptr,nullptr };
-    m_context->PSSetShaderResources(0, 5, nullSRVs);
+    ID3D11ShaderResourceView* nullSRVs[8] = { 
+        nullptr,nullptr,nullptr,nullptr,nullptr,
+        nullptr,nullptr,nullptr};
+    m_context->PSSetShaderResources(0, 8, nullSRVs);
 
 }
 
@@ -1166,6 +1241,44 @@ void DX11Renderer::generatePrefilterMap()
     m_context->PSSetShaderResources(0, 1, &nullSRV);
 
     LOG_INFO("PrefilterMap generated ({} mips)", maxMips);
+}
+
+void DX11Renderer::generateBRDFLUT()
+{
+    if (!m_brdfLutRTV) return;
+
+    ID3D11RenderTargetView* rtv = m_brdfLutRTV.Get();
+    m_context->OMSetRenderTargets(1, &rtv, nullptr);
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = 512.0f;
+    vp.Height = 512.0f;
+    vp.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &vp);
+
+    m_context->OMSetDepthStencilState(m_skyDepthState.Get(), 0);
+    m_context->RSSetState(nullptr);
+    m_context->IASetInputLayout(nullptr);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_brdfLutVS.Get(), nullptr,0);
+    m_context->PSSetShader(m_brdfLutPS.Get(), nullptr, 0);
+
+    ID3D11Buffer* nullVB = nullptr;
+    UINT stride = 0, offset = 0;
+    m_context->IASetVertexBuffers(0, 1, &nullVB, &stride, &offset);
+
+    m_context->Draw(3, 0);
+
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+    updateViewport();
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
+
+    LOG_INFO("BRDFLUT generated (512x512)");
 }
 
 } // namespace FaluEngine
