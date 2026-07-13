@@ -8,6 +8,7 @@
 #include "core/Application.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
+#include "core/EditorStateManager.h"
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
@@ -74,6 +75,15 @@ public:
         skyComp.horizonColor = { 0.6f,0.75f,0.9f,1.0f };
         skyComp.bottomColor = { 0.2f,0.15f,0.1f,1.0f };
 
+        auto character = createEntity("Character");
+        auto& cMesh = character.addComponent<FaluEngine::MeshComponent>();
+        cMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/Taunt.fbx");
+
+        auto& animator = character.addComponent<FaluEngine::AnimatorComponent>();
+        animator.currentClipName = "mixamo.com";
+        animator.playing = true;
+        animator.loop = true;
+
         FaluEngine::PhysicsSystem::get().registerScene(*this);
         FALU_ENGINE_LOG_INFO("EditorScene entered - {} entities", entityCount());
     }
@@ -107,12 +117,20 @@ public:
             }
         }
 
+        getSceneManager().setUpdateGate([]() {
+            return FaluEngine::EditorStateManager::get().isPlaying();
+            });
+
         m_editorCamera.setPerspective(60.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
         m_editorCamera.setPosition({ 0.0f,3.0f,-5.0f });
         m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(m_editorCamera);
 
         m_contentBrowser.init(
             std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
+
+        FaluEngine::EditorStateManager::get().setOnBeforeShop([this]() {
+            m_hierarchy.clearSelected();
+            });
 
         FaluEngine::EventBus::get().subscribe<FaluEngine::MouseMovedEvent>(
             [this](const FaluEngine::MouseMovedEvent& e) {
@@ -148,6 +166,7 @@ public:
     void onUpdate(float deltaTime) override 
     { 
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
+
         if (m_cameraCtrl && m_sceneView.isFocused())
             m_cameraCtrl->onUpdate(deltaTime);
 
@@ -189,7 +208,8 @@ public:
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Save Scene", "Ctrl + S"))
+                if (ImGui::MenuItem("Save Scene", "Ctrl + S"),
+                    false,FaluEngine::EditorStateManager::get().isEditing())
                 {
                     auto* scene = getSceneManager().getActive();
                     if (scene) {
@@ -237,6 +257,77 @@ public:
             }
             ImGui::EndMainMenuBar();
         }
+        ImGui::SameLine();
+
+        {
+            auto& stateManager = FaluEngine::EditorStateManager::get();
+            bool isEditing = stateManager.isEditing();
+            bool isPlaying = stateManager.isPlaying();
+            bool isPaused = stateManager.isPaused();
+
+            ImGui::Begin("##Toolbar", nullptr,
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar
+            );
+
+            if (isEditing)
+            {
+                if (ImGui::Button("Play"))
+                {
+                    auto* activeScene = getSceneManager().getActive();
+                    if (activeScene) stateManager.play(*activeScene);
+                }
+            }
+            else
+            {
+                ImGui::BeginDisabled(true);
+                ImGui::Button("Play");
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+
+            if (isPlaying)
+            {
+                if (ImGui::Button("Pause")) stateManager.pause();
+            }
+            else if(isPaused)
+            {
+                if (ImGui::Button("Resume"))stateManager.resume();
+            }
+            else
+            {
+                ImGui::BeginDisabled(true);
+                ImGui::Button("Pause");
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+
+            if (!isEditing)
+            {
+                if (ImGui::Button("Stop"))
+                {
+                    auto* activeScene = getSceneManager().getActive();
+                    if (activeScene) stateManager.stop(*activeScene);
+                }
+            }
+            else
+            {
+                ImGui::BeginDisabled(true);
+                ImGui::Button("Stop");
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+            ImGui::TextColored(
+                isPlaying ? ImVec4(0.4f, 1.0f, 0.4f, 1.0f) :
+                isPaused ? ImVec4(1.0f, 1.0f, 0.4f, 1.0f) :
+                ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                " [%s]", isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "EDITING"
+            );
+            ImGui::End();
+        }
 
         if (m_openNewScenePopup)
         {
@@ -258,6 +349,7 @@ public:
                 ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
         }
+
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);

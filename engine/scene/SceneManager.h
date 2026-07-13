@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <functional>
 #include "Scene.h"
 #include "core/Logger.h"
 #include "core/EventBus.h"
@@ -60,7 +61,8 @@ public:
 	void createNewScene(const std::string& name);
 
 	void onUpdate(float deltaTime) {
-		if (m_active) m_active->onUpdate(deltaTime);
+		if (m_active && shouldUpdate()) 
+			m_active->onUpdate(deltaTime);
 	}
 
 	void onRender() {
@@ -92,6 +94,13 @@ public:
 		m_scenePaths[name] = path;
 	}
 
+	void setUpdateGate(std::function<bool()> gate) { m_updateGate = std::move(gate); }
+private:
+	std::function<bool()> m_updateGate;
+	[[nodiscard]] bool shouldUpdate() const
+	{
+		return !m_updateGate || m_updateGate();
+	}
 private:
 	SceneManager() = default;
 

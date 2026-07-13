@@ -34,6 +34,7 @@ engine_add_module(core
         core/Logger.cpp
         core/Memory/PoolAllocator.cpp
         core/InputManager.cpp
+        core/EditorStateManager.cpp
     DEPS
         spdlog::spdlog
         glm::glm
@@ -83,6 +84,7 @@ engine_add_module(asset
         asset/loaders/TextureLoader.cpp
         asset/loaders/ShaderLoader.cpp
         asset/loaders/MaterialLoader.cpp
+        asset/loaders/AnimationClip.cpp
     DEPS
         engine_core
         assimp::assimp

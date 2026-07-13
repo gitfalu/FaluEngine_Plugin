@@ -8,7 +8,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 #include <fstream>
-#include <vector>
 
 namespace FaluEngine {
 
@@ -29,7 +28,7 @@ bool DX11Renderer::init(void* windowHandle, uint32_t width, uint32_t height) {
     updateViewport();
 
     float aspect = static_cast<float>(m_width) / static_cast<float>(m_height);
-    m_projection = glm::perspectiveLH(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+    m_projection = glm::perspectiveLH(glm::radians(60.0f), aspect, 1.0f, 1000.0f);
 
     LOG_INFO("DX11Renderer initialized ({}x{})", m_width, m_height);
     return true;
@@ -547,9 +546,9 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         m_device->CreateVertexShader(
             lutVSBlob->GetBufferPointer(), lutVSBlob->GetBufferSize(),
             nullptr, &m_brdfLutVS);
-        m_device->CreateVertexShader(
-            lutVSBlob->GetBufferPointer(), lutVSBlob->GetBufferSize(),
-            nullptr, &m_brdfLutVS);
+        m_device->CreatePixelShader(
+            lutPSBlob->GetBufferPointer(), lutPSBlob->GetBufferSize(),
+            nullptr, &m_brdfLutPS);
 
         D3D11_TEXTURE2D_DESC lutDesc = {};
         lutDesc.Width = 512;
@@ -567,7 +566,62 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
         LOG_INFO("BRDFLUT shaders initialized");
     }
+    
+    // Skinned PBR Vertex
+    {
+        std::string skinVSPath = PathResolver::resolveStr(
+            "assets/shaders/PBR_Skinned.vert.hlsl"
+        );
+        ComPtr<ID3DBlob> skinVSBlob, skinErrBlob;
+        hr = D3DCompileFromFile(
+            std::wstring(skinVSPath.begin(), skinVSPath.end()).c_str(),
+            nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+            &skinVSBlob, &skinErrBlob
+        );
+        if (FAILED(hr))
+        {
+            if (skinErrBlob)
+                LOG_ERROR("Skinned VS error: {}", 
+                    static_cast<char*>(skinErrBlob->GetBufferPointer()));
+            return false;
+        }
 
+        m_device->CreateVertexShader(
+            skinVSBlob->GetBufferPointer(), skinVSBlob->GetBufferSize(),
+            nullptr, &m_skinnedVertexShader
+        );
+
+        D3D11_INPUT_ELEMENT_DESC skinLayout[] = {
+            {"POSITION",    0,DXGI_FORMAT_R32G32B32_FLOAT,      0,offsetof(SkinnedVertex,position)},
+            {"COLOR",       0,DXGI_FORMAT_R32G32B32A32_FLOAT,   0,offsetof(SkinnedVertex,color)},
+            {"TEXCOORD",    0,DXGI_FORMAT_R32G32_FLOAT,         0,offsetof(SkinnedVertex,uv)},
+            {"NORMAL",      0,DXGI_FORMAT_R32G32B32_FLOAT,      0,offsetof(SkinnedVertex,normal)},
+            {"TANGENT",     0,DXGI_FORMAT_R32G32B32_FLOAT,      0,offsetof(SkinnedVertex,tangent)},
+            {"BINORMAL",    0,DXGI_FORMAT_R32G32B32_FLOAT,      0,offsetof(SkinnedVertex,bitangent)},
+            {"BONEINDICES", 0,DXGI_FORMAT_R32G32B32A32_SINT,   0,offsetof(SkinnedVertex,boneIndices)},
+            {"BONEWEIGHTS", 0,DXGI_FORMAT_R32G32B32A32_FLOAT,   0,offsetof(SkinnedVertex,boneWeights)},
+        };
+
+        hr = m_device->CreateInputLayout(
+            skinLayout, ARRAYSIZE(skinLayout),
+            skinVSBlob->GetBufferPointer(), skinVSBlob->GetBufferSize(),
+            &m_skinnedInputLayout
+        );
+        if (FAILED(hr))
+        {
+            LOG_ERROR("CreateInputLayout (skinned) failed");
+            return false;
+        }
+
+        D3D11_BUFFER_DESC skcbd = {};
+        skcbd.ByteWidth = sizeof(SkinningCB);
+        skcbd.Usage = D3D11_USAGE_DYNAMIC;
+        skcbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        skcbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        m_device->CreateBuffer(&skcbd, nullptr, &m_skinningCB);
+
+        LOG_INFO("Skinned PBR Shader initialized");
+    }
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
     return true;
 }
@@ -819,6 +873,9 @@ void DX11Renderer::drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
         nullptr,nullptr,nullptr};
     m_context->PSSetShaderResources(0, 8, nullSRVs);
 
+    ID3D11ShaderResourceView* debugEnv = m_environmentMap ? m_environmentMap->getSRV() : nullptr;
+    m_context->PSSetShaderResources(9, 1, &debugEnv);
+
 }
 
 void DX11Renderer::drawSkySphere(const glm::mat4& view, const glm::mat4& proj, const SkySettingsCB& settings, ID3D11ShaderResourceView* srv)
@@ -1048,6 +1105,94 @@ void DX11Renderer::updateShadowSettings(const ShadowSettingsCB& settings)
     m_context->PSSetConstantBuffers(3, 1, m_shadowSettingsCB.GetAddressOf());
 }
 
+void DX11Renderer::updateSkinningMatrices(const std::vector<glm::mat4>& boneMatrices)
+{
+    SkinningCB cb;
+    size_t count = std::min(boneMatrices.size(), static_cast<size_t>(MAX_BONES));
+    for (size_t i = 0; i < count; ++i)
+    {
+        cb.boneMatrices[i] = glm::transpose(boneMatrices[i]);
+    }
+    for (size_t i = 0; i < MAX_BONES; ++i)
+    {
+        cb.boneMatrices[i] = glm::mat4(1.0f);
+    }
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_skinningCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &cb, sizeof(SkinningCB));
+    m_context->Unmap(m_skinningCB.Get(), 0);
+
+    m_context->VSSetConstantBuffers(4, 1, m_skinningCB.GetAddressOf());
+}
+
+void DX11Renderer::drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCount, const glm::mat4& transform, MaterialAsset* material)
+{
+    ID3D11PixelShader* ps = (material && material->cachedShader && material->cachedShader->valid)
+        ? material->cachedShader->pixelShader.Get() : m_pixelShader.Get();
+
+    if (m_boundVS != m_skinnedVertexShader.Get())
+    {
+        m_context->VSSetShader(m_skinnedVertexShader.Get(), nullptr,0);
+        m_boundVS = m_skinnedVertexShader.Get();
+    }
+    if (m_boundPS != ps)
+    {
+        m_context->PSSetShader(ps, nullptr, 0);
+        m_boundPS = ps;
+    }
+    m_context->IASetInputLayout(m_skinnedInputLayout.Get());
+
+    MaterialCB mat;
+    if (material)
+    {
+        mat.albedoColor = material->albedoColor;
+        mat.metallic = material->metallic;
+        mat.roughness = material->roughness;
+        mat.useAlbedoMap = (material->cachedAlbedoMap && material->cachedAlbedoMap->srv) ? 1 : 0;
+        mat.useMetallicMap = (material->cachedMetallicMap && material->cachedMetallicMap->srv) ? 1 : 0;
+        mat.useNormalMap = (material->cachedNormalMap && material->cachedNormalMap->srv) ? 1 : 0;
+        mat.useAOMap = (material->cachedAOMap && material->cachedAOMap->srv) ? 1 : 0;
+        mat.useEmissiveMap = (material->cachedEmissiveMap && material->cachedEmissiveMap->srv) ? 1 : 0;
+        mat.emissiveStrength = material->emissiveStrength;
+        mat.emissiveColor = material->emissiveColor;
+    }
+
+    D3D11_MAPPED_SUBRESOURCE matMapped;
+    m_context->Map(m_materialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &matMapped);
+    memcpy(matMapped.pData, &mat, sizeof(MaterialCB));
+    m_context->Unmap(m_materialCB.Get(), 0);
+
+    TransformCB cb;
+    cb.mvp = glm::transpose(m_projection * m_view * transform);
+    cb.world = glm::transpose(transform);
+    cb.normalMatrix = glm::inverse(transform);
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_transformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &cb, sizeof(TransformCB));
+    m_context->Unmap(m_transformCB.Get(), 0);
+
+    ID3D11ShaderResourceView* srvs[5] =
+    { nullptr,nullptr,nullptr,nullptr,nullptr };
+
+    if (material)
+    {
+        if (mat.useAlbedoMap) srvs[0] = material->cachedAlbedoMap->srv.Get();
+        if (mat.useMetallicMap) srvs[1] = material->cachedMetallicMap->srv.Get();
+        if (mat.useNormalMap) srvs[2] = material->cachedNormalMap->srv.Get();
+        if (mat.useAOMap) srvs[3] = material->cachedAOMap->srv.Get();
+        if (mat.useEmissiveMap) srvs[4] = material->cachedEmissiveMap->srv.Get();
+    }
+    m_context->PSSetShaderResources(0, 5, srvs);
+
+    m_context->DrawIndexed(indexCount, indexOffset, 0);
+
+    ID3D11ShaderResourceView* nullSRVs[5] =
+    { nullptr,nullptr,nullptr,nullptr,nullptr };
+    m_context->PSSetShaderResources(0, 5, nullSRVs);
+}
+
 void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11ShaderResourceView* skySRV)
 {
     if (!m_environmentMap) return;
@@ -1171,22 +1316,31 @@ void DX11Renderer::generateIrradianceMap()
 
 void DX11Renderer::generatePrefilterMap()
 {
-    if (!m_prefilterMap || !m_environmentMap) return;
+    if (!m_prefilterMap || !m_environmentMap)
+    {
+        LOG_ERROR("PrefilterMap: missing prefilterMap or environmentMap");
+        return;
+    }
 
     auto* envSRV = m_environmentMap->getSRV();
-    if (!envSRV) return;
+    if (!envSRV)
+    {
+        LOG_ERROR("PrefilterMap: environmentMap SRV is null");
+        return;
+    }
+    LOG_INFO("PrefilterMap: envSRV is valid, starting generation");
 
     m_context->IASetInputLayout(m_cubemapInputLayout.Get());
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_context->VSSetShader(m_cubemapVS.Get(), nullptr, 0);
     m_context->PSSetShader(m_prefilterPS.Get(), nullptr, 0);
     m_context->VSSetConstantBuffers(0, 1, m_cubemapCB.GetAddressOf());
-    m_context->PSSetConstantBuffers(1, 1, m_prefilterCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_prefilterCB.GetAddressOf());
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_context->PSSetShaderResources(0, 1, &envSRV);
 
     UINT stride = sizeof(glm::vec3), offset = 0;
-    m_context->IASetVertexBuffers(0, 1, m_skyCB.GetAddressOf(), &stride, &offset);
+    m_context->IASetVertexBuffers(0, 1, m_skyVB.GetAddressOf(), &stride, &offset);
     m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 
     glm::mat4 proj = EnvironmentMap::getCubeProjectionMatrix();

@@ -57,13 +57,14 @@ float4 PS(PSInput pin) : SV_TARGET
     
     float3 prefileteredColor = float3(0, 0, 0);
     float totalWeight = 0.0f;
+    float clampedRoughness = max(roughness, 0.04f);
     
     const uint SAMPLE_COUNT = 64u;
     
     for (uint i = 0u; i < SAMPLE_COUNT;++i)
     {
         float2 Xi = hammersley(i, SAMPLE_COUNT);
-        float3 H = importanceSampleGGX(Xi, N, roughness);
+        float3 H = importanceSampleGGX(Xi, N, clampedRoughness);
         float3 L = normalize(2.0f * dot(V, H) * H - V);
         
         float NdotL = dot(N, L);

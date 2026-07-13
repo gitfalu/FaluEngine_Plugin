@@ -5,6 +5,7 @@
 #include "core/Application.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
+#include "asset/loaders/AnimationCache.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "script/ScriptEngine.h"
 #include "script/ScriptInstance.h"
@@ -64,6 +65,75 @@ void Scene::onUpdate(float deltaTime) {
     PhysicsSystem::get().step(deltaTime);
     PhysicsSystem::get().syncTransforms(*this);
 
+    auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
+    auto animOnlyView = m_registry.view<AnimatorComponent>();
+    auto meshOnlyView = m_registry.view<MeshComponent>();
+    LOG_INFO("AnimatorComponent count: {}, MeshComponent count: {}",
+        animOnlyView.size(), meshOnlyView.size());
+
+    for (auto entity : animView)
+    {
+        auto& animator = animView.get<AnimatorComponent>(entity);
+        auto& mesh = animView.get<MeshComponent>(entity);
+
+        if (!animator.playing || !mesh.cachedMesh ||
+            !mesh.cachedMesh->hasSkeleton)
+            continue;
+
+        auto clip = AnimationCache::get().getClip(
+            mesh.meshPath, animator.currentClipName);
+        if (!clip) 
+            continue;
+
+        animator.playbackTime += deltaTime * animator.playbackSpeed;
+        if (animator.playbackTime > clip->duration)
+        {
+            animator.playbackTime = animator.loop ?
+                fmod(animator.playbackTime, clip->duration) : clip->duration;
+        }
+
+        auto& skeleton = mesh.cachedMesh->skeleton;
+        std::vector<glm::mat4> globalTransforms(skeleton.bones.size(), glm::mat4(1.0f));
+
+        std::function<void(int, const glm::mat4&)> computeBone =
+            [&](int boneIndex, const glm::mat4& parentGlobal) {
+            const Bone& bone = skeleton.bones[boneIndex];
+
+            glm::mat4 localTransform = bone.localBindTransform;
+            if (auto* channel = clip->findChannel(bone.name))
+                localTransform = channel->sample(animator.playbackTime);
+
+            glm::mat4 globalTransform = parentGlobal * localTransform;
+            globalTransforms[boneIndex] = globalTransform;
+
+            for (size_t i = 0; i < skeleton.bones.size(); ++i)
+            {
+                if (skeleton.bones[i].parentIndex == boneIndex)
+                    computeBone(static_cast<int>(i), globalTransform);
+            }
+        };
+
+
+        for (size_t i = 0; i < skeleton.bones.size(); ++i)
+        {
+            if (skeleton.bones[i].parentIndex == -1)
+            {
+                computeBone(static_cast<int>(i), glm::mat4(1.0f));
+            }
+        }
+
+        animator.boneMatrices.resize(skeleton.bones.size());
+        for (size_t i = 0; i < skeleton.bones.size(); ++i)
+        {
+            animator.boneMatrices[i] = mesh.cachedMesh->globalInverseTransform *
+                globalTransforms[i] * skeleton.bones[i].offsetMatrix;
+        }
+
+        // アニメーション更新の最後に追加
+        LOG_INFO("Skeleton bones: {}, computed matrices: {}",
+            skeleton.bones.size(), animator.boneMatrices.size());
+    }
+
     // luaスクリプトによる更新処理
     auto scriptView = m_registry.view<ScriptComponent>();
     for (auto entity : scriptView) {
@@ -114,11 +184,11 @@ void Scene::updateWorldMatrices()
     auto relView = m_registry.view<RelationshipComponent, TransformComponent>();
     for (auto entity : relView)
     {
+        auto& rel = relView.get<RelationshipComponent>(entity);
+        if (rel.parent != entt::null) continue;
+        
         auto& t = relView.get<TransformComponent>(entity);
         t.worldMatrix = t.getMatrix();
-        
-        auto& rel = relView.get<RelationshipComponent>(entity);
-        if (rel.parent == entt::null) continue;
         
         for (auto child : rel.children)
             computeWorldMatrix(m_registry, child, t.worldMatrix);
@@ -269,14 +339,8 @@ void Scene::renderMeshes(DX11Renderer* renderer)
         if (!mesh.cachedMesh || !mesh.cachedMesh->vertexBuffer || !mesh.cachedMesh->indexBuffer) continue;
 
         // Load Material
-        LOG_INFO("Mesh: '{}', materialPath: '{}'",
-            mesh.meshPath, mesh.materialPath);
-
         if (!mesh.materialPath.empty() && !mesh.cachedMaterial)
             mesh.cachedMaterial = AssetManager::get().load<MaterialAsset>(mesh.materialPath);
-
-        LOG_INFO("cachedMaterial: {}",
-            mesh.cachedMaterial ? (mesh.cachedMaterial->valid ? "valid" : "invalid") : "nullptr");
 
         MaterialAsset* mat = (mesh.cachedMaterial && mesh.cachedMaterial->valid)
             ? mesh.cachedMaterial.get() : nullptr;
@@ -306,7 +370,8 @@ void Scene::renderMeshes(DX11Renderer* renderer)
         auto* vb = mesh.cachedMesh->vertexBuffer.Get();
         auto* ib = mesh.cachedMesh->indexBuffer.Get();
         if (renderer->getBoundVB() != vb) {
-            UINT stride = sizeof(Vertex), offset = 0;
+            UINT stride = mesh.cachedMesh->hasSkeleton ?
+                sizeof(SkinnedVertex) : sizeof(Vertex), offset = 0;
             renderer->getContext()->IASetVertexBuffers(
                 0, 1, &vb, &stride, &offset);
             renderer->setBoundVB(vb);
@@ -320,8 +385,27 @@ void Scene::renderMeshes(DX11Renderer* renderer)
 
         for (const auto& sub : mesh.cachedMesh->subMeshes)
         {
-            renderer->drawSubMeshPBR(sub.indexOffset, sub.indexCount,
-                transform.worldMatrix, mat);
+            if (mesh.cachedMesh->hasSkeleton)
+            {
+                if (m_registry.all_of<AnimatorComponent>(entity))
+                {
+                    auto& animator = m_registry.get<AnimatorComponent>(entity);
+
+                    if (animator.boneMatrices.empty())
+                    {
+                        animator.boneMatrices.assign(
+                            mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
+                    }
+                    renderer->updateSkinningMatrices(animator.boneMatrices);
+                }
+                renderer->drawSkinnedSubMeshPBR(sub.indexCount, sub.indexCount,
+                    transform.worldMatrix, mat);
+            }
+            else
+            {
+                renderer->drawSubMeshPBR(sub.indexOffset, sub.indexCount,
+                    transform.worldMatrix, mat);
+            }
         }
     }
 }

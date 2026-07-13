@@ -14,6 +14,7 @@
 #include "renderer/dx11/DX11Renderer.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
+#include "asset/loaders/AnimationClip.h"
 
 namespace FaluEngine {
 
@@ -110,6 +111,17 @@ struct SkySphereComponent
     bool environmentBaked = false;
 
     std::shared_ptr<FaluEngine::TextureAsset> cachedTexture;
+};
+
+struct AnimatorComponent
+{
+    std::string currentClipName;
+    float playbackTime = 0.0f;
+    float playbackSpeed = 1.0f;
+    bool playing = true;
+    bool loop = true;
+
+    std::vector<glm::mat4> boneMatrices;
 };
 
 } // namespace FaluEngine

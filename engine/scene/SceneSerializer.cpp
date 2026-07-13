@@ -167,9 +167,17 @@ namespace FaluEngine
 			return false;
 		}
 
-		auto existing = m_scene.registry().view<TagComponent>();
-		for (auto entity : existing)
+		std::vector<entt::entity> toDestroy;
 		{
+			auto existing = m_scene.registry().view<TagComponent>();
+			toDestroy.reserve(existing.size());
+			for (auto entity : existing)
+				toDestroy.push_back(entity);
+		}
+
+		for (auto entity : toDestroy)
+		{
+			if (!m_scene.registry().valid(entity)) continue;
 			Entity e(entity, &m_scene);
 			m_scene.destroyEntity(e);
 		}

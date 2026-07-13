@@ -15,11 +15,13 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <memory>
+#include <vector>
 #include "RenderTexture.h"
 #include "ShadowMap.h"
 #include "EnvironmentMap.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
+#include "asset/loaders/SkeletonType.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -32,6 +34,23 @@ struct Vertex {
     glm::vec3 normal;
     glm::vec3 tangent;
     glm::vec3 bitangent;
+};
+
+struct SkinnedVertex
+{
+    glm::vec3 position;
+    glm::vec4 color;
+    glm::vec2 uv;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
+    glm::ivec4 boneIndices = { -1,-1,-1,-1 };
+    glm::vec4 boneWeights = { 0.0f,0.0f,0.0f,0.0f };
+};
+#define MAX_BONES (128)
+struct SkinningCB
+{
+    glm::mat4 boneMatrices[MAX_BONES];
 };
 
 enum class LightType : int
@@ -198,6 +217,12 @@ public:
         return m_dirShadowMap.get();
     }
 
+    // Skinning
+    void updateSkinningMatrices(const std::vector<glm::mat4>& boneMatrices);
+    void drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
+        const glm::mat4& transform, class MaterialAsset* material);
+
+
     void generateEnvironmentMap(const SkySettingsCB& settings,
         ID3D11ShaderResourceView* skySRV);
     void generateIrradianceMap();
@@ -291,6 +316,11 @@ private:
     ComPtr<ID3D11Buffer> m_skyIB;
     ComPtr<ID3D11DepthStencilState> m_skyDepthState;
     uint32_t m_skyIndexCount = 0;
+
+    // SkinMesh
+    ComPtr<ID3D11VertexShader> m_skinnedVertexShader;
+    ComPtr<ID3D11InputLayout> m_skinnedInputLayout;
+    ComPtr<ID3D11Buffer> m_skinningCB;
 
     ID3D11Buffer* m_boundVB = nullptr;
     ID3D11Buffer* m_boundIB = nullptr;

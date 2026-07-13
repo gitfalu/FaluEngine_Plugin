@@ -151,7 +151,7 @@ int Application::run() {
     m_renderer.reset();
     m_window.reset();
 
-    FaluEngine::ScriptEngine::get().shutdown();
+    ScriptEngine::get().shutdown();
 
     LOG_INFO("FaluEngine shutdown");
     return 0;

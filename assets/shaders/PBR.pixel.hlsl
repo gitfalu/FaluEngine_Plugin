@@ -58,6 +58,7 @@ Texture2D gShadowMap : register(t5);
 TextureCube gIrradianceMap : register(t6);
 TextureCube gPrefilterMap : register(t7);
 Texture2D gBRDFLut : register(t8);
+Texture2D gDebugEnvMap : register(t9);
 
 SamplerState gSampler : register(s0);
 SamplerComparisonState gShadowSampler : register(s1);
@@ -288,6 +289,6 @@ float4 PS(PSInput pin) : SV_TARGET
     // Tone Mapping
     color = color / (color + float3(1.0f, 1.0f, 1.0f));
     color = pow(color, float3(1.0f / 2.2f, 1.0f / 2.2f, 1.0f / 2.2f));
-    
+   
     return float4(color, albedo.a);
 }
