@@ -77,7 +77,7 @@ public:
 
         auto character = createEntity("Character");
         auto& cMesh = character.addComponent<FaluEngine::MeshComponent>();
-        cMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/Taunt.fbx");
+        cMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/Laughing.fbx");
 
         auto& animator = character.addComponent<FaluEngine::AnimatorComponent>();
         animator.currentClipName = "mixamo.com";

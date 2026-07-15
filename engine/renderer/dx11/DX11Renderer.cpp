@@ -1109,13 +1109,13 @@ void DX11Renderer::updateSkinningMatrices(const std::vector<glm::mat4>& boneMatr
 {
     SkinningCB cb;
     size_t count = std::min(boneMatrices.size(), static_cast<size_t>(MAX_BONES));
-    for (size_t i = 0; i < count; ++i)
-    {
-        cb.boneMatrices[i] = glm::transpose(boneMatrices[i]);
-    }
     for (size_t i = 0; i < MAX_BONES; ++i)
     {
         cb.boneMatrices[i] = glm::mat4(1.0f);
+    }
+    for (size_t i = 0; i < count; ++i)
+    {
+        cb.boneMatrices[i] = glm::transpose(boneMatrices[i]);
     }
 
     D3D11_MAPPED_SUBRESOURCE mapped;

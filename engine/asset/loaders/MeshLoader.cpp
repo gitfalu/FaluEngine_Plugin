@@ -51,23 +51,32 @@ namespace FaluEngine {
         }
     }
 
-    static void buildBoneHierarchy(const aiNode* node, Skeleton& skeleton, int parentIndex)
+    static void buildBoneHierarchy(
+        const aiNode* node, Skeleton& skeleton, int parentIndex,
+        const glm::mat4& accumulatedTransform = glm::mat4(1.0f)
+    )
     {
         std::string nodeName = node->mName.C_Str();
+        glm::mat4 combinedTransform = accumulatedTransform * aiMatToGlm(node->mTransformation);
+
         int boneIndex = skeleton.findBoneIndex(nodeName);
 
         int currentParent = parentIndex;
+        glm::mat4 nextAccumulated = combinedTransform;
+
         if (boneIndex >= 0)
         {
             skeleton.bones[boneIndex].parentIndex = parentIndex;
             skeleton.bones[boneIndex].localBindTransform =
-                aiMatToGlm(node->mTransformation);
+                combinedTransform;
+            skeleton.bones[boneIndex].preTransform = accumulatedTransform;
             currentParent = boneIndex;
+            nextAccumulated = glm::mat4(1.0f);
         }
 
         for (uint32_t i = 0; i < node->mNumChildren; ++i)
         {
-            buildBoneHierarchy(node->mChildren[i], skeleton, currentParent);
+            buildBoneHierarchy(node->mChildren[i], skeleton, currentParent,nextAccumulated);
         }
     }
 

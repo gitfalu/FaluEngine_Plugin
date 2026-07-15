@@ -11,6 +11,8 @@ namespace FaluEngine
 		int parentIndex = -1;
 		glm::mat4 offsetMatrix = glm::mat4(1.0f);
 		glm::mat4 localBindTransform = glm::mat4(1.0f);
+
+		glm::mat4 preTransform = glm::mat4(1.0f);
 	};
 
 	struct Skeleton {

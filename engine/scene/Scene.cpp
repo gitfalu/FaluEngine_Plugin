@@ -66,10 +66,6 @@ void Scene::onUpdate(float deltaTime) {
     PhysicsSystem::get().syncTransforms(*this);
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
-    auto animOnlyView = m_registry.view<AnimatorComponent>();
-    auto meshOnlyView = m_registry.view<MeshComponent>();
-    LOG_INFO("AnimatorComponent count: {}, MeshComponent count: {}",
-        animOnlyView.size(), meshOnlyView.size());
 
     for (auto entity : animView)
     {
@@ -101,7 +97,7 @@ void Scene::onUpdate(float deltaTime) {
 
             glm::mat4 localTransform = bone.localBindTransform;
             if (auto* channel = clip->findChannel(bone.name))
-                localTransform = channel->sample(animator.playbackTime);
+                localTransform = bone.preTransform * channel->sample(animator.playbackTime);
 
             glm::mat4 globalTransform = parentGlobal * localTransform;
             globalTransforms[boneIndex] = globalTransform;
@@ -364,7 +360,6 @@ void Scene::renderMeshes(DX11Renderer* renderer)
                 std::string key = mat->vertexShaderPath + '|' + mat->pixelShaderPath;
                 mat->cachedShader = AssetManager::get().load<ShaderAsset>(key);
             }
-
         }
 
         auto* vb = mesh.cachedMesh->vertexBuffer.Get();
@@ -398,7 +393,7 @@ void Scene::renderMeshes(DX11Renderer* renderer)
                     }
                     renderer->updateSkinningMatrices(animator.boneMatrices);
                 }
-                renderer->drawSkinnedSubMeshPBR(sub.indexCount, sub.indexCount,
+                renderer->drawSkinnedSubMeshPBR(sub.indexOffset, sub.indexCount,
                     transform.worldMatrix, mat);
             }
             else

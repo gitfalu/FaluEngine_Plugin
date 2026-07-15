@@ -33,7 +33,7 @@ namespace FaluEngine
 			if (time < positionKeys[i + 1].time)
 			{
 				float t0 = positionKeys[i].time;
-				float t1 = positionKeys[i].time;
+				float t1 = positionKeys[i + 1].time;
 				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
 				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::mix(positionKeys[i].value, positionKeys[i + 1].value, factor);
@@ -54,7 +54,7 @@ namespace FaluEngine
 				float t0 = rotationKeys[i].time;
 				float t1 = rotationKeys[i + 1].time;
 				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
-				factor = glm::clamp(factor, 0.1f, 1.0f);
+				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::slerp(rotationKeys[i].value, rotationKeys[i + 1].value, factor);
 			}
 		}
@@ -73,7 +73,7 @@ namespace FaluEngine
 				float t0 = scaleKeys[i].time;
 				float t1 = scaleKeys[i + 1].time;
 				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
-				factor = glm::clamp(factor, 0.1f, 1.0f);
+				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::mix(scaleKeys[i].value, scaleKeys[i + 1].value, factor);
 			}
 		}
@@ -106,9 +106,10 @@ namespace FaluEngine
 
 			auto clip = std::make_shared<AnimationClip>();
 			clip->name = anim->mName.length > 0 ? anim->mName.C_Str() : ("Anim" + std::to_string(a));
-			clip->ticksPerSecond != 0 ?
-				static_cast<float>(anim->mTicksPerSecond) :
-				25.0f;
+			clip->ticksPerSecond = 
+				(anim->mTicksPerSecond != 0.0f)
+				? static_cast<float>(anim->mTicksPerSecond) 
+				: 25.0f;
 			clip->duration = static_cast<float>(anim->mDuration) / clip->ticksPerSecond;
 
 			for (uint32_t c = 0; c < anim->mNumChannels; ++c)
