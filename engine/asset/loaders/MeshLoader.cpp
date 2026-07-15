@@ -53,30 +53,36 @@ namespace FaluEngine {
 
     static void buildBoneHierarchy(
         const aiNode* node, Skeleton& skeleton, int parentIndex,
-        const glm::mat4& accumulatedTransform = glm::mat4(1.0f)
+        std::vector<BoneChainLink> pendingChain = {}
     )
     {
         std::string nodeName = node->mName.C_Str();
-        glm::mat4 combinedTransform = accumulatedTransform * aiMatToGlm(node->mTransformation);
+        glm::mat4 nodeTransform = aiMatToGlm(node->mTransformation);
+
+        pendingChain.push_back({ nodeName,nodeTransform });
 
         int boneIndex = skeleton.findBoneIndex(nodeName);
 
         int currentParent = parentIndex;
-        glm::mat4 nextAccumulated = combinedTransform;
+        std::vector<BoneChainLink> nextChain = pendingChain;
 
         if (boneIndex >= 0)
         {
             skeleton.bones[boneIndex].parentIndex = parentIndex;
-            skeleton.bones[boneIndex].localBindTransform =
-                combinedTransform;
-            skeleton.bones[boneIndex].preTransform = accumulatedTransform;
+            skeleton.bones[boneIndex].chain =
+                pendingChain;
+            glm::mat4 bindTransform = glm::mat4(1.0f);
+            for (const auto& link : pendingChain)
+                bindTransform = bindTransform * link.staticTransform;
+            skeleton.bones[boneIndex].localBindTransform = bindTransform;
+
             currentParent = boneIndex;
-            nextAccumulated = glm::mat4(1.0f);
+            nextChain.clear();
         }
 
         for (uint32_t i = 0; i < node->mNumChildren; ++i)
         {
-            buildBoneHierarchy(node->mChildren[i], skeleton, currentParent,nextAccumulated);
+            buildBoneHierarchy(node->mChildren[i], skeleton, currentParent,nextChain);
         }
     }
 

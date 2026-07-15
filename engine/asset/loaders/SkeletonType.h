@@ -6,13 +6,19 @@
 
 namespace FaluEngine
 {
+	struct BoneChainLink {
+		std::string nodeName;
+		glm::mat4 staticTransform = glm::mat4(1.0f);
+	};
+
 	struct Bone {
 		std::string name;
 		int parentIndex = -1;
 		glm::mat4 offsetMatrix = glm::mat4(1.0f);
 		glm::mat4 localBindTransform = glm::mat4(1.0f);
 
-		glm::mat4 preTransform = glm::mat4(1.0f);
+		std::vector<BoneChainLink> chain;
+		
 	};
 
 	struct Skeleton {

@@ -95,9 +95,18 @@ void Scene::onUpdate(float deltaTime) {
             [&](int boneIndex, const glm::mat4& parentGlobal) {
             const Bone& bone = skeleton.bones[boneIndex];
 
-            glm::mat4 localTransform = bone.localBindTransform;
-            if (auto* channel = clip->findChannel(bone.name))
-                localTransform = bone.preTransform * channel->sample(animator.playbackTime);
+            glm::mat4 localTransform = glm::mat4(1.0f);
+            for (const auto& link : bone.chain)
+            {
+                if (auto* channel = clip->findChannel(link.nodeName))
+                {
+                    localTransform = localTransform * channel->sample(animator.playbackTime);
+                }
+                else
+                {
+                    localTransform = localTransform * link.staticTransform;
+                }
+            }
 
             glm::mat4 globalTransform = parentGlobal * localTransform;
             globalTransforms[boneIndex] = globalTransform;

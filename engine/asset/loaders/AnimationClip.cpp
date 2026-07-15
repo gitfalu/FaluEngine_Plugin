@@ -142,8 +142,6 @@ namespace FaluEngine
 			clip->valid = true;
 			clips.push_back(clip);
 
-			LOG_INFO("AnimationClip: loaded '{}' from '{}' (duration = {:.2f}s,{} channels)",
-				clip->name, meshPath, clip->duration, clip->channels.size());
 		}
 		return clips;
 	}
