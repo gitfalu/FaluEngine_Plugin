@@ -1,4 +1,5 @@
 #include "ContentBrowserPanel.h"
+#include "asset/loaders/AnimationCache.h"
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
@@ -408,9 +409,25 @@ namespace Editor{
 		switch (entry.type)
 		{
 		case AssetType::Mesh:
+		{
 			m.meshPath = pathStr;
 			m.cachedMesh = nullptr;
+
+			// Animation•t‚«‚Ìƒ‚ƒfƒ‹‚Ìê‡Animator‚ğ©“®’Ç‰Á
+			auto& clips = FaluEngine::AnimationCache::get().getAnimations(pathStr);
+			if (!clips.empty())
+			{
+				FaluEngine::Entity e(selected, scene);
+				if (!e.hasComponent<FaluEngine::AnimatorComponent>())
+				{
+					auto& animator = e.addComponent<FaluEngine::AnimatorComponent>();
+					animator.currentClipName = clips[0]->name.c_str();
+					animator.playing = true;
+					animator.loop = true;
+				}
+			}
 			break;
+		}
 		case AssetType::Texture:
 			break;
 		case AssetType::NormalMap:

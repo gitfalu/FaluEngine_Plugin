@@ -179,9 +179,11 @@ void Scene::onRender(bool useOwnCamera) {
     if (!renderer) return;
 
     updateWorldMatrices();
+    updateUILayout();
     collectLights(renderer, useOwnCamera);
     renderMeshes(renderer);
     renderSky(renderer);
+    renderUI(renderer);
 }
 
 void Scene::updateWorldMatrices()
@@ -281,9 +283,10 @@ void Scene::collectLights(DX11Renderer* renderer, bool useOwnCamera)
                 static_cast<float>(renderer->getHeight());
 
             // カメラの情報に座標などの情報を更新
+            glm::vec3 euler = glm::degrees(glm::eulerAngles(t.rotation));
             cam.camera.setPosition(t.position);
-            cam.camera.setPitch(t.rotation.y);
-            cam.camera.setYaw(t.rotation.z);
+            cam.camera.setYaw(euler.y);
+            cam.camera.setPitch(euler.z);
             
             if (std::abs(aspect - cam.camera.getAspectRatio()) > 0.001f) {
                 cam.camera.setPerspective(
@@ -439,7 +442,7 @@ void Scene::renderSky(DX11Renderer* renderer)
             settings,
             settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
 
-        if (!sky.environmentBaked)
+        /*if (!sky.environmentBaked)
         {
             renderer->generateEnvironmentMap(settings,
                 settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
@@ -447,9 +450,97 @@ void Scene::renderSky(DX11Renderer* renderer)
             renderer->generatePrefilterMap();
             renderer->generateBRDFLUT();
             sky.environmentBaked = true;
-        }
+        }*/
 
         break;
+    }
+}
+
+void Scene::renderUI(DX11Renderer* renderer)
+{
+    auto canvasView = m_registry.view<CanvasComponent>();
+    bool anyCanvas = false;
+    for (auto entity : canvasView)
+    {
+        auto& canvas = canvasView.get<CanvasComponent>(entity);
+        if (canvas.enabled) { anyCanvas = true; break; }
+    }
+    if (!anyCanvas) return;
+
+    uint32_t w = renderer->getWidth();
+    uint32_t h = renderer->getHeight();
+    renderer->beginUIPass(w, h);
+
+    auto imageView = m_registry.view<ImageComponent, RectTransformComponent>();
+    for (auto entity : imageView) {
+        auto& img = imageView.get<ImageComponent>(entity);
+        auto& rt = imageView.get<RectTransformComponent>(entity);
+        if (!img.visible) continue;
+
+        if (!img.texturePath.empty() && !img.cachedTexture)
+        {
+            img.cachedTexture = AssetManager::get().load<TextureAsset>(img.texturePath);
+        }
+
+        renderer->drawUIQuad(
+            rt.computedPosition, rt.computedSize, rt.rotation,
+            img.color,
+            (img.cachedTexture && img.cachedTexture->srv) ? img.cachedTexture->srv.Get() : nullptr
+        );
+    }
+
+    renderer->endUIPass();
+}
+
+void Scene::updateUILayout()
+{
+    auto canvasView = m_registry.view<CanvasComponent, RelationshipComponent>();
+    for (auto canvasEntity : canvasView)
+    {
+        auto& canvas = canvasView.get<CanvasComponent>(canvasEntity);
+        if (!canvas.enabled) continue;
+        if (canvas.renderMode != CanvasRenderMode::ScreenSpaceOverlay) continue;
+
+        glm::vec2 canvasSize = canvas.referenceResolution;
+        glm::vec2 canvasPos = canvasSize * 0.5f;
+
+        auto& rel = canvasView.get<RelationshipComponent>(canvasEntity);
+        for (auto child : rel.children)
+            computeRectTransform(child, canvasPos, canvasSize);
+    }
+}
+
+void Scene::computeRectTransform(entt::entity entity, const glm::vec2& parentPos, const glm::vec2& parentSize)
+{
+    if (!m_registry.all_of<RectTransformComponent>(entity)) return;
+    auto& rt = m_registry.get<RectTransformComponent>(entity);
+
+    glm::vec2 parentMin = parentPos - parentSize * 0.5f;
+    glm::vec2 anchorMinPx = parentMin + parentSize * rt.anchorMin;
+    glm::vec2 anchorMaxPx = parentMin + parentSize * rt.anchorMax;
+
+    glm::vec2 size;
+    glm::vec2 anchoredCenter;
+
+    if (rt.anchorMin == rt.anchorMax)
+    {
+        size = rt.sizeDelta;
+        anchoredCenter = anchorMinPx + rt.anchoredPos;
+    }
+    else
+    {
+        size = (anchorMaxPx - anchorMinPx) + rt.sizeDelta;
+        anchoredCenter = (anchorMinPx + anchorMaxPx) * 0.5f + rt.anchoredPos;
+    }
+
+    rt.computedPosition = anchoredCenter;
+    rt.computedSize = size * rt.scale;
+
+    if (m_registry.all_of<RelationshipComponent>(entity))
+    {
+        auto& rel = m_registry.get<RelationshipComponent>(entity);
+        for (auto child : rel.children)
+            computeRectTransform(child, rt.computedPosition, rt.computedSize);
     }
 }
 

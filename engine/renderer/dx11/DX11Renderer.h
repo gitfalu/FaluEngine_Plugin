@@ -134,6 +134,22 @@ struct PrefilterCB
     glm::vec3 _pad = {};
 };
 
+struct UITransformCB
+{
+    glm::mat4 orthoProjection;
+    glm::vec2 position;
+    glm::vec2 size;
+    float rotation;
+    glm::vec3 _pad;
+};
+
+struct UIMaterialCB
+{
+    glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+    int useTexture = 0;
+    glm::vec3 _pad;
+};
+
 class DX11Renderer final : public IRenderer {
 public:
     DX11Renderer()  = default;
@@ -222,6 +238,11 @@ public:
     void drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform, class MaterialAsset* material);
 
+    // UI
+    void drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation,
+        const glm::vec4& color, ID3D11ShaderResourceView* srv = nullptr);
+    void beginUIPass(uint32_t screenWidth, uint32_t screenHeight);
+    void endUIPass();
 
     void generateEnvironmentMap(const SkySettingsCB& settings,
         ID3D11ShaderResourceView* skySRV);
@@ -321,6 +342,19 @@ private:
     ComPtr<ID3D11VertexShader> m_skinnedVertexShader;
     ComPtr<ID3D11InputLayout> m_skinnedInputLayout;
     ComPtr<ID3D11Buffer> m_skinningCB;
+
+    // UI
+    ComPtr<ID3D11VertexShader> m_uiVertexShader;
+    ComPtr<ID3D11PixelShader> m_uiPixelShader;
+    ComPtr<ID3D11InputLayout> m_uiInputLayout;
+    ComPtr<ID3D11Buffer> m_uiTransformCB;
+    ComPtr<ID3D11Buffer> m_uiMaterialCB;
+    ComPtr<ID3D11Buffer> m_uiQuadVB;
+    ComPtr<ID3D11Buffer> m_uiQuadIB;
+    ComPtr<ID3D11BlendState> m_uiBlendState;
+    ComPtr<ID3D11DepthStencilState> m_uiDepthState;
+    ComPtr<ID3D11RasterizerState> m_uiRasterizerState;
+    glm::mat4 m_uiOrthoProjection = glm::mat4(1.0f);
 
     ID3D11Buffer* m_boundVB = nullptr;
     ID3D11Buffer* m_boundIB = nullptr;

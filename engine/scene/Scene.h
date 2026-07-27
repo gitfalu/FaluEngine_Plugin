@@ -2,6 +2,7 @@
 #include <entt/entt.hpp>
 #include <string>
 #include <functional>
+#include <glm/glm.hpp>
 
 namespace FaluEngine {
 
@@ -43,7 +44,10 @@ private:
     void collectLights(class DX11Renderer* renderer, bool useOwnCamera);
     void renderMeshes(class DX11Renderer* renderer);
     void renderSky(class DX11Renderer* renderer);
-
+    void renderUI(class DX11Renderer* renderer);
+    void updateUILayout();
+    void computeRectTransform(entt::entity entity,
+        const glm::vec2& parentPos, const glm::vec2& parentSize);
 private:
     std::string    m_name;
     entt::registry m_registry;

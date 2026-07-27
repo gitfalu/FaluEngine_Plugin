@@ -31,6 +31,11 @@ namespace FaluEngine
 	{
 		return { j["x"],j["y"],j["z"] };
 	}
+
+	static glm::vec4 vec4FromJson(const json& j)
+	{
+		return { j["x"],j["y"],j["z"],j["w"]};
+	}
 	static glm::quat quatFromJson(const json& j)
 	{
 		return { 
@@ -114,6 +119,52 @@ namespace FaluEngine
 				auto& sc = m_scene.registry().get<ScriptComponent>(entity);
 				entityJson["script"] = {
 					{"scriptPath",sc.scriptPath}
+				};
+			}
+
+			// AnimatorComponent
+			if (m_scene.registry().all_of<AnimatorComponent>(entity))
+			{
+				auto& anim = m_scene.registry().get<AnimatorComponent>(entity);
+				entityJson["animator"] = {
+					{"currentClipName",anim.currentClipName},
+					{"playbackSpeed",anim.playbackSpeed},
+					{"playing",anim.playing},
+					{"loop",anim.loop},
+				};
+			}
+
+			// LightComponent
+			if (m_scene.registry().all_of<LightComponent>(entity))
+			{
+				auto& lc = m_scene.registry().get<LightComponent>(entity);
+				entityJson["light"] = {
+					{"type",static_cast<int>(lc.type)},
+					{"color",vec3ToJson(lc.color)},
+					{"intensity",lc.intensity},
+					{"range",lc.range},
+					{"spotInner",lc.spotInner},
+					{"spotOuter",lc.spotOuter},
+					{"enable",lc.enable},
+					{"castShadow",lc.castShadow},
+					{"softShadow",lc.softShadow},
+					{"shadowBias",lc.shadowBias},
+					{"pcfRadius",lc.pcfRadius},
+				};
+			}
+
+			// SkySphere
+			if (m_scene.registry().all_of<SkySphereComponent>(entity))
+			{
+				auto& sky = m_scene.registry().get<SkySphereComponent>(entity);
+				entityJson["skySphere"] =
+				{
+					{"texturePath" , sky.texturePath},
+					{"topColor" , vec4ToJson(sky.topColor)},
+					{"horizonColor" , vec4ToJson(sky.horizonColor)},
+					{"bottomColor" , vec4ToJson(sky.bottomColor)},
+					{"exposure" , sky.exposure},
+					{"enabled" , sky.enabled},
 				};
 			}
 
@@ -248,7 +299,44 @@ namespace FaluEngine
 				sc.scriptPath = sj.value("scriptPath", "");
 			}
 
+			// Animator
+			if (entityJson.contains("animator")) {
+				auto& aj = entityJson["animator"];
+				auto& anim = entity.addComponent<AnimatorComponent>();
+				anim.currentClipName = aj.value("currentClipName", "");
+				anim.playbackSpeed = aj.value("playbackSpeed", 1.0f);
+				anim.playing = aj.value("playing", true);
+				anim.loop = aj.value("loop", true);
+			}
 			
+			// LightComponent
+			if (entityJson.contains("light")) {
+				auto& lj = entityJson["light"];
+				auto& lc = entity.addComponent<LightComponent>();
+				lc.type = static_cast<LightType>(lj.value("type", 0));
+				lc.color = vec3FromJson(lj["color"]);
+				lc.intensity = lj.value("intensity", 1.0f);
+				lc.range = lj.value("range", 10.0f);
+				lc.spotInner = lj.value("spotInner", 20.0f);
+				lc.spotOuter = lj.value("spotOuter", 30.0f);
+				lc.enable = lj.value("enable", true);
+				lc.castShadow = lj.value("castShadow", true);
+				lc.softShadow = lj.value("softShadow", true);
+				lc.shadowBias = lj.value("shadowBias", 0.005f);
+				lc.pcfRadius = lj.value("pcfRadius", 1.5f);
+			}
+
+			// SkySphereComponent
+			if (entityJson.contains("skySphere")) {
+				auto& sj = entityJson["skySphere"];
+				auto& sky = entity.addComponent<SkySphereComponent>();
+				sky.texturePath = sj.value("texturePath", "");
+				sky.topColor = vec4FromJson(sj["topColor"]);
+				sky.horizonColor = vec4FromJson(sj["horizonColor"]);
+				sky.bottomColor = vec4FromJson(sj["bottomColor"]);
+				sky.exposure = sj.value("exposure", 1.0f);
+				sky.enabled = sj.value("value", true);
+			}
 		}
 
 		// êeéqä÷åWÇÃïúå≥

@@ -622,6 +622,123 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
         LOG_INFO("Skinned PBR Shader initialized");
     }
+
+    // UI
+    {
+        std::string uiVSPath = PathResolver::resolveStr("assets/shaders/UI.vert.hlsl");
+        std::string uiPSPath = PathResolver::resolveStr("assets/shaders/UI.pixel.hlsl");
+
+        ComPtr<ID3DBlob> uiVSBlob, uiPSBlob, uiErrBlob;
+
+        hr = D3DCompileFromFile(
+            std::wstring(uiVSPath.begin(), uiVSPath.end()).c_str(),
+            nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+            &uiVSBlob, &uiErrBlob
+        );
+        if (FAILED(hr))
+        {
+            if (uiErrBlob)
+            {
+                LOG_ERROR("UI VS error: {}", static_cast<char*>(uiErrBlob->GetBufferPointer()));
+            }
+            return false;
+        }
+
+        hr = D3DCompileFromFile(
+            std::wstring(uiPSPath.begin(), uiPSPath.end()).c_str(),
+            nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
+            &uiPSBlob, &uiErrBlob
+        );
+        if (FAILED(hr))
+        {
+            if (uiErrBlob)
+            {
+                LOG_ERROR("UI PS error: {}", static_cast<char*>(uiErrBlob->GetBufferPointer()));
+            }
+            return false;
+        }
+
+        m_device->CreateVertexShader(
+            uiVSBlob->GetBufferPointer(),uiVSBlob->GetBufferSize(),
+            nullptr,&m_uiVertexShader
+        );
+        m_device->CreatePixelShader(
+            uiPSBlob->GetBufferPointer(), uiPSBlob->GetBufferSize(),
+            nullptr, &m_uiPixelShader
+        );
+
+        D3D11_INPUT_ELEMENT_DESC uiLayout[] = {
+            {"POSITION",0,DXGI_FORMAT_R32G32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
+            {"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,sizeof(glm::vec2),D3D11_INPUT_PER_VERTEX_DATA,0},
+        };
+        m_device->CreateInputLayout(
+            uiLayout, ARRAYSIZE(uiLayout),
+            uiVSBlob->GetBufferPointer(), uiVSBlob->GetBufferSize(),
+            &m_uiInputLayout
+        );
+
+        auto makeCB = [&](UINT size, ComPtr<ID3D11Buffer>& buf)
+            {
+                D3D11_BUFFER_DESC d = {};
+                d.ByteWidth = size;
+                d.Usage = D3D11_USAGE_DYNAMIC;
+                d.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+                d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+                m_device->CreateBuffer(&d, nullptr, &buf);
+            };
+        makeCB(sizeof(UITransformCB), m_uiTransformCB);
+        makeCB(sizeof(UIMaterialCB), m_uiMaterialCB);
+
+        struct UIVertex { glm::vec2 pos; glm::vec2 uv; };
+        UIVertex quadVerts[4] = {
+            {{-0.5f, 0.5f},{ 0.0f, 0.0f}},
+            {{ 0.5f, 0.5f},{ 1.0f, 0.0f}},
+            {{ 0.5f,-0.5f},{ 1.0f, 1.0f}},
+            {{-0.5f,-0.5f},{ 0.0f, 1.0f}},
+        };
+        uint32_t quadIndices[6] = { 0,1,2,0,2,3 };
+
+        D3D11_BUFFER_DESC qvbd = {};
+        qvbd.ByteWidth = sizeof(quadVerts);
+        qvbd.Usage = D3D11_USAGE_IMMUTABLE;
+        qvbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA qvData = {};
+        qvData.pSysMem = quadVerts;
+        m_device->CreateBuffer(&qvbd, &qvData, &m_uiQuadVB);
+
+        D3D11_BUFFER_DESC qibd = {};
+        qibd.ByteWidth = sizeof(quadIndices);
+        qibd.Usage = D3D11_USAGE_IMMUTABLE;
+        qibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA qiData = {};
+        qiData.pSysMem = quadIndices;
+        m_device->CreateBuffer(&qibd, &qiData, &m_uiQuadIB);
+
+        D3D11_BLEND_DESC bd = {};
+        bd.RenderTarget[0].BlendEnable = TRUE;
+        bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+        bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        m_device->CreateBlendState(&bd, &m_uiBlendState);
+
+        D3D11_DEPTH_STENCIL_DESC uiDsd = {};
+        uiDsd.DepthEnable = FALSE;
+        uiDsd.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        m_device->CreateDepthStencilState(&uiDsd, &m_uiDepthState);
+
+        D3D11_RASTERIZER_DESC uiRd = {};
+        uiRd.FillMode = D3D11_FILL_SOLID;
+        uiRd.CullMode = D3D11_CULL_NONE;
+        uiRd.DepthClipEnable = TRUE;
+        m_device->CreateRasterizerState(&uiRd, &m_uiRasterizerState);
+
+        LOG_INFO("UI shaders initialized");
+    }
+
     LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
     return true;
 }
@@ -1192,6 +1309,86 @@ void DX11Renderer::drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCou
     { nullptr,nullptr,nullptr,nullptr,nullptr };
     m_context->PSSetShaderResources(0, 5, nullSRVs);
 }
+
+//======== UI ============
+
+void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const glm::vec4& color, ID3D11ShaderResourceView* srv)
+{
+    UITransformCB tcb;
+    tcb.orthoProjection = glm::transpose(m_uiOrthoProjection);
+    tcb.position = position;
+    tcb.size = size;
+    tcb.rotation = glm::radians(rotation);
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    m_context->Map(m_uiTransformCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &tcb, sizeof(UITransformCB));
+    m_context->Unmap(m_uiTransformCB.Get(), 0);
+
+    UIMaterialCB mcb;
+    mcb.color = color;
+    mcb.useTexture = srv ? 1 : 0;
+
+    m_context->Map(m_uiMaterialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &mcb, sizeof(UIMaterialCB));
+    m_context->Unmap(m_uiMaterialCB.Get(),0);
+
+    if (srv) 
+        m_context->PSSetShaderResources(0, 1, &srv);
+
+    m_context->DrawIndexed(6, 0, 0);
+
+    if (srv)
+    {
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        m_context->PSSetShaderResources(0, 1, &nullSRV);
+    }
+}
+
+void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
+{
+    m_uiOrthoProjection = glm::orthoLH(
+        -static_cast<float>(screenWidth) * 0.5f, static_cast<float>(screenWidth) * 0.5f,
+        -static_cast<float>(screenHeight) * 0.5f, static_cast<float>(screenHeight) * 0.5f,
+        -1.0f, 1.0f
+    );
+
+    m_context->IASetInputLayout(m_uiInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_context->VSSetShader(m_uiVertexShader.Get(), nullptr, 0);
+    m_context->PSSetShader(m_uiPixelShader.Get(), nullptr, 0);
+    m_context->VSSetConstantBuffers(0, 1, m_uiTransformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(0, 1, m_uiMaterialCB.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+
+    UINT stride = sizeof(glm::vec2) * 2, offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_uiQuadVB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_uiQuadIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    float blendFactor[4] = { 0.0f,0.0f,0.0f,0.0f };
+    m_context->OMSetBlendState(m_uiBlendState.Get(), blendFactor, 0xffffffff);
+    m_context->OMSetDepthStencilState(m_uiDepthState.Get(), 0);
+    m_context->RSSetState(m_uiRasterizerState.Get());
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
+}
+
+void DX11Renderer::endUIPass()
+{
+    m_context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+    m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    m_context->RSSetState(m_rasterizerState.Get());
+
+    m_boundVB = nullptr;
+    m_boundIB = nullptr;
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
+}
+
+//=================================
 
 void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11ShaderResourceView* skySRV)
 {

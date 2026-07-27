@@ -56,12 +56,23 @@ namespace FaluEngine
 			return asset;
 		}
 
-		device->CreateVertexShader(
+		hr = device->CreateVertexShader(
 			vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
 			nullptr, &asset->vertexShader);
-		device->CreatePixelShader(
+		if (FAILED(hr))
+		{
+			LOG_ERROR("ShaderLoader: Craete VertexShader Failed ('{}')", vsPath.c_str());
+			return asset;
+		}
+
+		hr = device->CreatePixelShader(
 			psBlob->GetBufferPointer(), psBlob->GetBufferSize(),
 			nullptr, &asset->pixelShader);
+		if (FAILED(hr))
+		{
+			LOG_ERROR("ShaderLoader: Craete PixelShader Failed ('{}')", psPath.c_str());
+			return asset;
+		}
 
 		D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,

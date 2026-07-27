@@ -15,6 +15,7 @@
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/AnimationClip.h"
+#include "ui/UITypes.h"
 
 namespace FaluEngine {
 
@@ -122,6 +123,15 @@ struct AnimatorComponent
     bool loop = true;
 
     std::vector<glm::mat4> boneMatrices;
+};
+
+struct ImageComponent
+{
+    std::string texturePath;
+    glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+    bool visible = true;
+
+    std::shared_ptr<TextureAsset> cachedTexture;
 };
 
 } // namespace FaluEngine

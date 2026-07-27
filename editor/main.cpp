@@ -84,6 +84,17 @@ public:
         animator.playing = true;
         animator.loop = true;
 
+        auto canvas = createEntity("Canvas");
+        canvas.addComponent<FaluEngine::CanvasComponent>();
+
+        auto panel = createEntity("Panel");
+        auto& panelRT = panel.addComponent<FaluEngine::RectTransformComponent>();
+        panelRT.sizeDelta = { 300.0f,100.0f };
+        auto& panelImg = panel.addComponent<FaluEngine::ImageComponent>();
+        panelImg.color = { 1.0f,0.0f,0.0f,0.8f };
+
+        panel.setParent(canvas);
+
         FaluEngine::PhysicsSystem::get().registerScene(*this);
         FALU_ENGINE_LOG_INFO("EditorScene entered - {} entities", entityCount());
     }

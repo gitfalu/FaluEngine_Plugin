@@ -30,7 +30,7 @@ namespace FaluEngine
 		if (!j.is_object()) return def;
 		return { 
 			j.value("x",def.x),j.value("y",def.y),
-			j.value("z",def.z),j.value("z",def.z)};
+			j.value("z",def.z),j.value("w",def.w)};
 	}
 
 	//=========== Load =================
@@ -61,8 +61,9 @@ namespace FaluEngine
 			return mat;
 		}
 
+		// Load Category
 		mat->albedoColor = vec4FromJson(root.value("albedoColor", json{}));
-
+		mat->albedoMapPath			= root.value("albedoMapPath", "");
 		mat->metallic				= root.value("metallic", 0.0f);
 		mat->roughness				= root.value("roughness", 0.5f);
 		mat->metallicMapPath		= root.value("metallicMapPath", "");
@@ -84,16 +85,16 @@ namespace FaluEngine
 	{
 		json root;
 
+		// Save Category
 		root["albedoColor"] = vec4ToJson(material.albedoColor);
 		root["albedoMapPath"] = material.albedoMapPath;
-
 		root["metallic"] = material.metallic;
 		root["roughness"] = material.roughness;
 		root["metallicMapPath"] = material.metallicMapPath;
 		root["normalMapPath"] = material.normalMapPath;
 		root["aoMapPath"] = material.aoMapPath;
 		root["emissiveMapPath"] = material.emissiveMapPath;
-		root["emissivColor"] = vec3ToJson(material.emissiveColor);
+		root["emissiveColor"] = vec3ToJson(material.emissiveColor);
 		root["emissiveStrength"] = material.emissiveStrength;
 
 		root["vertexShaderPath"] = material.vertexShaderPath;

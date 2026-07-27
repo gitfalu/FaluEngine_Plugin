@@ -1,4 +1,4 @@
-#pragma onces
+#pragma once
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <glm/glm.hpp>

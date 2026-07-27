@@ -21,12 +21,24 @@ std::shared_ptr<TextureAsset> loadTexture(const std::string& path, ID3D11Device*
 
     if (ext == ".dds") {
         hr = DirectX::LoadFromDDSFile(wpath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+        if (FAILED(hr))
+        {
+            LOG_ERROR("TextureLoader: Load DDS File Failed '{}'", path);
+        }
     }
     else if (ext == ".hdr") {
         hr = DirectX::LoadFromHDRFile(wpath.c_str(), nullptr, image);
+        if (FAILED(hr))
+        {
+            LOG_ERROR("TextureLoader: Load HDR File Failed '{}'", path);
+        }
     }
     else {
         hr = DirectX::LoadFromWICFile(wpath.c_str(), DirectX::WIC_FLAGS_NONE, nullptr, image);
+        if (FAILED(hr))
+        {
+            LOG_ERROR("TextureLoader: Load WIC File Failed '{}'", path);
+        }
     }
 
     if (ext != ".dds")

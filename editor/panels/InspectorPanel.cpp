@@ -3,6 +3,7 @@
 #include "scene/Entity.h"
 #include "scene/Component.h"
 #include "asset/loaders/MaterialLoader.h"
+#include "asset/loaders/AnimationCache.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/PathResolver.h"
 #include <imgui.h>
@@ -84,12 +85,10 @@ namespace Editor
 			ImGui::SameLine();
 
 			// ファイルの存在を確認
-			bool meshExists = std::filesystem::exists(m.meshPath) && std::filesystem::exists(m.meshPath);
+			bool meshExists = std::filesystem::exists(m.meshPath);
 			if (!m.meshPath.empty() && !meshExists)
 			{
 				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
-				ImGui::PopStyleColor();
-				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not Found");
 			}
 
 			char meshBuf[512];
@@ -101,6 +100,14 @@ namespace Editor
 				auto fullpath = FaluEngine::PathResolver::resolveStr(meshBuf);
 				m.meshPath = fullpath;
 				m.cachedMesh = nullptr;// キャッシュをリセット
+
+				meshExists = std::filesystem::exists(m.meshPath) && std::filesystem::exists(m.meshPath);
+			}
+
+			if (!m.meshPath.empty() && !meshExists)
+			{
+				ImGui::PopStyleColor();
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not Found");
 			}
 
 			//===== Drag & Drop ====
@@ -111,6 +118,20 @@ namespace Editor
 					
 						m.meshPath = static_cast<const char*>(payload->Data);
 						m.cachedMesh = nullptr;
+
+						// Animation付きのモデルの場合Animatorを自動追加
+						auto& clips = FaluEngine::AnimationCache::get().getAnimations(m.meshPath);
+						if (!clips.empty())
+						{
+							FaluEngine::Entity e(entity, scene);
+							if (!e.hasComponent<FaluEngine::AnimatorComponent>())
+							{
+								auto& animator = e.addComponent<FaluEngine::AnimatorComponent>();
+								animator.currentClipName = clips[0]->name.c_str();
+								animator.playing = true;
+								animator.loop = true;
+							}
+						}
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -204,9 +225,9 @@ namespace Editor
 				ImGui::DragFloat3("half Extents", glm::value_ptr(rb.halfExtents),0.01f,0.01f,100.0f);
 			if (rb.shape == FaluEngine::ColliderShape::Sphere || 
 				rb.shape == FaluEngine::ColliderShape::Capsule)
-				ImGui::DragFloat3("Radius", &rb.radius, 0.01f, 0.01f, 100.0f);
+				ImGui::DragFloat("Radius", &rb.radius, 0.01f, 0.01f, 100.0f);
 			if (rb.shape == FaluEngine::ColliderShape::Capsule)
-				ImGui::DragFloat3("Height", &rb.height, 0.01f, 0.01f, 100.0f);
+				ImGui::DragFloat("Height", &rb.height, 0.01f, 0.01f, 100.0f);
 
 			ImGui::DragFloat("Mass", &rb.mass, 0.1f, 0.01f, 1000.0f);
 			ImGui::DragFloat("Restitution", &rb.restitution, 0.01f, 0.0f, 1.0f);
@@ -347,8 +368,8 @@ namespace Editor
 			ImGui::Separator();
 
 			//=== Metallic / Roughness ====
-			if (ImGui::SliderFloat("Metallic", &material->metallic, 0.1f, 1.0f)) changed = true;
-			if (ImGui::SliderFloat("Roughness", &material->roughness, 0.1f, 1.0f)) changed = true;
+			if (ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f)) changed = true;
+			if (ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f)) changed = true;
 
 			ImGui::Text("Metallic/Roughness Map (R=Metal,G=Rough)");
 			ImGui::SameLine();

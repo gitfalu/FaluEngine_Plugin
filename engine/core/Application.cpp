@@ -127,7 +127,7 @@ int Application::run() {
         }
 
         auto now = Clock::now();
-        float dt = std::min(
+        float dt = (std::min)(
             std::chrono::duration_cast<Duration>(now - prev).count(), 0.25f);
         prev = now;
         
