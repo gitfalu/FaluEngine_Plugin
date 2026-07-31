@@ -26,7 +26,7 @@ namespace FaluEngine
 		void resume();
 		void stop(Scene& scene);
 
-		void setOnBeforeShop(std::function<void()> callback) {
+		void setOnBeforeStop(std::function<void()> callback) {
 			m_onBeforeShop = std::move(callback);
 		}
 

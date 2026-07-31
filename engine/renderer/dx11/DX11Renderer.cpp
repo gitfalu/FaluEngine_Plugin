@@ -266,6 +266,11 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     sscbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     m_device->CreateBuffer(&sscbd, nullptr, &m_shadowSettingsCB);
 
+    // DefaultのShadowSettingsを設定
+    ShadowSettingsCB defaultSettings;
+    defaultSettings.useShadow = 0;
+    updateShadowSettings(defaultSettings);
+
     m_dirShadowMap = std::make_unique<ShadowMap>();
     m_dirShadowMap->create(m_device.Get(), 2048);
 
@@ -280,6 +285,50 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     m_device->CreateRasterizerState(&srd, &m_shadowRasterizerState);
 
     LOG_INFO("Shadow shaders initialized");
+
+    //===== Skinned Shadow Dpeth Shdaer ====
+    std::string shadowSkinnedVSPath = PathResolver::resolveStr("assets/shaders/ShadowDepth_Skinned.vert.hlsl");
+    if (!std::filesystem::exists(shadowSkinnedVSPath))
+    {
+        LOG_ERROR("Shadow(Skinned) vertex shader not found: {}", shadowSkinnedVSPath);
+        return false;
+    }
+
+    ComPtr<ID3DBlob> shadowSkinnedVSBlob, shadowSkinnedErrBlob;
+    hr = D3DCompileFromFile(
+        std::wstring(shadowSkinnedVSPath.begin(), shadowSkinnedVSPath.end()).c_str(),
+        nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
+        &shadowSkinnedVSBlob, &shadowSkinnedErrBlob
+    );
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Shadow(Skinned) VS error: {}",
+            static_cast<char*>(shadowSkinnedErrBlob->GetBufferPointer()));
+        return false;
+    }
+
+    m_device->CreateVertexShader(
+        shadowSkinnedVSBlob->GetBufferPointer(),
+        shadowSkinnedVSBlob->GetBufferSize(),
+        nullptr, &m_shadowSkinnedVS
+    );
+
+    D3D11_INPUT_ELEMENT_DESC shadowSkinnedLayout[] =
+    {
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,offsetof(SkinnedVertex,position),
+        D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"BONEINDICES",0,DXGI_FORMAT_R32G32B32A32_SINT,0,offsetof(SkinnedVertex,boneIndices),
+        D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"BONEWEIGHTS",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,offsetof(SkinnedVertex,boneWeights),
+        D3D11_INPUT_PER_VERTEX_DATA,0},
+    };
+
+    m_device->CreateInputLayout(
+        shadowSkinnedLayout, 3,
+        shadowSkinnedVSBlob->GetBufferPointer(),
+        shadowSkinnedVSBlob->GetBufferSize(),
+        &m_shadowSkinnedInputLayout
+    );
 
     //==== SkySphere Shader ========
     {
@@ -805,6 +854,23 @@ void DX11Renderer::updateViewport()
     m_context->RSSetViewports(1, &vp);
 }
 
+void DX11Renderer::restoreMainRenderTarget()
+{
+    if (m_offscreen && m_sceneRT && m_sceneRT->isValid())
+    {
+        m_sceneRT->bindAsRenderTarget(m_context.Get());
+    }
+    else if (m_gameOffscreen && m_gameRT && m_gameRT->isValid())
+    {
+        m_gameRT->bindAsRenderTarget(m_context.Get());
+    }
+    else
+    {
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+        updateViewport();
+    }
+}
+
 void DX11Renderer::updateLights(const LightCB& lightData)
 {
     D3D11_MAPPED_SUBRESOURCE mapped;
@@ -1147,6 +1213,20 @@ void DX11Renderer::endGameOffscreen()
 }
 //=========== 
 
+void DX11Renderer::bindShadowVertexStage(bool skinned)
+{
+    if (skinned)
+    {
+        m_context->IASetInputLayout(m_shadowSkinnedInputLayout.Get());
+        m_context->VSSetShader(m_shadowSkinnedVS.Get(), nullptr, 0);
+    }
+    else
+    {
+        m_context->IASetInputLayout(m_shadowInputLayout.Get());
+        m_context->VSSetShader(m_shadowVS.Get(), nullptr, 0);
+    }
+}
+
 void DX11Renderer::beginShadowPass(const glm::mat4& lightView, const glm::mat4& lightProj)
 {
     m_dirShadowMap->lightView = lightView;
@@ -1181,7 +1261,7 @@ void DX11Renderer::endShadowPass()
         updateViewport();
     }
 
-    // シェーダーを通常描画用に戻す ← 追加
+    // シェーダーを通常描画用に戻す
     m_context->IASetInputLayout(m_inputLayout.Get());
     m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
@@ -1358,7 +1438,7 @@ void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
     m_context->VSSetShader(m_uiVertexShader.Get(), nullptr, 0);
     m_context->PSSetShader(m_uiPixelShader.Get(), nullptr, 0);
     m_context->VSSetConstantBuffers(0, 1, m_uiTransformCB.GetAddressOf());
-    m_context->PSSetConstantBuffers(0, 1, m_uiMaterialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_uiMaterialCB.GetAddressOf());
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
     UINT stride = sizeof(glm::vec2) * 2, offset = 0;
@@ -1386,6 +1466,11 @@ void DX11Renderer::endUIPass()
     m_boundIB = nullptr;
     m_boundVS = nullptr;
     m_boundPS = nullptr;
+
+    // シェーダーを通常描画用に戻す
+    m_context->VSSetConstantBuffers(0, 1, m_transformCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_materialCB.GetAddressOf());
+    m_context->PSSetConstantBuffers(2, 1, m_lightCB.GetAddressOf());
 }
 
 //=================================
@@ -1451,6 +1536,8 @@ void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11S
         m_context->PSSetShaderResources(0, 1, &nullSRV);
     }
 
+    restoreMainRenderTarget();
+
     LOG_INFO("EnvironmentMap generated from SkySphere");
 }
 
@@ -1507,6 +1594,8 @@ void DX11Renderer::generateIrradianceMap()
 
     ID3D11ShaderResourceView* nullSRV = nullptr;
     m_context->PSSetShaderResources(0, 1, &nullSRV);
+
+    restoreMainRenderTarget();
 
     LOG_INFO("IrradianceMap generated ({}x{} x6)", size, size);
 }
@@ -1591,6 +1680,8 @@ void DX11Renderer::generatePrefilterMap()
     ID3D11ShaderResourceView* nullSRV = nullptr;
     m_context->PSSetShaderResources(0, 1, &nullSRV);
 
+    restoreMainRenderTarget();
+
     LOG_INFO("PrefilterMap generated ({} mips)", maxMips);
 }
 
@@ -1629,6 +1720,7 @@ void DX11Renderer::generateBRDFLUT()
     m_boundVS = nullptr;
     m_boundPS = nullptr;
 
+    restoreMainRenderTarget();
     LOG_INFO("BRDFLUT generated (512x512)");
 }
 

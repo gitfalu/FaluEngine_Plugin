@@ -35,6 +35,7 @@ endif()
 # ENGINE_DEBUG だけ Debug ビルド時に定義する
 add_compile_definitions($<$<CONFIG:Debug>:ENGINE_DEBUG>)
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 add_subdirectory(engine)
 add_subdirectory(runtime)

@@ -221,6 +221,7 @@ public:
         m_projection = projection;
     }
 
+    void bindShadowVertexStage(bool skinned);
     void beginShadowPass(const glm::mat4& lightView, const glm::mat4& lightProj);
     void endShadowPass();
 
@@ -273,6 +274,8 @@ private:
     bool createDefaultStates();
 
     void updateViewport();
+
+    void restoreMainRenderTarget();
 
 private:
     ComPtr<ID3D11Device>            m_device;
@@ -340,7 +343,9 @@ private:
 
     // SkinMesh
     ComPtr<ID3D11VertexShader> m_skinnedVertexShader;
+    ComPtr<ID3D11VertexShader> m_shadowSkinnedVS;
     ComPtr<ID3D11InputLayout> m_skinnedInputLayout;
+    ComPtr<ID3D11InputLayout> m_shadowSkinnedInputLayout;
     ComPtr<ID3D11Buffer> m_skinningCB;
 
     // UI

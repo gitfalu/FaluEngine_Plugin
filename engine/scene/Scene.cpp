@@ -34,23 +34,27 @@ void Scene::destroyEntity(Entity entity) {
 
     if (m_registry.all_of<RelationshipComponent>(entity))
     {
-        auto& rel = m_registry.get<RelationshipComponent>(entity);
-
-        auto children = rel.children;
-        for (auto child : children)
+        entt::entity parentEntity = entt::null;
         {
-            Entity childEntity(child, this);
-            destroyEntity(childEntity);
+            auto& rel = m_registry.get<RelationshipComponent>(entity);
+
+            auto children = rel.children;
+            parentEntity = rel.parent;
+            for (auto child : children)
+            {
+                Entity childEntity(child, this);
+                destroyEntity(childEntity);
+            }
         }
 
-        if (rel.parent != entt::null)
+        if (parentEntity != entt::null && m_registry.valid(parentEntity))
         {
-            auto& parentRel = m_registry.get<RelationshipComponent>(rel.parent);
-            parentRel.children.erase(
-                std::remove(parentRel.children.begin(),
-                    parentRel.children.end(),
-                    static_cast<entt::entity>(entity)),
-                parentRel.children.end());
+            auto& parentRel = m_registry.get<RelationshipComponent>(parentEntity);
+            auto& children = parentRel.children;
+            children.erase(
+                std::remove(
+                    children.begin(),children.end(),
+                    entity),children.end());
         }
     }
 
@@ -230,15 +234,30 @@ void Scene::renderShadowPass(DX11Renderer* renderer)
             auto& transform = meshView.get<TransformComponent>(meshEntity);
             if (!mesh.visible || !mesh.cachedMesh) continue;
 
+            bool skinned = mesh.cachedMesh->hasSkeleton;
+
+            renderer->bindShadowVertexStage(skinned);
+
+            if (skinned && m_registry.all_of<AnimatorComponent>(meshEntity))
+            {
+                auto& animator = m_registry.get<AnimatorComponent>(meshEntity);
+                if (animator.boneMatrices.empty())
+                {
+                    animator.boneMatrices.assign(
+                        mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
+                }
+                renderer->updateSkinningMatrices(animator.boneMatrices);
+            }
+
             auto* vb = mesh.cachedMesh->vertexBuffer.Get();
             auto* ib = mesh.cachedMesh->indexBuffer.Get();
-            if (renderer->getBoundVB() != vb)
-            {
-                UINT stride = sizeof(Vertex), offset = 0;
-                renderer->getContext()->IASetVertexBuffers(
-                    0, 1, &vb, &stride, &offset);
-                renderer->setBoundVB(vb);
-            }
+            UINT stride = skinned ? sizeof(SkinnedVertex) : sizeof(Vertex);
+            UINT offset = 0;
+                
+            renderer->getContext()->IASetVertexBuffers(
+                0, 1, &vb, &stride, &offset);
+            renderer->setBoundVB(vb);
+
             if (renderer->getBoundIB() != ib)
             {
                 renderer->getContext()->IASetIndexBuffer(
@@ -285,8 +304,8 @@ void Scene::collectLights(DX11Renderer* renderer, bool useOwnCamera)
             // カメラの情報に座標などの情報を更新
             glm::vec3 euler = glm::degrees(glm::eulerAngles(t.rotation));
             cam.camera.setPosition(t.position);
+            cam.camera.setPitch(euler.x);
             cam.camera.setYaw(euler.y);
-            cam.camera.setPitch(euler.z);
             
             if (std::abs(aspect - cam.camera.getAspectRatio()) > 0.001f) {
                 cam.camera.setPerspective(
@@ -405,6 +424,12 @@ void Scene::renderMeshes(DX11Renderer* renderer)
                     }
                     renderer->updateSkinningMatrices(animator.boneMatrices);
                 }
+                else
+                {
+                    static thread_local std::vector<glm::mat4> identityMatrices;
+                    identityMatrices.assign(mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
+                    renderer->updateSkinningMatrices(identityMatrices);
+                }
                 renderer->drawSkinnedSubMeshPBR(sub.indexOffset, sub.indexCount,
                     transform.worldMatrix, mat);
             }
@@ -442,7 +467,7 @@ void Scene::renderSky(DX11Renderer* renderer)
             settings,
             settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
 
-        /*if (!sky.environmentBaked)
+        if (!sky.environmentBaked)
         {
             renderer->generateEnvironmentMap(settings,
                 settings.useTexture ? sky.cachedTexture->srv.Get() : nullptr);
@@ -450,7 +475,7 @@ void Scene::renderSky(DX11Renderer* renderer)
             renderer->generatePrefilterMap();
             renderer->generateBRDFLUT();
             sky.environmentBaked = true;
-        }*/
+        }
 
         break;
     }
@@ -499,7 +524,7 @@ void Scene::updateUILayout()
     {
         auto& canvas = canvasView.get<CanvasComponent>(canvasEntity);
         if (!canvas.enabled) continue;
-        if (canvas.renderMode != CanvasRenderMode::ScreenSpaceOverlay) continue;
+        if (canvas.renderMode == CanvasRenderMode::WorldSpace) continue;
 
         glm::vec2 canvasSize = canvas.referenceResolution;
         glm::vec2 canvasPos = canvasSize * 0.5f;
@@ -522,18 +547,24 @@ void Scene::computeRectTransform(entt::entity entity, const glm::vec2& parentPos
     glm::vec2 size;
     glm::vec2 anchoredCenter;
 
+    glm::vec2 pivotOffset = rt.sizeDelta * (rt.pivot - glm::vec2(0.5f, 0.5f));
+    glm::vec2 finalCenter;
+
     if (rt.anchorMin == rt.anchorMax)
     {
         size = rt.sizeDelta;
         anchoredCenter = anchorMinPx + rt.anchoredPos;
+        finalCenter = anchoredCenter - pivotOffset;
+
     }
     else
     {
         size = (anchorMaxPx - anchorMinPx) + rt.sizeDelta;
         anchoredCenter = (anchorMinPx + anchorMaxPx) * 0.5f + rt.anchoredPos;
+        finalCenter = anchoredCenter - pivotOffset;
     }
 
-    rt.computedPosition = anchoredCenter;
+    rt.computedPosition = finalCenter;
     rt.computedSize = size * rt.scale;
 
     if (m_registry.all_of<RelationshipComponent>(entity))

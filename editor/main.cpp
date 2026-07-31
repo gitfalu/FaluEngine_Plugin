@@ -55,7 +55,6 @@ public:
         bTransform.position = { 0.0f,3.0f,0.0f };
         auto& bMesh = box.addComponent<FaluEngine::MeshComponent>();
         bMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
-        bMesh.materialPath = FaluEngine::PathResolver::resolveStr("");
         auto& bRb = box.addComponent<FaluEngine::RigidbodyComponent>();
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
@@ -139,7 +138,7 @@ public:
         m_contentBrowser.init(
             std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
 
-        FaluEngine::EditorStateManager::get().setOnBeforeShop([this]() {
+        FaluEngine::EditorStateManager::get().setOnBeforeStop([this]() {
             m_hierarchy.clearSelected();
             });
 

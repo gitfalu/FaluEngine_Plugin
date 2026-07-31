@@ -100,8 +100,6 @@ namespace Editor
 				auto fullpath = FaluEngine::PathResolver::resolveStr(meshBuf);
 				m.meshPath = fullpath;
 				m.cachedMesh = nullptr;// キャッシュをリセット
-
-				meshExists = std::filesystem::exists(m.meshPath) && std::filesystem::exists(m.meshPath);
 			}
 
 			if (!m.meshPath.empty() && !meshExists)
@@ -551,7 +549,15 @@ namespace Editor
 		if(!scene->registry().all_of<FaluEngine::MeshComponent>(entity))
 		{ 
 			if (ImGui::MenuItem("Mesh Component"))
-				e.addComponent<FaluEngine::MeshComponent>();
+			{
+				if (e.hasComponent<FaluEngine::CanvasComponent>() ||
+					e.hasComponent<FaluEngine::RectTransformComponent>())
+				{
+					LOG_WARN("MeshComponent should not be added to a UI entity!");
+				}
+				else
+					e.addComponent<FaluEngine::MeshComponent>();
+			}
 		}
 
 		if (!scene->registry().all_of<FaluEngine::CameraComponent>(entity))

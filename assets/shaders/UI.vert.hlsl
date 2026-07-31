@@ -27,7 +27,7 @@ PSInput VS(VSInput vin)
     float sinR = sin(rotation);
     float2 rotatedPos = float2(
         vin.localPos.x * cosR - vin.localPos.y * sinR,
-        vin.localPos.x * sinR - vin.localPos.y * cosR
+        vin.localPos.x * sinR + vin.localPos.y * cosR
     );
     
     float2 worldPos = position + rotatedPos * size;

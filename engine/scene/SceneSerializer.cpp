@@ -335,7 +335,7 @@ namespace FaluEngine
 				sky.horizonColor = vec4FromJson(sj["horizonColor"]);
 				sky.bottomColor = vec4FromJson(sj["bottomColor"]);
 				sky.exposure = sj.value("exposure", 1.0f);
-				sky.enabled = sj.value("value", true);
+				sky.enabled = sj.value("enabled", true);
 			}
 		}
 

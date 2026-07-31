@@ -24,6 +24,7 @@ std::shared_ptr<TextureAsset> loadTexture(const std::string& path, ID3D11Device*
         if (FAILED(hr))
         {
             LOG_ERROR("TextureLoader: Load DDS File Failed '{}'", path);
+            return nullptr;
         }
     }
     else if (ext == ".hdr") {
@@ -31,6 +32,7 @@ std::shared_ptr<TextureAsset> loadTexture(const std::string& path, ID3D11Device*
         if (FAILED(hr))
         {
             LOG_ERROR("TextureLoader: Load HDR File Failed '{}'", path);
+            return nullptr;
         }
     }
     else {
@@ -38,6 +40,7 @@ std::shared_ptr<TextureAsset> loadTexture(const std::string& path, ID3D11Device*
         if (FAILED(hr))
         {
             LOG_ERROR("TextureLoader: Load WIC File Failed '{}'", path);
+            return nullptr;
         }
     }
 
