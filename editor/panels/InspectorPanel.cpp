@@ -86,7 +86,8 @@ namespace Editor
 
 			// ファイルの存在を確認
 			bool meshExists = std::filesystem::exists(m.meshPath);
-			if (!m.meshPath.empty() && !meshExists)
+			bool showError = !meshExists && !m.meshPath.empty();
+			if (showError)
 			{
 				ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.3f,0.3f,1.0f });
 			}
@@ -102,7 +103,7 @@ namespace Editor
 				m.cachedMesh = nullptr;// キャッシュをリセット
 			}
 
-			if (!m.meshPath.empty() && !meshExists)
+			if (showError)
 			{
 				ImGui::PopStyleColor();
 				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, " File not Found");

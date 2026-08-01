@@ -33,11 +33,24 @@ bool PluginManager::load(const std::string& dllPath) {
     }
 
     IPlugin* plugin = create();
+    if (!plugin)
+    {
+        LOG_ERROR("Plugin {}::createPlugin() returned nullptr", dllPath);
+#ifdef _WIN32
+        FreeLibrary(handle);
+#else
+        dlclose(handle);
+#endif
+        return false;
+    }
+
     if (!plugin->onLoad()) {
         LOG_ERROR("Plugin {}::onLoad() failed", dllPath);
         destroy(plugin);
 #ifdef _WIN32
         FreeLibrary(handle);
+#else
+        dlclose(handle);
 #endif
         return false;
     }

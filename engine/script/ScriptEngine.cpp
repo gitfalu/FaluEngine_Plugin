@@ -80,7 +80,7 @@ void ScriptEngine::registerBindings(Scene& scene) {
     inputTable.set_function("isKeyPressed", [](const std::string& key)->bool {
         if (key.size() == 1) {
             char c = std::toupper(key[0]);
-            return InputManager::get().isKeyReleased(static_cast<Key>(c));
+            return InputManager::get().isKeyPressed(static_cast<Key>(c));
         }
         return false;
     });

@@ -31,6 +31,12 @@ Entity Scene::createEntity(const std::string& name) {
 
 void Scene::destroyEntity(Entity entity) {
     if (!entity.isValid()) return;
+    if (m_registry.all_of<ScriptComponent>(entity))
+    {
+        auto& sc = m_registry.get<ScriptComponent>(entity);
+        if (sc.instance) sc.instance->onDestroy(entity);
+    }
+
 
     if (m_registry.all_of<RelationshipComponent>(entity))
     {

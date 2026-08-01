@@ -80,7 +80,7 @@ struct ScriptComponent {
 
     ~ScriptComponent()
     {
-        instance.release();
+        instance.reset();
     }
 };
 

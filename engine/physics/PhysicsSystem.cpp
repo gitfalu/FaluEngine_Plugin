@@ -24,6 +24,11 @@ namespace FaluEngine
 
 	bool PhysicsSystem::init(uint32_t maxBodies, uint32_t maxBodyPairs, uint32_t maxContactConstraints)
 	{
+		if (m_initialized) {
+			LOG_WARN("PhysicsSystem::init() called tewice,ignoring.");
+			return true;
+		}
+
 		JPH::RegisterDefaultAllocator();
 		JPH::Factory::sInstance = new JPH::Factory();
 		JPH::RegisterTypes();
@@ -97,7 +102,7 @@ namespace FaluEngine
 			{
 			case BodyType::Static:
 				motionType = JPH::EMotionType::Static;
-				layer = Layers::MOVING;
+				layer = Layers::NON_MOVING;
 				break;
 			case BodyType::Kinematic:
 				motionType = JPH::EMotionType::Kinematic;

@@ -4,10 +4,11 @@
 namespace FaluEngine {
 
 void AssetManager::unload(const std::string& path) {
-    auto it = m_cache.find(path);
-    if (it != m_cache.end()) {
-        m_cache.erase(it);
-        LOG_INFO("Asset unloaded: {}", path);
+
+    for (auto& [type, typeCache] : m_cache)
+    {
+        auto it = typeCache.find(path);
+        if (it != typeCache.end()) { typeCache.erase(it); return; }
     }
 }
 
@@ -17,7 +18,11 @@ void AssetManager::unloadAll() {
 }
 
 bool AssetManager::isLoaded(const std::string& path) const {
-    return m_cache.count(path) > 0;
+    for (auto& [type, typeCache] : m_cache)
+    {
+        if (typeCache.count(path)) return true;
+    }
+    return false;
 }
 
 } // namespace FaluEngine

@@ -126,13 +126,15 @@ int Application::run() {
             break;
         }
 
+        if (!m_window->pollEvents()) { m_running = false; break; }
+        InputManager::get().update();
+        
         auto now = Clock::now();
         float dt = (std::min)(
             std::chrono::duration_cast<Duration>(now - prev).count(), 0.25f);
         prev = now;
         
         onUpdate(dt);
-        InputManager::get().update();
         SceneManager::get().onUpdate(dt);
 
         m_renderer->beginFrame();

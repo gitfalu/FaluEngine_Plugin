@@ -5,6 +5,7 @@
 #include <functional>
 #include <typeindex>
 #include "core/Logger.h"
+#include "core/FileWatcher.h"
 
 namespace FaluEngine {
 
@@ -37,33 +38,35 @@ public:
 
     template<typename T>
     std::shared_ptr<T> load(const std::string& path) {
-        auto it = m_cache.find(path);
-        if (it != m_cache.end())
-            return std::static_pointer_cast<T>(it->second);
+        auto& typeCache = m_cache[std::type_index(typeid(T))];
+        auto it = typeCache.find(path);
+        if (it != typeCache.end()) 
+            return std::static_pointer_cast<T>(it->second); 
 
-        auto key = std::type_index(typeid(T));
-        auto loaderIt = m_loaders.find(key);
-        if (loaderIt == m_loaders.end()) {
-            LOG_ERROR("AssetManager: no loader registered for type '{}'", typeid(T).name());
+        auto loaderIt = m_loaders.find(std::type_index(typeid(T)));
+        if(loaderIt == m_loaders.end()) {
+            LOG_ERROR("AssetManager : load asset failed {}", path.c_str());
             return nullptr;
         }
 
         auto asset = loaderIt->second(path);
-        if (!asset) {
-            LOG_ERROR("AssetManager: failed to load '{}'", path);
+        if (!asset) 
+        {
+            LOG_ERROR("AssetManager : asset is not found {}", path.c_str());
             return nullptr;
         }
-
         asset->path = path;
         asset->loaded = true;
-        m_cache[path] = asset;
-        LOG_INFO("AssetManager: loaded '{}'", path);
+        typeCache[path] = asset;
+
+        watchForReload<T>(path);
 
         return std::static_pointer_cast<T>(asset);
     }
 
     void unload(const std::string& path);
     void unloadAll();
+    void poll() { m_watcher.poll(); }
 
     [[nodiscard]] bool isLoaded(const std::string& path) const;
     [[nodiscard]] std::size_t getCacheSize() const noexcept {
@@ -74,8 +77,29 @@ private:
     AssetManager()  = default;
     ~AssetManager() = default;
 
-    std::unordered_map<std::string, std::shared_ptr<Asset>> m_cache;
+    template<typename T>
+    void watchForReload(const std::string& path)
+    {
+        m_watcher.watch(path, [this, path]() {
+            auto key = std::type_index(typeid(T));
+            auto loaderIt = m_loaders.find(key);
+            if (loaderIt == m_loaders.end()) return;
+
+            auto reloaded = loaderIt->second(path);
+            if (!reloaded) return;
+
+            auto& typeCache = m_cache[key];
+            auto it = typeCache.find(path);
+            if (it != typeCache.end())
+                *std::static_pointer_cast<T>(it->second) = *std::static_pointer_cast<T>(reloaded);
+            });
+    }
+
+private:
+    std::unordered_map<std::type_index,
+        std::unordered_map<std::string, std::shared_ptr<Asset>>> m_cache; // 型ごとに分離
     std::unordered_map<std::type_index, AssetLoaderFn> m_loaders;
+    FileWatcher m_watcher; // ホットリロード用
 };
 
 } // namespace FaluEngine

@@ -101,12 +101,13 @@ public:
         auto it = m_handlers.find(key);
         if (it == m_handlers.end())return;
 
+        auto handleCopy = it->second;
         std::any wrapped = event;
 
         // once　フラグの物を後で削除するため別リストで管理
         std::vector<HandlerId> toRemove;
 
-        for (auto& entry : it->second)
+        for (auto& entry : handleCopy)
         {
             entry.fn(wrapped);
             if (entry.once)toRemove.push_back(entry.id);
