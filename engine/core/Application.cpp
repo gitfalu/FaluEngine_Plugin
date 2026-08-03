@@ -121,11 +121,6 @@ int Application::run() {
     auto prev = Clock::now();
 
     while (m_running) {
-        if (!m_window->pollEvents()) {
-            m_running = false;
-            break;
-        }
-
         if (!m_window->pollEvents()) { m_running = false; break; }
         InputManager::get().update();
         
@@ -134,10 +129,11 @@ int Application::run() {
             std::chrono::duration_cast<Duration>(now - prev).count(), 0.25f);
         prev = now;
         
-        onUpdate(dt);
-        SceneManager::get().onUpdate(dt);
+        AssetManager::get().poll();// Asset更新
+        onUpdate(dt);//　フレーム更新
+        SceneManager::get().onUpdate(dt); // シーン更新
 
-        m_renderer->beginFrame();
+        m_renderer->beginFrame(); // 描画更新
         m_imguiLayer.begin();
         SceneManager::get().onRender();
         onRender();

@@ -70,7 +70,9 @@ public:
 
     [[nodiscard]] bool isLoaded(const std::string& path) const;
     [[nodiscard]] std::size_t getCacheSize() const noexcept {
-        return m_cache.size();
+        std::size_t total = 0;
+        for (auto& [type, typeCache] : m_cache) total += typeCache.size();
+        return total;
     }
 
 private:

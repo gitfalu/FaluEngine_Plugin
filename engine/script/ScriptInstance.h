@@ -20,6 +20,7 @@ namespace FaluEngine {
 		void onInit(Entity& entity);
 		void onUpdate(Entity& entity, float deltaTime);
 		void onDestroy(Entity& entity);
+		void onClick(Entity& entity);
 
 		[[nodiscard]] bool isValid() const noexcept { return m_valid; }
 		[[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
@@ -28,6 +29,7 @@ namespace FaluEngine {
 		sol::safe_function m_onInit;
 		sol::safe_function m_onUpdate;
 		sol::safe_function m_onDestroy;
+		sol::safe_function m_onClick;
 
 		bool m_valid = false;
 		bool m_initialized = false;

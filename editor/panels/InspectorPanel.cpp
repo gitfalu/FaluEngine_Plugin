@@ -591,6 +591,24 @@ namespace Editor
 				e.addComponent<FaluEngine::SkySphereComponent>();
 		}
 
+		if (!scene->registry().all_of<FaluEngine::CanvasComponent>(entity))
+		{
+			if (ImGui::MenuItem("Canvas Component"))
+				e.addComponent<FaluEngine::CanvasComponent>();
+		}
+
+		if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
+		{
+			if (ImGui::MenuItem("Image Component"))
+				e.addComponent<FaluEngine::ImageComponent>();
+		}
+
+		if (!scene->registry().all_of<FaluEngine::ButtonComponent>(entity))
+		{
+			if (ImGui::MenuItem("Button Component"))
+				e.addComponent<FaluEngine::ButtonComponent>();
+		}
+
 		ImGui::EndPopup();
 	}
 }

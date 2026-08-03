@@ -14,61 +14,55 @@
 #include "scene/Component.h"
 #include "scene/Camera.h"
 #include "scene/CameraController.h"
+#include "scene/SceneSerializer.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "asset/loaders/MeshLoader.h"
 #include "physics/RigidbodyComponent.h"
 #include "physics/PhysicsSystem.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <filesystem>
+#ifdef ENGINE_DEBUG
 #include <imgui.h>
+#endif
+
+static constexpr const char* kStartupScenePath = "assets/scenes/main.scene";
 
 class GameScene : public FaluEngine::Scene {
 public:
     GameScene() : Scene("GameScene") {}
 
     void onEnter() override {
-        // カメラ Entity
-        auto camEntity = createEntity("MainCamera");
-        auto& camComp = camEntity.addComponent<FaluEngine::CameraComponent>();
-        camComp.isPrimary = true;
-        camComp.camera.setPosition({ 0.f, 0.f, -3.f });
+        std::string scenePath = FaluEngine::PathResolver::resolveStr(kStartupScenePath);
 
-        auto ground = createEntity("Ground");
-        auto& groundRb = ground.addComponent<FaluEngine::RigidbodyComponent>();
-        groundRb.bodyType = FaluEngine::BodyType::Static;
-        groundRb.shape = FaluEngine::ColliderShape::Box;
-        groundRb.halfExtents = { 10.0f,0.0f,10.0f };
-        ground.getComponent<FaluEngine::TransformComponent>().position = { 0.0f,-2.0f,0.0f };
+        FaluEngine::SceneSerializer serializer(*this);
+        bool loaded = std::filesystem::exists(scenePath) && serializer.deserialize(scenePath);
 
-        auto meshEntity = createEntity("Cube");
-        auto& meshComp = meshEntity.addComponent<FaluEngine::MeshComponent>();
-        auto& boxRb = meshEntity.addComponent<FaluEngine::RigidbodyComponent>();
-        boxRb.bodyType = FaluEngine::BodyType::Dynamic;
-        boxRb.shape = FaluEngine::ColliderShape::Box;
-        boxRb.halfExtents = { 0.5f,0.5f,0.5f };
-        meshEntity.getComponent<FaluEngine::TransformComponent>().position = { 0.0f,3.0f,0.0f };
+        if (!loaded)
+        {
+            LOG_ERROR("Failed to loaded startup scene: '{}'. Falling back to a minimal empty scene.", scenePath);
 
-        meshComp.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
-        meshComp.cachedMesh = FaluEngine::AssetManager::get()
-            .load<FaluEngine::MeshAsset>(meshComp.meshPath);
-        
-        // 物理ワールドに登録
+            // fallback when SceneFile is not found / broken(continue startup to ready only camera)
+            auto camEntity = createEntity("MainCamera");
+            auto& camComp = camEntity.addComponent<FaluEngine::CameraComponent>();
+            camComp.isPrimary = true;
+            camComp.camera.setPosition({ 0.0f,0.0f,-3.0f });
+        }
+
         FaluEngine::PhysicsSystem::get().registerScene(*this);
 
-        auto& scriptComp = meshEntity.addComponent<FaluEngine::ScriptComponent>();
-        scriptComp.scriptPath = FaluEngine::PathResolver::resolveStr("assets/scripts/test.lua");
-
-        FALU_ENGINE_LOG_INFO("GameScene entered — {} entities", entityCount());
+        FALU_ENGINE_LOG_INFO("GameScne entered ('{}') - {} entities", loaded ? scenePath : "fallback", entityCount());
     }
 
 };
 
-class EditorApp : public FaluEngine::Application {
+class RuntimeApp : public FaluEngine::Application {
 public:
-    EditorApp() : Application({.title = L"FaluEngine Editor",.width = 1280,.height = 720}) {}
+    RuntimeApp() : Application({.title = L"FaluEngine",.width = 1280,.height = 720}) {}
 
     void onInit() override {
         getSceneManager().registerScene<GameScene>("game");
         getSceneManager().switchTo("game");
+
 
         auto* scene = getSceneManager().getActive();
         auto view = scene->registry()
@@ -80,7 +74,7 @@ public:
             break;
         }
 
-        LOG_INFO("FaluEngine Editor started");
+        LOG_INFO("FaluEngine Runtime started");
     }
 
     void onUpdate(float deltaTime) override
@@ -88,41 +82,31 @@ public:
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
 
         if (m_cameraCtrl) m_cameraCtrl->onUpdate(deltaTime);
-        m_rotation += 90.f * deltaTime;
-
-        auto& input = FaluEngine::InputManager::get();
-        if (input.isKeyReleased(FaluEngine::Key::Space))
-            FALU_ENGINE_LOG_INFO("Space pressed!");
-        if (input.isMouseButtonPressed(FaluEngine::MouseButton::Left))
-            FALU_ENGINE_LOG_INFO("Left click at ({:.0f},{:.0f})",
-                input.getMousePosition().x, input.getMousePosition().y);
     }
 
     void onRender() override
     {
-        ImGui::Begin("FaluEngine");
+#ifdef ENGINE_DEBUG
+        ImGui::Begin("Debug");
         ImGui::Text("FPS: %.1f", m_fps);
         ImGui::Separator();
         ImGui::Text("Resolution: %d * %d", getConfig().width, getConfig().height);
-        ImGui::ColorEdit4("Clear Color", m_clearColor);
         ImGui::End();
+#endif
 
     }
 
     void onShutdown() override
     {
-        LOG_INFO("FaluEngine Editor shutdown");
+        LOG_INFO("FaluEngine Runtime shutdown");
     }
 
 private:
     float m_fps = 0.0f;
-    float m_clearColor[4] = { 0.18f,0.18f,0.2f,1.0f };
-
-    float m_rotation = 0.0f;
     std::unique_ptr<FaluEngine::CameraController> m_cameraCtrl;
 };
 
 int main() {
-    EditorApp app;
+    RuntimeApp app;
     return app.run();
 }

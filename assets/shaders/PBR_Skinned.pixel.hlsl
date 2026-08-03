@@ -283,7 +283,7 @@ float4 PS(PSInput pin) : SV_TARGET
     float3 specularIBL = prefilterdColor * (F_roughness * envBRDF.x + envBRDF.y);
     
     // ambient
-    float3 ambient = (diffuseIBL + specularIBL) * ao * ambientColor.rgb * albedo.rgb * ao;
+    float3 ambient = (diffuseIBL + specularIBL) * ao + ambientColor.rgb * albedo.rgb * ao;
     float3 color = ambient + Lo + emissive;
     
     // Tone Mapping

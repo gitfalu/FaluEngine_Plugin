@@ -45,7 +45,8 @@ private:
     void renderMeshes(class DX11Renderer* renderer);
     void renderSky(class DX11Renderer* renderer);
     void renderUI(class DX11Renderer* renderer);
-    void updateUILayout();
+    void updateUILayout(DX11Renderer* renderer);
+    void updateUIInteraction();
     void computeRectTransform(entt::entity entity,
         const glm::vec2& parentPos, const glm::vec2& parentSize);
 private:

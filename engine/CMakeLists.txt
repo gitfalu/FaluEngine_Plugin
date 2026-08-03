@@ -35,6 +35,7 @@ engine_add_module(core
         core/Memory/PoolAllocator.cpp
         core/InputManager.cpp
         core/EditorStateManager.cpp
+        core/FileWatcher.cpp
     DEPS
         spdlog::spdlog
         glm::glm
@@ -74,6 +75,7 @@ engine_add_module(renderer
         DirectX::D3D11
         glm::glm
         imgui::imgui
+        imguizmo::imguizmo
 )
 
 # ── Asset モジュール ────────────────────────────────────────────────────────

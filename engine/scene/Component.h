@@ -7,9 +7,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <string>
 #include <memory>
+#include <functional>
 #include "Camera.h"
 #include "asset/loaders/MeshLoader.h"
 #include "script/ScriptInstance.h"
+#include "scripting/NativeScript.h"
 #include "asset/loaders/TextureLoader.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "asset/loaders/ShaderLoader.h"
@@ -84,6 +86,20 @@ struct ScriptComponent {
     }
 };
 
+struct NativeScriptComponent
+{
+    std::unique_ptr<NativeScript> instance;
+    // 実生成遅延用
+    std::function<std::unique_ptr<NativeScript>()> factory;
+    bool initialize = false;
+
+    template<typename T>
+    void bind()
+    {
+        factory = []() { return std::make_unique<T>(); };
+    }
+};
+
 struct LightComponent
 {
     FaluEngine::LightType type = FaluEngine::LightType::Directional;
@@ -132,6 +148,24 @@ struct ImageComponent
     bool visible = true;
 
     std::shared_ptr<TextureAsset> cachedTexture;
+};
+
+struct ButtonComponent
+{
+    bool interactable = true;
+    glm::vec4 normalColor = { 1.0f,1.0f,1.0f,1.0f };
+    glm::vec4 hoveredColor = { 0.9f,0.9f,0.9f,1.0f };
+    glm::vec4 pressedColor = { 0.7f,0.7f,0.7f,1.0f };
+    bool isHovered = false;
+    bool isPressed = false;
+};
+
+struct TextComponent
+{
+    std::string text;
+    float fontSize = 24.0f;
+    glm::vec4 color = { 1,1,1,1 };
+    std::string fontPath;
 };
 
 } // namespace FaluEngine

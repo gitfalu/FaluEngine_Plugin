@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
+set(VCPKG_APPLOCAL_DEPS ON CACHE BOOL "" FORCE)
 project(FaluEngine VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)

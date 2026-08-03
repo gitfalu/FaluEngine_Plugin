@@ -24,6 +24,7 @@ namespace FaluEngine {
 		m_onInit = m_env["onInit"];
 		m_onUpdate = m_env["onUpdate"];
 		m_onDestroy = m_env["onDestroy"];
+		m_onClick = m_env["onClick"];
 
 		m_valid = true;
 		LOG_INFO("ScriptInstance: loaded '{}'", scriptPath);
@@ -71,6 +72,17 @@ namespace FaluEngine {
 			if (!result.valid()) {
 				sol::error err = result;
 				LOG_ERROR("ScriptInstance onDestroy error: {}", err.what());
+			}
+		}
+	}
+	void ScriptInstance::onClick(Entity& entity)
+	{
+		if (!m_valid) return;
+		if (m_onClick.valid()) {
+			auto result = m_onClick(entity);
+			if (!result.valid()) {
+				sol::error err = result;
+				LOG_ERROR("ScriptInstance onClick error: {}", err.what());
 			}
 		}
 	}

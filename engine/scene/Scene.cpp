@@ -3,6 +3,7 @@
 #include "Component.h"
 #include "core/Logger.h"
 #include "core/Application.h"
+#include "core/InputManager.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -37,6 +38,11 @@ void Scene::destroyEntity(Entity entity) {
         if (sc.instance) sc.instance->onDestroy(entity);
     }
 
+    if (m_registry.all_of<NativeScriptComponent>(entity))
+    {
+        auto& nsc = m_registry.get<NativeScriptComponent>(entity);
+        if (nsc.instance) { Entity e(entity, this); nsc.instance->onDestroy(e); }
+    }
 
     if (m_registry.all_of<RelationshipComponent>(entity))
     {
@@ -167,6 +173,19 @@ void Scene::onUpdate(float deltaTime) {
             sc.instance->onUpdate(e,deltaTime);
         }
     }
+
+    // Native Script
+    auto nativeView = m_registry.view<NativeScriptComponent>();
+    for (auto& entity : nativeView)
+    {
+        auto& nsc = nativeView.get<NativeScriptComponent>(entity);
+        if (!nsc.instance && nsc.factory) nsc.instance = nsc.factory();
+        if (!nsc.instance) continue;
+
+        Entity e(entity, this);
+        if (!nsc.initialize) { nsc.instance->onInit(e); nsc.initialize = true; }
+        nsc.instance->onUpdate(e, deltaTime);
+    }
 }
 
 static void computeWorldMatrix(entt::registry& registry, entt::entity entity,
@@ -189,7 +208,8 @@ void Scene::onRender(bool useOwnCamera) {
     if (!renderer) return;
 
     updateWorldMatrices();
-    updateUILayout();
+    updateUILayout(renderer);
+    updateUIInteraction();
     collectLights(renderer, useOwnCamera);
     renderMeshes(renderer);
     renderSky(renderer);
@@ -513,9 +533,18 @@ void Scene::renderUI(DX11Renderer* renderer)
             img.cachedTexture = AssetManager::get().load<TextureAsset>(img.texturePath);
         }
 
+        glm::vec4 finalColor = img.color;
+        // Button所有時
+        if (m_registry.all_of<ButtonComponent>(entity))
+        {
+            auto& btn = m_registry.get<ButtonComponent>(entity);
+            finalColor = btn.isPressed ? btn.pressedColor : btn.isHovered ?
+                btn.hoveredColor : btn.normalColor;
+        }
+
         renderer->drawUIQuad(
             rt.computedPosition, rt.computedSize, rt.rotation,
-            img.color,
+            finalColor,
             (img.cachedTexture && img.cachedTexture->srv) ? img.cachedTexture->srv.Get() : nullptr
         );
     }
@@ -523,8 +552,13 @@ void Scene::renderUI(DX11Renderer* renderer)
     renderer->endUIPass();
 }
 
-void Scene::updateUILayout()
+void Scene::updateUILayout(DX11Renderer* renderer)
 {
+    glm::vec2 screenSize = {
+        static_cast<float>(renderer->getWidth()),
+        static_cast<float>(renderer->getHeight())
+    };
+
     auto canvasView = m_registry.view<CanvasComponent, RelationshipComponent>();
     for (auto canvasEntity : canvasView)
     {
@@ -532,12 +566,69 @@ void Scene::updateUILayout()
         if (!canvas.enabled) continue;
         if (canvas.renderMode == CanvasRenderMode::WorldSpace) continue;
 
-        glm::vec2 canvasSize = canvas.referenceResolution;
+        glm::vec2 canvasSize = screenSize;
         glm::vec2 canvasPos = canvasSize * 0.5f;
 
         auto& rel = canvasView.get<RelationshipComponent>(canvasEntity);
         for (auto child : rel.children)
             computeRectTransform(child, canvasPos, canvasSize);
+    }
+}
+
+void Scene::updateUIInteraction()
+{
+    auto& im = InputManager::get();
+    glm::vec2 mousePos = im.getMousePosition();
+    bool mouseDown = im.isMouseButtonDown(MouseButton::Left);
+    bool mouseUp = im.isMouseButtonReleased(MouseButton::Left);
+
+    auto view = m_registry.view<RectTransformComponent, ButtonComponent>();
+
+    std::vector<entt::entity> entities(view.begin(), view.end());
+
+    bool consumed = false;
+
+    for (auto it = entities.rbegin(); it != entities.rend(); ++it)
+    {
+        auto entity = *it;
+        auto& rt = view.get<RectTransformComponent>(entity);
+        auto& btn = view.get<ButtonComponent>(entity);
+        if (!btn.interactable) { btn.isHovered = btn.isPressed = false; continue; }
+
+        glm::vec2 halfSize = rt.computedSize * 0.5f;
+        glm::vec2 min = rt.computedPosition - halfSize;
+        glm::vec2 max = rt.computedPosition + halfSize;
+
+        bool hit = !consumed &&
+            mousePos.x >= min.x && mousePos.x <= max.x &&
+            mousePos.y >= min.x && mousePos.x <= max.y;
+
+        btn.isHovered = hit;
+
+        if (hit && mouseDown && !btn.isPressed)
+        {
+            btn.isPressed = true;
+            consumed = true;
+        }
+        else if (btn.isPressed && mouseUp)
+        {
+            btn.isPressed = false;
+            if (hit && m_registry.all_of<ScriptComponent>(entity))
+            {
+                auto& sc = m_registry.get<ScriptComponent>(entity);
+                if (sc.instance)
+                {
+                    Entity e(entity, this);
+                    sc.instance->onClick(e);
+                }
+            }
+            consumed = true;
+        }
+        else if (hit)
+        {
+            consumed = true;
+        }
+
     }
 }
 
