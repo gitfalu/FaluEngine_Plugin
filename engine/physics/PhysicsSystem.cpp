@@ -10,6 +10,8 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <glm/glm.hpp>
 
 
@@ -173,6 +175,39 @@ namespace FaluEngine
 			transform.position = toGLM(bodyInterfase.GetPosition(rb.bodyID));
 			transform.rotation = toGLM(bodyInterfase.GetRotation(rb.bodyID));
 		}
+	}
+
+	RaycastHit PhysicsSystem::raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance)
+	{
+		RaycastHit result;
+		if (!m_physicsSystem) return result;
+
+		JPH::Vec3 jOrigin = toJPH(origin);
+		JPH::Vec3 jDir = toJPH(glm::normalize(direction)) * maxDistance;
+
+		JPH::RRayCast ray{ jOrigin,jDir };
+		JPH::RayCastResult hit;
+
+		const auto& query = m_physicsSystem->GetNarrowPhaseQuery();
+		if (!query.CastRay(ray, hit)) return result;
+
+		result.hit = true;
+		result.distance = hit.mFraction * maxDistance;
+		result.point = origin + glm::normalize(direction) * result.distance;
+
+		JPH::BodyLockRead lock(m_physicsSystem->GetBodyLockInterface(), hit.mBodyID);
+		if (lock.Succeeded())
+		{
+			const JPH::Body& body = lock.GetBody();
+			result.normal = {
+				body.GetWorldSpaceSurfaceNormal(hit.mSubShapeID2,jOrigin + jDir * hit.mFraction).GetX(),
+				body.GetWorldSpaceSurfaceNormal(hit.mSubShapeID2,jOrigin + jDir * hit.mFraction).GetY(),
+				body.GetWorldSpaceSurfaceNormal(hit.mSubShapeID2,jOrigin + jDir * hit.mFraction).GetZ()
+			};
+			result.entity = static_cast<entt::entity>(static_cast<uint32_t>(body.GetUserData()));
+		}
+
+		return result;
 	}
 
 }

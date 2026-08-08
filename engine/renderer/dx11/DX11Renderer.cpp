@@ -1115,6 +1115,9 @@ void DX11Renderer::drawSkySphere(const glm::mat4& view, const glm::mat4& proj, c
 
 void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
 {
+    m_activeWidth = width;
+    m_activeHeight = height;
+
     if (!m_sceneRT)
         m_sceneRT = std::make_unique<RenderTexture>();
 
@@ -1148,6 +1151,9 @@ void DX11Renderer::beginOffscreen(uint32_t width, uint32_t height)
 
 void DX11Renderer::endOffscreen()
 {
+    m_activeWidth = m_width;
+    m_activeHeight = m_height;
+
     m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
 
     D3D11_VIEWPORT vp = {};
@@ -1163,6 +1169,9 @@ void DX11Renderer::endOffscreen()
 
 void DX11Renderer::beginGameOffscreen(uint32_t width, uint32_t height)
 {
+    m_activeWidth = width;
+    m_activeHeight = height;
+
     if (!m_gameRT)
         m_gameRT = std::make_unique<RenderTexture>();
 
@@ -1196,6 +1205,9 @@ void DX11Renderer::beginGameOffscreen(uint32_t width, uint32_t height)
 
 void DX11Renderer::endGameOffscreen()
 {
+    m_activeWidth = m_width;
+    m_activeHeight = m_height;
+
     m_gameOffscreen = false;
 
     m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());

@@ -37,6 +37,7 @@ public:
     [[nodiscard]] uint32_t entityCount() const noexcept {
         return static_cast<uint32_t>(m_registry.storage<entt::entity>()->size());
     }
+    [[nodiscard]] Entity findEntityByName(const std::string& name);
 
 private:
     void updateWorldMatrices();

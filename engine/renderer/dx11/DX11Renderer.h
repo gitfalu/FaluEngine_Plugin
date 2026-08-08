@@ -168,6 +168,8 @@ public:
 
     [[nodiscard]] uint32_t getWidth()  const noexcept override { return m_width; }
     [[nodiscard]] uint32_t getHeight() const noexcept override { return m_height; }
+    [[nodiscard]] uint32_t getActiveWidth() const noexcept { return m_activeWidth; }
+    [[nodiscard]] uint32_t getActiveHeight() const noexcept { return m_activeHeight; }
 
     // DirectX オブジェクトへの直接アクセス（他サブシステムから使う場合）
     [[nodiscard]] ID3D11Device*        getDevice()  const noexcept { return m_device.Get(); }
@@ -372,6 +374,8 @@ private:
 
     uint32_t m_width  = 0;
     uint32_t m_height = 0;
+    uint32_t m_activeWidth = 0;
+    uint32_t m_activeHeight = 0;
     bool     m_vsync  = true;
 
     float m_clearColor[4] = { 0.18f, 0.18f, 0.20f, 1.0f };

@@ -118,6 +118,18 @@ target_include_directories(engine_physics PUBLIC
     ${joltphysics_SOURCE_DIR}
 )
 
+# ==== Audio ======
+engine_add_module(audio
+    SOURCES
+        audio/AudioClip.cpp
+        audio/AudioEngine.cpp
+    DEPS
+        engine_asset
+        engine_core
+)
+target_link_libraries(engine_audio PUBLIC xaudio2.lib)
+
+
 # == UI Module ========
 
 
@@ -158,4 +170,5 @@ target_link_libraries(engine_all INTERFACE
     engine_plugin
     engine_script
     engine_physics
+    engine_audio
 )

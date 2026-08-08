@@ -2,6 +2,7 @@
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
+#include "scene/SceneManager.h"
 #include <imgui.h>
 
 namespace Editor
@@ -20,22 +21,40 @@ namespace Editor
 		ImGui::TextColored({ 0.4f,0.8f,1.0f,1.0f }, "%s", scene->getName().c_str());
 		ImGui::Separator();
 
+		ImGui::SetNextItemWidth(-1);
+		ImGui::InputTextWithHint("##CategoryFilter", "Filter by category...",
+			m_categoryFilter, sizeof(m_categoryFilter));
+		ImGui::Separator();
+
 		if (ImGui::BeginPopupContextWindow("HierarchyContext"))
 		{
 			if (ImGui::MenuItem("Create Empty Entity"))
 			{
 				scene->createEntity("New Entity");
+				FaluEngine::SceneManager::get().markDirty();
 			}
 			ImGui::EndPopup();
 		}
+
 
 		auto view = scene->registry().view<FaluEngine::TagComponent,
 											FaluEngine::RelationshipComponent>();
 		for (auto entity : view)
 		{
 			auto& rel = view.get<FaluEngine::RelationshipComponent>(entity);
-			if(rel.parent == entt::null)
+			if (rel.parent == entt::null)
+			{
+				if (m_categoryFilter[0] != '\0')
+				{
+					auto& tag = scene->registry().get<FaluEngine::TagComponent>(entity);
+					std::string cat = tag.category;
+					std::string filter = m_categoryFilter;
+					std::transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
+					std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
+					if (cat.find(filter) == std::string::npos) continue;
+				}
 				drawEntityNode(scene, entity);
+			}
 		}
 
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
@@ -57,6 +76,7 @@ namespace Editor
 					*static_cast<const entt::entity*>(payload->Data);
 				FaluEngine::Entity e(dragged, scene);
 				e.removeParent();
+				FaluEngine::SceneManager::get().markDirty();
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -106,11 +126,12 @@ namespace Editor
 				entt::entity dragged = *static_cast<const entt::entity*>(payload->Data);
 
 				// Ž©•ªŽ©g‚Í–³Ž‹
-				if (dragged != entity)
+				if (dragged != entity && !isDescendantOf(scene,dragged,entity))
 				{
 					FaluEngine::Entity child(dragged, scene);
 					FaluEngine::Entity parent(entity, scene);
 					child.setParent(parent);
+					FaluEngine::SceneManager::get().markDirty();
 				}
 			}
 			ImGui::EndDragDropTarget();
@@ -132,6 +153,7 @@ namespace Editor
 				if (ImGui::MenuItem("Unparent"))
 				{
 					e.removeParent();
+					FaluEngine::SceneManager::get().markDirty();
 				}
 			}
 
@@ -140,6 +162,7 @@ namespace Editor
 			{
 				FaluEngine::Entity e(entity, scene);
 				scene->destroyEntity(e);
+				FaluEngine::SceneManager::get().markDirty();
 				if (m_selected == entity) m_selected = entt::null;
 			}
 			ImGui::EndPopup();
@@ -151,8 +174,18 @@ namespace Editor
 				drawEntityNode(scene, child);
 			ImGui::TreePop();
 		}
+	}
 
-		
-
+	bool HierarchyPanel::isDescendantOf(FaluEngine::Scene* scene, entt::entity ancestor, entt::entity node)
+	{
+		auto& reg = scene->registry();
+		entt::entity current = node;
+		while (current != entt::null && reg.all_of<FaluEngine::RelationshipComponent>(current))
+		{
+			auto& rel = reg.get<FaluEngine::RelationshipComponent>(current);
+			if (rel.parent == ancestor) return true;
+			current = rel.parent;
+		}
+		return false;
 	}
 }

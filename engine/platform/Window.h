@@ -27,6 +27,7 @@ public:
 
     virtual void setResizeCallback(ResizeCallback cb) = 0;
     virtual void setCloseCallback(CloseCallback  cb)  = 0;
+    virtual void setTitle(const std::wstring& title) = 0;
 
     [[nodiscard]] virtual void*    getNativeHandle() const noexcept = 0;
     [[nodiscard]] virtual uint32_t getWidth()  const noexcept = 0;

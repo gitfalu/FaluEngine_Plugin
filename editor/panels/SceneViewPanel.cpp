@@ -3,6 +3,7 @@
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
+#include "scene/SceneManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -72,24 +73,10 @@ namespace Editor
 		{
 			// Find the has CameraComponent
 		}
-		/*
-		glm::mat4 view = glm::mat4(1.0f);
-		glm::mat4 projection = glm::mat4(1.0f);
-		*/
+	
 		glm::mat4 view = renderer->getView();
 		glm::mat4 projection = renderer->getProjection();
 
-		/*
-		auto camView = scene->registry().view<FaluEngine::CameraComponent>();
-		for (auto entity : camView)
-		{
-			auto& cam = camView.get<FaluEngine::CameraComponent>(entity);
-			if (!cam.isPrimary) continue;
-			view = cam.camera.getView();
-			projection = cam.camera.getProjection();
-			break;
-		}
-		*/
 
 		ImGuizmo::SetOrthographic(false);
 
@@ -145,6 +132,8 @@ namespace Editor
 			transform.position = translation;
 			transform.rotation = glm::normalize(rotation);
 			transform.scale = scale;
+
+			FaluEngine::SceneManager::get().markDirty();
 		}
 	}
 

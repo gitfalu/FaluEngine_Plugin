@@ -19,6 +19,8 @@
 #include "asset/loaders/MeshLoader.h"
 #include "physics/RigidbodyComponent.h"
 #include "physics/PhysicsSystem.h"
+#include "audio/AudioEngine.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <filesystem>
 #ifdef ENGINE_DEBUG
@@ -60,6 +62,8 @@ public:
     RuntimeApp() : Application({.title = L"FaluEngine",.width = 1280,.height = 720}) {}
 
     void onInit() override {
+        FaluEngine::AudioEngine::get().init();
+
         getSceneManager().registerScene<GameScene>("game");
         getSceneManager().switchTo("game");
 

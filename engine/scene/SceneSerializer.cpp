@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "Entity.h"
 #include "Component.h"
+#include "ui/UITypes.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/Logger.h"
 
@@ -14,6 +15,10 @@ using json = nlohmann::json;
 namespace FaluEngine
 {
 	//==== glm convert helper =====
+	static json vec2ToJson(const glm::vec2& v)
+	{
+		return { {"x",v.x},{"y",v.y} };
+	}
 	static json vec3ToJson(const glm::vec3& v)
 	{
 		return { {"x",v.x},{"y",v.y} ,{"z",v.z} };
@@ -27,17 +32,25 @@ namespace FaluEngine
 		return { {"x",q.x},{"y",q.y} ,{"z",q.z},{"w",q.w} };
 	}
 
-	static glm::vec3 vec3FromJson(const json& j)
+	static glm::vec2 vec2FromJson(const json& j, const glm::vec2& def = {})
 	{
+		if (!j.is_object()) return def;
+		return { j["x"],j["y"] };
+	}
+	static glm::vec3 vec3FromJson(const json& j, const glm::vec3& def = {})
+	{
+		if (!j.is_object()) return def;
 		return { j["x"],j["y"],j["z"] };
 	}
 
-	static glm::vec4 vec4FromJson(const json& j)
+	static glm::vec4 vec4FromJson(const json& j, const glm::vec4& def = {})
 	{
+		if (!j.is_object()) return def;
 		return { j["x"],j["y"],j["z"],j["w"]};
 	}
-	static glm::quat quatFromJson(const json& j)
+	static glm::quat quatFromJson(const json& j, const glm::quat& def = {})
 	{
+		if (!j.is_object()) return def;
 		return { 
 			j["w"].get<float>(),j["x"].get<float>(),
 			j["y"].get<float>(),j["z"].get<float>() };
@@ -62,6 +75,7 @@ namespace FaluEngine
 			json entityJson;
 			auto& tag = view.get<TagComponent>(entity);
 			entityJson["name"] = tag.name;
+			entityJson["category"] = tag.category;
 			entityJson["id"] = entityToId[entity];
 
 			if (m_scene.registry().all_of<TransformComponent>(entity))
@@ -131,6 +145,57 @@ namespace FaluEngine
 					{"playbackSpeed",anim.playbackSpeed},
 					{"playing",anim.playing},
 					{"loop",anim.loop},
+				};
+			}
+
+			//===== UI =======
+			// Canvas
+			if (m_scene.registry().all_of<CanvasComponent>(entity))
+			{
+				auto& canvas = m_scene.registry().get<CanvasComponent>(entity);
+				entityJson["canvas"] = {
+					{"renderMode",static_cast<int>(canvas.renderMode)},
+					{"referenceResolution",vec2ToJson(canvas.referenceResolution)},
+					{"sortOtder",canvas.sortOrder},
+					{"enabled",canvas.enabled}
+				};
+			}
+
+			// RectTransform
+			if (m_scene.registry().all_of<RectTransformComponent>(entity))
+			{
+				auto& rt = m_scene.registry().get<RectTransformComponent>(entity);
+				entityJson["rectTransform"] = {
+					{"anchorMin",vec2ToJson(rt.anchorMin)},
+					{"anchorMax",vec2ToJson(rt.anchorMax)},
+					{"anchoredPos",vec2ToJson(rt.anchoredPos)},
+					{"sizeDelta",vec2ToJson(rt.sizeDelta)},
+					{"pivot",vec2ToJson(rt.pivot)},
+					{"rotation",rt.rotation},
+					{"scale",vec2ToJson(rt.scale)}
+				};
+			}
+
+			// Image
+			if (m_scene.registry().all_of<ImageComponent>(entity))
+			{
+				auto& img = m_scene.registry().get<ImageComponent>(entity);
+				entityJson["image"] = {
+					{"texturePath",img.texturePath},
+					{"color",vec4ToJson(img.color)},
+					{"visible",img.visible}
+				};
+			}
+
+			// Button
+			if (m_scene.registry().all_of<ButtonComponent>(entity))
+			{
+				auto& btn = m_scene.registry().get<ButtonComponent>(entity);
+				entityJson["button"] = {
+					{"interactable",btn.interactable},
+					{"normalColor",vec4ToJson(btn.normalColor)},
+					{"hoveredColor",vec4ToJson(btn.hoveredColor)},
+					{"pressedColor",vec4ToJson(btn.pressedColor)}
 				};
 			}
 
@@ -242,6 +307,11 @@ namespace FaluEngine
 			uint32_t savedId = entityJson.value("id", 0u);
 			idMap[savedId] = static_cast<entt::entity>(entity);
 
+			
+			auto& tagComp = entity.getComponent<TagComponent>();
+			tagComp.category = entityJson.value("category", "Untagged");
+
+
 			// TransformComponent
 			if (entityJson.contains("transform")) {
 				auto& t = entity.getComponent<TransformComponent>();
@@ -307,6 +377,53 @@ namespace FaluEngine
 				anim.playbackSpeed = aj.value("playbackSpeed", 1.0f);
 				anim.playing = aj.value("playing", true);
 				anim.loop = aj.value("loop", true);
+			}
+
+			//====== UI =======
+			// Canvas
+			if (entityJson.contains("canvas"))
+			{
+				auto& cj = entityJson["canvas"];
+				auto& canvas = entity.addComponent<CanvasComponent>();
+				canvas.renderMode = static_cast<CanvasRenderMode>(cj.value("renderMode",0));
+				canvas.referenceResolution = vec2FromJson(cj["referenceResolution"], { 1920.0f,1080.0f });
+				canvas.sortOrder = cj.value("sortOrder", 0);
+				canvas.enabled = cj.value("enabled", true);
+			}
+
+			// RectTransform
+			if (entityJson.contains("rectTransform"))
+			{
+				auto& rj = entityJson["rectTransform"];
+				auto& rt = entity.addComponent<RectTransformComponent>();
+				rt.anchorMin = vec2FromJson(rj["anchorMin"], { 0.5f,0.5f });
+				rt.anchorMax = vec2FromJson(rj["anchorMax"], { 0.5f,0.5f });
+				rt.anchoredPos = vec2FromJson(rj["anchoredPos"], { 0.0f,0.0f });
+				rt.sizeDelta = vec2FromJson(rj["sizeDelta"], { 100.0f,100.0f });
+				rt.pivot = vec2FromJson(rj["pivot"], { 0.5f,0.5f });
+				rt.rotation = rj.value("rotation", 0.0f);
+				rt.scale = vec2FromJson(rj["scale"], { 1.0f,1.0f });
+			}
+
+			// Image
+			if (entityJson.contains("image"))
+			{
+				auto& ij = entityJson["image"];
+				auto& img = entity.addComponent<ImageComponent>();
+				img.texturePath = ij.value("texturePath", "");
+				img.color = vec4FromJson(ij["color"]);
+				img.visible = ij.value("visible", true);
+			}
+
+			// Button
+			if (entityJson.contains("button"))
+			{
+				auto& bj = entityJson["button"];
+				auto& btn = entity.addComponent<ButtonComponent>();
+				btn.interactable = bj.value("intaractable", true);
+				btn.normalColor = vec4FromJson(bj["normalColor"]);
+				btn.hoveredColor = vec4FromJson(bj["hoveredColor"]);
+				btn.pressedColor = vec4FromJson(bj["pressedColor"]);
 			}
 			
 			// LightComponent

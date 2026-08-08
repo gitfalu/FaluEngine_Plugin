@@ -2,10 +2,14 @@
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
+#include "scene/SceneManager.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/AnimationCache.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/PathResolver.h"
+#include "ui/UITypes.h"
+#include "audio/AudioClip.h"
+#include "audio/AudioEngine.h"
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -32,6 +36,13 @@ namespace Editor
 
 		ImGui::SameLine();
 		ImGui::TextDisabled("ID: %u", static_cast<uint32_t>(selected));
+
+		char catbuf[128];
+		strncpy_s(catbuf, tag.category.c_str(), sizeof(catbuf));
+		ImGui::SetNextItemWidth(150.0f);
+		if (ImGui::InputText("Category (Tag)", catbuf, sizeof(catbuf)))
+			tag.category = catbuf;
+
 		ImGui::Separator();
 
 		drawTransformComponent(scene, selected);
@@ -41,6 +52,13 @@ namespace Editor
 		drawScriptComponent(scene, selected);
 		drawLightComponent(scene, selected);
 		drawSkyComponent(scene, selected);
+		drawAudioComponent(scene, selected);
+
+		//===== UI ======
+		drawRectTransformComponent(scene, selected);
+		drawCanvasComponent(scene, selected);
+		drawImageComponent(scene, selected);
+		drawButtonComponent(scene, selected);
 
 		ImGui::Spacing();
 
@@ -50,6 +68,9 @@ namespace Editor
 
 		drawAddComponentMenu(scene, selected);
 
+		if (ImGui::IsAnyItemActive())
+			FaluEngine::SceneManager::get().markDirty();
+
 		ImGui::End();
 	}
 
@@ -57,8 +78,9 @@ namespace Editor
 	{
 		if (!scene->registry().all_of<FaluEngine::TransformComponent>(entity)) return;
 
-		if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+		if(ImGui::CollapsingHeader("Transform",ImGuiTreeNodeFlags_DefaultOpen))
 		{
+
 			auto& t = scene->registry().get<FaluEngine::TransformComponent>(entity);
 
 			ImGui::DragFloat3("Position", glm::value_ptr(t.position), 0.1f);
@@ -73,9 +95,7 @@ namespace Editor
 
 	void InspectorPanel::drawMeshComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::MeshComponent>(entity)) return;
-		
-		if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!drawComponentHeader<FaluEngine::MeshComponent>("Mesh", scene, entity)) return;
 		{
 			auto& m = scene->registry().get<FaluEngine::MeshComponent>(entity);
 
@@ -180,9 +200,7 @@ namespace Editor
 
 	void InspectorPanel::drawCameraComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::CameraComponent>(entity)) return;
-
-		if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!drawComponentHeader<FaluEngine::CameraComponent>("Camera", scene, entity)) return;
 		{
 			auto& cam = scene->registry().get<FaluEngine::CameraComponent>(entity);
 
@@ -204,9 +222,7 @@ namespace Editor
 
 	void InspectorPanel::drawRigidbodyComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::RigidbodyComponent>(entity)) return;
-
-		if (ImGui::CollapsingHeader("Rigidbody", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!drawComponentHeader<FaluEngine::RigidbodyComponent>("Rigidbody", scene, entity)) return;
 		{
 			auto& rb = scene->registry().get<FaluEngine::RigidbodyComponent>(entity);
 
@@ -239,9 +255,7 @@ namespace Editor
 
 	void InspectorPanel::drawScriptComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::ScriptComponent>(entity)) return;
-
-		if (ImGui::CollapsingHeader("Script", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!drawComponentHeader<FaluEngine::ScriptComponent>("Script", scene, entity)) return;
 		{
 			auto& sc = scene->registry().get<FaluEngine::ScriptComponent>(entity);
 			ImGui::Text("Script: %s", sc.scriptPath.empty() ? "(none)" : sc.scriptPath.c_str());
@@ -251,9 +265,8 @@ namespace Editor
 
 	void InspectorPanel::drawLightComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))return;
-
-		if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!drawComponentHeader<FaluEngine::LightComponent>("Light", scene, entity)) return; 
+		{
 			auto& lc = scene->registry().get<FaluEngine::LightComponent>(entity);
 
 			const char* types[] = { "Directional","Point","Spot" };
@@ -289,9 +302,7 @@ namespace Editor
 
 	void InspectorPanel::drawSkyComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
-		if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity)) return;
-
-		if (ImGui::CollapsingHeader("SkySphere", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!drawComponentHeader<FaluEngine::SkySphereComponent>("Sky", scene, entity)) return;
 		{
 			auto& sky = scene->registry().get<FaluEngine::SkySphereComponent>(entity);
 
@@ -324,6 +335,149 @@ namespace Editor
 			ImGui::ColorEdit4("Bottom", glm::value_ptr(sky.bottomColor));
 			ImGui::DragFloat("Exposure", &sky.exposure, 0.01f, 0.0f, 10.0f);
 			ImGui::Checkbox("Enabled", &sky.enabled);
+		}
+	}
+
+	void InspectorPanel::drawAudioComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::AudioSourceComponent>("Audio", scene, entity)) return;
+
+		auto& src = scene->registry().get<FaluEngine::AudioSourceComponent>(entity);
+		{
+			char buf[512];
+			strncpy_s(buf, src.clipPath.c_str(), sizeof(buf));
+			if (ImGui::InputText("Clip Path", buf, sizeof(buf)))
+			{
+				src.clipPath = buf;
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					src.clipPath = std::string(static_cast<const char*>(payload->Data), payload->DataSize);
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::SliderFloat("Volume", &src.volume, 0.0f, 1.0f);
+			ImGui::Checkbox("Loop", &src.loop);
+			ImGui::Checkbox("Play On Awake", &src.playOnAwake);
+
+			if (ImGui::Button("Play (Preview)"))
+			{
+				FaluEngine::AudioEngine::get().play(
+					FaluEngine::PathResolver::resolveStr(src.clipPath), src.volume, false
+				);
+			}
+
+			bool meshExists = !src.clipPath.empty() && std::filesystem::exists(
+				FaluEngine::PathResolver::resolveStr(src.clipPath)
+			);
+			if (!src.clipPath.empty() && !meshExists)
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not Found");
+		}
+
+	}
+
+	//===== UI ========
+
+	void InspectorPanel::drawRectTransformComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!scene->registry().all_of<FaluEngine::RectTransformComponent>(entity)) return;
+
+		auto& rt = scene->registry().get<FaluEngine::RectTransformComponent>(entity);
+		if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::DragFloat2("Anchor Min", &rt.anchorMin.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat2("Anchor Max", &rt.anchorMax.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat2("Anchored Position", &rt.anchoredPos.x, 1.0f);
+			ImGui::DragFloat2("Size Delta", &rt.sizeDelta.x, 1.0f, 0.0f, 8192.0f);
+			ImGui::DragFloat2("Pivot", &rt.pivot.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Rotation", &rt.rotation, 0.5f);
+			ImGui::DragFloat2("Scale", &rt.scale.x, 0.01f);
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Computed Position: (%.1f, %.1f)",
+				rt.computedPosition.x, rt.computedPosition.y);
+			ImGui::TextDisabled("Computed Size: (%.1f, %.1f)",
+				rt.computedSize.x, rt.computedSize.y);
+		}
+	}
+
+	void InspectorPanel::drawCanvasComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::CanvasComponent>("Canvas", scene, entity)) return;
+		auto& canvas = scene->registry().get<FaluEngine::CanvasComponent>(entity);
+		{
+			const char* modes[] = { "Screen Space - Overlay","World Space" };
+			int currentMode = static_cast<int>(canvas.renderMode);
+			if (ImGui::Combo("Render Mode", &currentMode, modes,2))
+			{
+				canvas.renderMode = static_cast<FaluEngine::CanvasRenderMode>(currentMode);
+			}
+
+			if (canvas.renderMode == FaluEngine::CanvasRenderMode::WorldSpace)
+			{
+				ImGui::TextColored({ 1.0f,0.7f,0.2f,1.0f }, "World Space is not implemented yet.");// <--未実装メッセージ
+			}
+
+			ImGui::DragFloat2("Reference Resolution", &canvas.referenceResolution.x, 1.0f, 1.0f, 8192.0f);
+			ImGui::DragInt("Sort Order", &canvas.sortOrder);
+			ImGui::Checkbox("Enabled", &canvas.enabled);
+		}
+	}
+
+	void InspectorPanel::drawImageComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::ImageComponent>("Image", scene, entity)) return;
+
+		auto& img = scene->registry().get<FaluEngine::ImageComponent>(entity);
+		{
+			char buf[512];
+			strncpy_s(buf, img.texturePath.c_str(), sizeof(buf));
+			if (ImGui::InputText("Texture Path", buf, sizeof(buf)))
+			{
+				img.texturePath = buf;
+				img.cachedTexture = nullptr;
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+				{
+					img.texturePath = std::string(static_cast<const char*>(payload->Data));
+					img.cachedTexture = nullptr;
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			bool fileExists = !img.texturePath.empty() &&
+				std::filesystem::exists(img.texturePath);
+			if (!img.texturePath.empty() && !fileExists)
+			{
+				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not found");
+			}
+
+			ImGui::ColorEdit4("Color", &img.color.x);
+			ImGui::Checkbox("Visible", &img.visible);
+		}
+	}
+
+	void InspectorPanel::drawButtonComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::ButtonComponent>("Button", scene, entity)) return;
+
+		auto& btn = scene->registry().get<FaluEngine::ButtonComponent>(entity);
+		{
+			ImGui::Checkbox("Interactable", &btn.interactable);
+			ImGui::ColorEdit4("Normal Color", &btn.normalColor.x);
+			ImGui::ColorEdit4("Hovered Color", &btn.hoveredColor.x);
+			ImGui::ColorEdit4("Pressed Color", &btn.pressedColor.x);
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Hovered: %s", btn.isHovered ? "true" : "false");
+			ImGui::TextDisabled("Pressed: %s", btn.isPressed ? "true" : "false");
 		}
 	}
 
@@ -547,68 +701,172 @@ namespace Editor
 
 		FaluEngine::Entity e(entity, scene);
 
-		if(!scene->registry().all_of<FaluEngine::MeshComponent>(entity))
-		{ 
-			if (ImGui::MenuItem("Mesh Component"))
-			{
-				if (e.hasComponent<FaluEngine::CanvasComponent>() ||
-					e.hasComponent<FaluEngine::RectTransformComponent>())
+
+		//====== Rendering ======
+		if (ImGui::BeginMenu("Rendering"))
+		{
+			if(!scene->registry().all_of<FaluEngine::MeshComponent>(entity))
+			{ 
+				if (ImGui::MenuItem("Mesh Component"))
 				{
-					LOG_WARN("MeshComponent should not be added to a UI entity!");
+					if (e.hasComponent<FaluEngine::CanvasComponent>() ||
+						e.hasComponent<FaluEngine::RectTransformComponent>())
+					{
+						LOG_WARN("MeshComponent should not be added to a UI entity!");
+					}
+					else
+					{
+						e.addComponent<FaluEngine::MeshComponent>();
+						FaluEngine::SceneManager::get().markDirty();
+					}
 				}
-				else
-					e.addComponent<FaluEngine::MeshComponent>();
 			}
+
+			if (!scene->registry().all_of<FaluEngine::CameraComponent>(entity))
+			{
+				if (ImGui::MenuItem("Camera Component"))
+				{
+					e.addComponent<FaluEngine::CameraComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))
+			{
+				if (ImGui::MenuItem("Light Component"))
+				{
+					e.addComponent<FaluEngine::LightComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity))
+			{
+				if (ImGui::MenuItem("SkySphere Component"))
+				{
+					e.addComponent<FaluEngine::SkySphereComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::AnimatorComponent>(entity))
+			{
+				if (ImGui::MenuItem("Animator Component"))
+				{
+					e.addComponent<FaluEngine::AnimatorComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			ImGui::EndMenu();
 		}
 
-		if (!scene->registry().all_of<FaluEngine::CameraComponent>(entity))
+
+		//==== UI =======
+		if (ImGui::BeginMenu("UI"))
 		{
-			if (ImGui::MenuItem("Camera Component"))
-				e.addComponent<FaluEngine::CameraComponent>();
+			if (!scene->registry().all_of<FaluEngine::CanvasComponent>(entity))
+			{
+				if (ImGui::MenuItem("Canvas Component"))
+				{
+					e.addComponent<FaluEngine::CanvasComponent>();
+					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
+					{
+						e.removeComponent<FaluEngine::TransformComponent>();
+						e.addComponent<FaluEngine::RectTransformComponent>();
+						FaluEngine::SceneManager::get().markDirty();
+					}
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
+			{
+				if (ImGui::MenuItem("Image Component"))
+				{
+					e.addComponent<FaluEngine::ImageComponent>();
+					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
+					{
+						e.removeComponent<FaluEngine::TransformComponent>();
+						e.addComponent<FaluEngine::RectTransformComponent>();
+						FaluEngine::SceneManager::get().markDirty();
+					}
+
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::ButtonComponent>(entity))
+			{
+				if (ImGui::MenuItem("Button Component"))
+				{
+					e.addComponent<FaluEngine::ButtonComponent>();
+					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
+					{
+						e.removeComponent<FaluEngine::TransformComponent>();
+						e.addComponent<FaluEngine::RectTransformComponent>();
+						FaluEngine::SceneManager::get().markDirty();
+					}
+				}
+			}
+
+			ImGui::EndMenu();
 		}
 
-		if (!scene->registry().all_of<FaluEngine::RigidbodyComponent>(entity))
+
+
+		//====== Physics =====
+		if (ImGui::BeginMenu("Physics"))
 		{
-			if (ImGui::MenuItem("Rigidbody Component"))
-				e.addComponent<FaluEngine::RigidbodyComponent>();
+			if (!scene->registry().all_of<FaluEngine::RigidbodyComponent>(entity))
+			{
+				if (ImGui::MenuItem("Rigidbody Component"))
+				{
+					e.addComponent<FaluEngine::RigidbodyComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			ImGui::EndMenu();
 		}
 
-		if (!scene->registry().all_of<FaluEngine::ScriptComponent>(entity))
+		if (ImGui::BeginMenu("Scripting"))
 		{
-			if (ImGui::MenuItem("Script Component"))
-				e.addComponent<FaluEngine::ScriptComponent>();
+			if (!scene->registry().all_of<FaluEngine::ScriptComponent>(entity))
+			{
+				if (ImGui::MenuItem("Script(lua) Component"))
+				{
+					e.addComponent<FaluEngine::ScriptComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::NativeScriptComponent>(entity))
+			{
+				if (ImGui::MenuItem("Script(C++) Component"))
+				{
+					e.addComponent<FaluEngine::NativeScriptComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+
+			ImGui::EndMenu();
 		}
 
-		if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))
+
+		//====== Audio =======
+		if (ImGui::BeginMenu("Audio"))
 		{
-			if (ImGui::MenuItem("Light Component"))
-				e.addComponent<FaluEngine::LightComponent>();
-		}
+			if (!scene->registry().all_of<FaluEngine::AudioSourceComponent>(entity))
+			{
+				if (ImGui::MenuItem("AudioSource Component"))
+				{
+					e.addComponent<FaluEngine::AudioSourceComponent>();
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
 
-		if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity))
-		{
-			if (ImGui::MenuItem("SkySphere Component"))
-				e.addComponent<FaluEngine::SkySphereComponent>();
+			ImGui::EndMenu();
 		}
-
-		if (!scene->registry().all_of<FaluEngine::CanvasComponent>(entity))
-		{
-			if (ImGui::MenuItem("Canvas Component"))
-				e.addComponent<FaluEngine::CanvasComponent>();
-		}
-
-		if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
-		{
-			if (ImGui::MenuItem("Image Component"))
-				e.addComponent<FaluEngine::ImageComponent>();
-		}
-
-		if (!scene->registry().all_of<FaluEngine::ButtonComponent>(entity))
-		{
-			if (ImGui::MenuItem("Button Component"))
-				e.addComponent<FaluEngine::ButtonComponent>();
-		}
-
+		
 		ImGui::EndPopup();
 	}
 }

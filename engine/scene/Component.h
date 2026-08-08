@@ -18,6 +18,8 @@
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/AnimationClip.h"
 #include "ui/UITypes.h"
+#include "audio/AudioClip.h"
+#include "audio/AudioEngine.h"
 
 namespace FaluEngine {
 
@@ -31,6 +33,7 @@ struct RelationshipComponent {
 // ── 名前タグ ──────────────────────────────────────────────────────────────
 struct TagComponent {
     std::string name;
+    std::string category = "Untagged";
     explicit TagComponent(std::string n = "Entity") : name(std::move(n)) {}
 };
 
@@ -166,6 +169,20 @@ struct TextComponent
     float fontSize = 24.0f;
     glm::vec4 color = { 1,1,1,1 };
     std::string fontPath;
+};
+
+//======= Audio ========
+
+struct AudioSourceComponent
+{
+    std::string clipPath;
+    float volume = 1.0f;
+    bool loop = false;
+    bool playOnAwake = true;
+
+    // 内部状態(エディタには描画しない)
+    bool hasStarted = false;
+    AudioVoiceHandle handle;
 };
 
 } // namespace FaluEngine

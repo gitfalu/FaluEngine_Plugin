@@ -75,5 +75,8 @@ namespace Editor {
 		char m_searchBuf[256] = {};
 
 		float m_leftPaneWidth = 180.0f;
+
+		std::filesystem::path m_pendingNavigate;
+		bool m_hasPendingNavigate = false;
 	};
 }

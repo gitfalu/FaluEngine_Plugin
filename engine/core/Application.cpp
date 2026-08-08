@@ -12,6 +12,7 @@
 #include "PathResolver.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
+#include "audio/AudioEngine.h"
 
 #ifdef _WIN32
     #include "platform/win32/Win32Platform.h"
@@ -31,6 +32,7 @@ Application::Application(const AppConfig& config)
 }
 
 Application::~Application() = default;
+
 //******************************************************
 // ウィンドウ生成
 //******************************************************
@@ -100,6 +102,7 @@ bool Application::initRenderer() {
 int Application::run() {
     Logger::init();
     PathResolver::Init();
+    AudioEngine::get().init();
     LOG_INFO("FaluEngine starting — {} x {}", m_config.width, m_config.height);
 
     if (!initWindow()) return -1;
@@ -121,8 +124,8 @@ int Application::run() {
     auto prev = Clock::now();
 
     while (m_running) {
-        if (!m_window->pollEvents()) { m_running = false; break; }
         InputManager::get().update();
+        if (!m_window->pollEvents()) { m_running = false; break; }
         
         auto now = Clock::now();
         float dt = (std::min)(

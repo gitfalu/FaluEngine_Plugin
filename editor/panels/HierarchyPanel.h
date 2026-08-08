@@ -21,7 +21,12 @@ namespace Editor
 		void clearSelected() noexcept { m_selected = entt::null; }
 	private:
 		void drawEntityNode(FaluEngine::Scene* scene, entt::entity entity);
+		bool isDescendantOf(FaluEngine::Scene* scene, entt::entity ancestor, entt::entity node);
+
+	private:
 
 		entt::entity m_selected = entt::null;
+		char m_categoryFilter[128] = "";
+
 	};
 }

@@ -47,6 +47,7 @@ public:
     [[nodiscard]] std::vector<Entity> getChildren() const;
     [[nodiscard]] bool hasParent() const;
     [[nodiscard]] bool hasChildren() const;
+    [[nodiscard]] Scene* getScene() const noexcept { return m_scene; }
 
     [[nodiscard]] bool isValid() const noexcept {
         return m_handle != entt::null && m_scene != nullptr;

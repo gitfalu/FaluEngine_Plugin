@@ -113,6 +113,13 @@ namespace Editor{
 
 		ImGui::End();
 
+		if (m_hasPendingNavigate)
+		{
+			m_currentPath = m_pendingNavigate;
+			refresh();
+			m_hasPendingNavigate = false;
+		}
+
 		return sceneChanged;
 	}
 
@@ -123,14 +130,43 @@ namespace Editor{
 
 		//-フォルダを先に、ファイルを後に並べる
 		std::vector<ContentEntry> dirs, files;
-		for (const auto& entry : std::filesystem::directory_iterator(m_currentPath))
-		{
-			ContentEntry ce;
-			ce.path = entry.path();
-			ce.name = entry.path().filename().string();
-			ce.isDirectory = entry.is_directory();
-			ce.type = detectType(entry.path());
-			(ce.isDirectory ? dirs : files).push_back(ce);
+		std::error_code ec;
+
+		auto it = std::filesystem::directory_iterator(m_currentPath,ec);
+		if (ec) {
+			LOG_ERROR("ContentBrowser: failed to open directory '{}': {}",
+				m_currentPath.string(), ec.message());
+			return;
+		}
+
+		const std::filesystem::directory_iterator end;
+
+		while(it != end)
+		{		
+			std::error_code entryEc;
+			bool isDir = it->is_directory(entryEc);
+			if (entryEc)
+			{
+				LOG_WARN("ContentBrowser: skipping inaccessible entry '{}': {}",
+					it->path().string(), entryEc.message());
+			}
+			else
+			{
+				ContentEntry ce;
+				ce.path = it->path();
+				ce.name = it->path().filename().string();
+				ce.isDirectory = isDir;
+				ce.type = detectType(it->path());
+				(ce.isDirectory ? dirs : files).push_back(ce);
+			}
+
+			it.increment(ec);
+			if (ec)
+			{
+				LOG_WARN("ContentBrowser: stopped enumerationg '{}': '{}'",
+					m_currentPath.string(), ec.message());
+				break;
+			}
 		}
 
 		//-アルファベット順にソート
@@ -153,11 +189,15 @@ namespace Editor{
 			? "assets" : path.filename().string();
 
 		bool hasSubDirs = false;
-		for (const auto& e : std::filesystem::directory_iterator(path))
+		const std::filesystem::directory_iterator end;
+		std::error_code ec;
+		auto it = std::filesystem::directory_iterator(path, ec);
+		while (!ec && it != end)
 		{
-			if (e.is_directory()) { hasSubDirs = true; break; }
+			std::error_code entryEc;
+			if (it->is_directory(entryEc) && !entryEc) { hasSubDirs = true; break; }
+			it.increment(ec);
 		}
-
 		ImGuiTreeNodeFlags flags =
 			ImGuiTreeNodeFlags_OpenOnArrow |
 			ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -179,9 +219,17 @@ namespace Editor{
 		if (opened)
 		{
 			std::vector<std::filesystem::path> subDirs;
-			for (const auto& e : std::filesystem::directory_iterator(path))
+			std::error_code ec;
+			auto it = std::filesystem::directory_iterator(path, ec);
+
+			while(!ec && it != end)
 			{
-				if (e.is_directory()) subDirs.push_back(e.path());
+				std::error_code entryEc;
+				
+				if (it->is_directory(entryEc) && !entryEc) {
+					subDirs.push_back(it->path());
+				}
+				it.increment(ec);
 			}
 			std::sort(subDirs.begin(), subDirs.end());
 			for (auto& sub : subDirs)
@@ -333,8 +381,8 @@ namespace Editor{
 	{
 		if (std::filesystem::exists(path) && std::filesystem::is_directory(path))
 		{
-			m_currentPath = path;
-			refresh();
+			m_pendingNavigate = path;
+			m_hasPendingNavigate = true;
 		}
 	}
 

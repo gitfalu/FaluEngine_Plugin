@@ -23,6 +23,7 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/ContentBrowserPanel.h"
 #include "panels/GameViewPanel.h"
+#include "platform/Window.h"
 #include "core/InputManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -197,6 +198,14 @@ public:
             }
         }
 
+        // Ctrl+S
+        if (input.isKeyDown(FaluEngine::Key::Control) &&
+            input.isKeyPressed(FaluEngine::Key::S) &&
+            FaluEngine::EditorStateManager::get().isEditing())
+        {
+            m_requestSave = true;
+        }
+
         // Gizmo Shortcut
         if (input.isKeyPressed(FaluEngine::Key::W)) m_sceneView.setMode(Editor::GizmoMode::Translate);
         if (input.isKeyPressed(FaluEngine::Key::E)) m_sceneView.setMode(Editor::GizmoMode::Rotate);
@@ -207,33 +216,33 @@ public:
         auto* renderer = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
         auto* scene = getSceneManager().getActive();
 
+        std::wstring title = L"FaluEngine Editor";
+        if (scene)
+        {
+            std::string sceneName = scene->getName();
+            title += L" - " + std::wstring(sceneName.begin(), sceneName.end());
+            if (getSceneManager().isDirty()) title += L" *";
+        }
+        m_window->setTitle(title);
+
         if (ImGui::BeginMainMenuBar())
         {
             if (ImGui::BeginMenu("File"))
             {
                 if (ImGui::MenuItem("New"))
                 {
-                    m_openNewScenePopup = true;
+                    if (getSceneManager().isDirty())
+                        m_openUnsavedWarningPopup = true;
+                    else
+                        m_openNewScenePopup = true;
                 }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Save Scene", "Ctrl + S"),
-                    false,FaluEngine::EditorStateManager::get().isEditing())
+                if (ImGui::MenuItem("Save Scene", "Ctrl + S",false,
+                    FaluEngine::EditorStateManager::get().isEditing()))
                 {
-                    auto* scene = getSceneManager().getActive();
-                    if (scene) {
-                        FaluEngine::SceneSerializer serializer(*scene);
-                        std::string savePath = getSceneManager().getScenePath(scene->getName());
-                        if (savePath.empty())
-                        {
-                            savePath = FaluEngine::PathResolver::resolveStr(
-                                "assets/scenes/" + scene->getName() + ".scene");
-                            getSceneManager().setScenePath(scene->getName(), savePath);
-                        }
-                        if (serializer.serialize(savePath))
-                            FALU_ENGINE_LOG_INFO("Scene saved: {}", savePath);
-                    }
+                    m_requestSave = true;
                 }
 
                 ImGui::Separator();
@@ -342,7 +351,9 @@ public:
         if (m_openNewScenePopup)
         {
             ImGui::OpenPopup("NewSceneName");
-            m_openNewScenePopup = false;
+            {
+                m_openNewScenePopup = false;
+            }
         }
 
         if (ImGui::BeginPopup("NewSceneName"))
@@ -351,12 +362,25 @@ public:
             ImGui::InputText("Scene Name", nameBuf, sizeof(nameBuf));
             if (ImGui::Button("Create"))
             {
+                m_hierarchy.clearSelected();
                 getSceneManager().createNewScene(nameBuf);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
             if (ImGui::Button("Cancel"))
                 ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+
+        if (m_openUnsavedWarningPopup) { ImGui::OpenPopup("Unsaved Changes"); m_openUnsavedWarningPopup = false; }
+        if (ImGui::BeginPopupModal("Unsaved Changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("You have unsaved changes. Continue without saving?");
+            if (ImGui::Button("Save & Continue")) { saveCurrentScene(); m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
+            ImGui::SameLine();
+            if (ImGui::Button("Discard")) { m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
             ImGui::EndPopup();
         }
 
@@ -373,15 +397,14 @@ public:
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoBringToFrontOnFocus |
-            ImGuiWindowFlags_NoNavFocus |
-            ImGuiWindowFlags_NoBackground;
+            ImGuiWindowFlags_NoNavFocus;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
         ImGui::Begin("DockSpace", nullptr, dockFlags);
         ImGui::PopStyleVar();
 
         ImGuiID dockId = ImGui::GetID("MainDockSpace");
-        ImGui::DockSpace(dockId, { 0.0f,0.0f }, ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::DockSpace(dockId, { 0.0f,0.0f });
         ImGui::End();
         // Hierarchy Render
         m_hierarchy.draw(scene);
@@ -452,11 +475,39 @@ public:
             ImGui::Text("Scene: %s", scene->getName().c_str());
         }
         ImGui::End();
+
+        saveCurrentScene();
     }
     void onShutdown() override 
     {
         LOG_INFO("FaluEngine Editor shutdown");
     }
+
+private:
+    void saveCurrentScene()
+    {
+        if (!m_requestSave) return;
+
+        auto* scene = getSceneManager().getActive();
+        if (scene) {
+            FaluEngine::SceneSerializer serializer(*scene);
+            std::string savePath = getSceneManager().getScenePath(scene->getName());
+            if (savePath.empty())
+            {
+                savePath = FaluEngine::PathResolver::resolveStr(
+                    "assets/scenes/" + scene->getName() + ".scene");
+                getSceneManager().setScenePath(scene->getName(), savePath);
+            }
+            if (serializer.serialize(savePath))
+            {
+                FALU_ENGINE_LOG_INFO("Scene saved: {}", savePath);
+                getSceneManager().clearDirty();
+                m_requestSave = false;
+            }
+
+        }
+    }
+
 
 private:
     float m_fps = 0.0f;
@@ -469,11 +520,19 @@ private:
     FaluEngine::Camera m_editorCamera;
 
     bool m_openNewScenePopup = false;
+    bool m_openUnsavedWarningPopup = false;
+    bool m_requestSave = false;
 
 };
 
 int main()
 {
+    // リークチェック
+#if defined(_DEBUG)
+#include <crtdbg.h>
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     EditorApp editor;
     return editor.run();
 }

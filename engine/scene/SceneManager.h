@@ -95,6 +95,12 @@ public:
 	}
 
 	void setUpdateGate(std::function<bool()> gate) { m_updateGate = std::move(gate); }
+
+	//=== dirty ====
+	void markDirty() { m_dirty = true; }
+	void clearDirty() { m_dirty = false; }
+	[[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
+
 private:
 	std::function<bool()> m_updateGate;
 	[[nodiscard]] bool shouldUpdate() const
@@ -107,6 +113,8 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
 	std::unordered_map<std::string, std::string> m_scenePaths;
 	std::shared_ptr<Scene> m_active;
+
+	bool m_dirty = false;
 };
 
 }

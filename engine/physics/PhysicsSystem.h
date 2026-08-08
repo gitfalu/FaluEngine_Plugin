@@ -6,10 +6,21 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include "PhysicsLayer.h"
 #include <memory>
+#include <entt/entt.hpp>
+#include <glm/glm.hpp>
 
 namespace FaluEngine {
 
 	class Scene;
+
+	struct RaycastHit
+	{
+		bool hit = false;
+		entt::entity entity = entt::null;
+		glm::vec3 point{};
+		glm::vec3 normal{};
+		float distance = 0.0f;
+	};
 
 	class PhysicsSystem
 	{
@@ -39,6 +50,7 @@ namespace FaluEngine {
 		[[nodiscard]] JPH::BodyInterface& getBodyInterface() noexcept {
 			return m_physicsSystem->GetBodyInterface();
 		}
+		[[nodiscard]] RaycastHit raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
 
 	private:
 		PhysicsSystem() = default;

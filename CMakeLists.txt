@@ -39,6 +39,7 @@ add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 add_subdirectory(engine)
+add_subdirectory(game)
 add_subdirectory(runtime)
 
 if(ENGINE_BUILD_EDITOR)

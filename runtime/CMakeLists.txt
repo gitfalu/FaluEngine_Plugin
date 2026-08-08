@@ -4,6 +4,7 @@ add_executable(FaluEngineRuntime main.cpp)
 add_executable(FaluEngine::Runtime ALIAS FaluEngineRuntime)
 
 target_link_libraries(FaluEngineRuntime PRIVATE FaluEngine::Engine)
+target_link_libraries(FaluEngineRuntime PRIVATE GameCode FaluEngine::Engine)
 
 set_target_properties(FaluEngineRuntime PROPERTIES
     OUTPUT_NAME "FaluEngine"

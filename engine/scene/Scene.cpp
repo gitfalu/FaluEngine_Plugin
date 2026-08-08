@@ -4,6 +4,7 @@
 #include "core/Logger.h"
 #include "core/Application.h"
 #include "core/InputManager.h"
+#include "core/PathResolver.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -11,6 +12,8 @@
 #include "script/ScriptEngine.h"
 #include "script/ScriptInstance.h"
 #include "physics/PhysicsSystem.h"
+#include "audio/AudioEngine.h"
+#include "audio/AudioClip.h"
 
 namespace FaluEngine {
 
@@ -42,6 +45,13 @@ void Scene::destroyEntity(Entity entity) {
     {
         auto& nsc = m_registry.get<NativeScriptComponent>(entity);
         if (nsc.instance) { Entity e(entity, this); nsc.instance->onDestroy(e); }
+    }
+
+    if (m_registry.all_of<AudioSourceComponent>(entity))
+    {
+        auto& src = m_registry.get<AudioSourceComponent>(entity);
+        if (src.handle.voice)
+            AudioEngine::get().stop(src.handle);
     }
 
     if (m_registry.all_of<RelationshipComponent>(entity))
@@ -80,6 +90,22 @@ void Scene::destroyEntity(Entity entity) {
 void Scene::onUpdate(float deltaTime) {
     PhysicsSystem::get().step(deltaTime);
     PhysicsSystem::get().syncTransforms(*this);
+
+    //==== Audio update =====
+    AudioEngine::get().update();
+
+    auto audioView = m_registry.view<AudioSourceComponent>();
+    for (auto& entity : audioView)
+    {
+        auto& src = audioView.get<AudioSourceComponent>(entity);
+        if (src.playOnAwake && !src.hasStarted)
+        {
+            src.handle = AudioEngine::get().play(
+                PathResolver::resolveStr(src.clipPath),src.volume,src.loop
+            );
+            src.hasStarted = true;
+        }
+    }
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
 
@@ -214,6 +240,20 @@ void Scene::onRender(bool useOwnCamera) {
     renderMeshes(renderer);
     renderSky(renderer);
     renderUI(renderer);
+}
+
+Entity Scene::findEntityByName(const std::string& name)
+{
+    auto view = m_registry.view<TagComponent>();
+    for (auto entity : view)
+    {
+        if (view.get<TagComponent>(entity).name == name)
+        {
+            return Entity(entity, this);
+        }
+    }
+
+    return Entity();
 }
 
 void Scene::updateWorldMatrices()
@@ -514,15 +554,17 @@ void Scene::renderUI(DX11Renderer* renderer)
     for (auto entity : canvasView)
     {
         auto& canvas = canvasView.get<CanvasComponent>(entity);
-        if (canvas.enabled) { anyCanvas = true; break; }
+        if (canvas.enabled) {
+            anyCanvas = true; break; }
     }
     if (!anyCanvas) return;
 
-    uint32_t w = renderer->getWidth();
-    uint32_t h = renderer->getHeight();
+    uint32_t w = renderer->getActiveWidth();
+    uint32_t h = renderer->getActiveHeight();
     renderer->beginUIPass(w, h);
 
     auto imageView = m_registry.view<ImageComponent, RectTransformComponent>();
+
     for (auto entity : imageView) {
         auto& img = imageView.get<ImageComponent>(entity);
         auto& rt = imageView.get<RectTransformComponent>(entity);
@@ -555,8 +597,8 @@ void Scene::renderUI(DX11Renderer* renderer)
 void Scene::updateUILayout(DX11Renderer* renderer)
 {
     glm::vec2 screenSize = {
-        static_cast<float>(renderer->getWidth()),
-        static_cast<float>(renderer->getHeight())
+        static_cast<float>(renderer->getActiveWidth()),
+        static_cast<float>(renderer->getActiveHeight())
     };
 
     auto canvasView = m_registry.view<CanvasComponent, RelationshipComponent>();

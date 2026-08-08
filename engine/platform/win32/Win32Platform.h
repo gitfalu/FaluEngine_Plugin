@@ -29,6 +29,11 @@ public:
     [[nodiscard]] uint32_t getWidth()  const noexcept override { return m_width; }
     [[nodiscard]] uint32_t getHeight() const noexcept override { return m_height; }
 
+    void setTitle(const std::wstring& title) override 
+    {
+        SetWindowTextW(m_hwnd, title.c_str());
+    }
+
 private:
     static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
