@@ -130,7 +130,7 @@ namespace Editor
 				glm::decompose(local, scale, rotation, translation, skew, perspective);
 			}
 			transform.position = translation;
-			transform.rotation = glm::normalize(rotation);
+			transform.setRotationQuat(glm::normalize(rotation));
 			transform.scale = scale;
 
 			FaluEngine::SceneManager::get().markDirty();

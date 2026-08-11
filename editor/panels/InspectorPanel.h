@@ -3,6 +3,7 @@
 #include "scene/SceneManager.h"
 #include <imgui.h>
 #include <entt/entt.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace FaluEngine
 {
@@ -54,6 +55,7 @@ namespace Editor
 			}
 			return opened;
 		}
-
 	};
+
+
 }

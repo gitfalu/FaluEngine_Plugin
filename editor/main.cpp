@@ -458,6 +458,7 @@ public:
             if (gw < 1) gw = 1;
             if (gh < 1) gh = 1;
 
+            renderer->setUILocalMousePos(m_gameView.getLocalMousePos());
             renderer->beginGameOffscreen(gw, gh);
             scene->onRender();
             renderer->endGameOffscreen();

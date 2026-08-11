@@ -235,11 +235,14 @@ void Scene::onRender(bool useOwnCamera) {
 
     updateWorldMatrices();
     updateUILayout(renderer);
-    updateUIInteraction();
     collectLights(renderer, useOwnCamera);
     renderMeshes(renderer);
     renderSky(renderer);
-    renderUI(renderer);
+    if (useOwnCamera)
+    {
+        updateUIInteraction();
+        renderUI(renderer);
+    }
 }
 
 Entity Scene::findEntityByName(const std::string& name)
@@ -609,7 +612,7 @@ void Scene::updateUILayout(DX11Renderer* renderer)
         if (canvas.renderMode == CanvasRenderMode::WorldSpace) continue;
 
         glm::vec2 canvasSize = screenSize;
-        glm::vec2 canvasPos = canvasSize * 0.5f;
+        glm::vec2 canvasPos = { 0.0f,0.0f };
 
         auto& rel = canvasView.get<RelationshipComponent>(canvasEntity);
         for (auto child : rel.children)
@@ -619,15 +622,25 @@ void Scene::updateUILayout(DX11Renderer* renderer)
 
 void Scene::updateUIInteraction()
 {
+    auto* renderer = static_cast<DX11Renderer*>(Application::getInstance().getRenderer());
+    if (!renderer)return;
+    
+    glm::vec2 activeSize = { static_cast<float>(renderer->getActiveWidth()),
+                                static_cast<float>(renderer->getActiveHeight()) };
+
+    glm::vec2 localPos = renderer->getUILocalMousePos();
+    glm::vec2 mousePos = localPos - activeSize * 0.5f;
+    mousePos.y = -mousePos.y;
+
+    bool insideView = localPos.x >= 0.0f && localPos.x <= activeSize.x && 
+                        localPos.y >= 0.0f && localPos.y <= activeSize.y;
+
     auto& im = InputManager::get();
-    glm::vec2 mousePos = im.getMousePosition();
     bool mouseDown = im.isMouseButtonDown(MouseButton::Left);
     bool mouseUp = im.isMouseButtonReleased(MouseButton::Left);
-
+    
     auto view = m_registry.view<RectTransformComponent, ButtonComponent>();
-
     std::vector<entt::entity> entities(view.begin(), view.end());
-
     bool consumed = false;
 
     for (auto it = entities.rbegin(); it != entities.rend(); ++it)
@@ -641,10 +654,10 @@ void Scene::updateUIInteraction()
         glm::vec2 min = rt.computedPosition - halfSize;
         glm::vec2 max = rt.computedPosition + halfSize;
 
-        bool hit = !consumed &&
+        bool hit = insideView  && !consumed &&
             mousePos.x >= min.x && mousePos.x <= max.x &&
-            mousePos.y >= min.x && mousePos.x <= max.y;
-
+            mousePos.y >= min.y && mousePos.y <= max.y;
+        
         btn.isHovered = hit;
 
         if (hit && mouseDown && !btn.isPressed)
@@ -662,6 +675,15 @@ void Scene::updateUIInteraction()
                 {
                     Entity e(entity, this);
                     sc.instance->onClick(e);
+                }
+            }
+            if (hit && m_registry.all_of<NativeScriptComponent>(entity))
+            {
+                auto& nsc = m_registry.get<NativeScriptComponent>(entity);
+                if (nsc.instance)
+                {
+                    Entity e(entity, this);
+                    nsc.instance->onClick(e);
                 }
             }
             consumed = true;
@@ -686,22 +708,18 @@ void Scene::computeRectTransform(entt::entity entity, const glm::vec2& parentPos
     glm::vec2 size;
     glm::vec2 anchoredCenter;
 
-    glm::vec2 pivotOffset = rt.sizeDelta * (rt.pivot - glm::vec2(0.5f, 0.5f));
-    glm::vec2 finalCenter;
-
     if (rt.anchorMin == rt.anchorMax)
     {
         size = rt.sizeDelta;
         anchoredCenter = anchorMinPx + rt.anchoredPos;
-        finalCenter = anchoredCenter - pivotOffset;
-
     }
     else
     {
         size = (anchorMaxPx - anchorMinPx) + rt.sizeDelta;
         anchoredCenter = (anchorMinPx + anchorMaxPx) * 0.5f + rt.anchoredPos;
-        finalCenter = anchoredCenter - pivotOffset;
     }
+    glm::vec2 pivotOffset = size * (rt.pivot - glm::vec2(0.5f, 0.5f));
+    glm::vec2 finalCenter = anchoredCenter - pivotOffset;
 
     rt.computedPosition = finalCenter;
     rt.computedSize = size * rt.scale;

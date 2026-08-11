@@ -85,9 +85,12 @@ namespace Editor
 
 			ImGui::DragFloat3("Position", glm::value_ptr(t.position), 0.1f);
 
-			glm::vec3 eular = glm::degrees(glm::eulerAngles(t.rotation));
+			
+			glm::vec3 eular = t.rotationEulerHint;
 			if (ImGui::DragFloat3("Rotation", glm::value_ptr(eular), 0.5f))
-				t.rotation = glm::quat(glm::radians(eular));
+			{
+				t.setRotationEuler(glm::radians(eular));
+			}
 
 			ImGui::DragFloat3("Scale", glm::value_ptr(t.scale), 0.01f, 0.001f, 100.0f);
 		}
@@ -772,7 +775,6 @@ namespace Editor
 					e.addComponent<FaluEngine::CanvasComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
 					{
-						e.removeComponent<FaluEngine::TransformComponent>();
 						e.addComponent<FaluEngine::RectTransformComponent>();
 						FaluEngine::SceneManager::get().markDirty();
 					}
@@ -786,7 +788,6 @@ namespace Editor
 					e.addComponent<FaluEngine::ImageComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
 					{
-						e.removeComponent<FaluEngine::TransformComponent>();
 						e.addComponent<FaluEngine::RectTransformComponent>();
 						FaluEngine::SceneManager::get().markDirty();
 					}
@@ -801,7 +802,6 @@ namespace Editor
 					e.addComponent<FaluEngine::ButtonComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
 					{
-						e.removeComponent<FaluEngine::TransformComponent>();
 						e.addComponent<FaluEngine::RectTransformComponent>();
 						FaluEngine::SceneManager::get().markDirty();
 					}

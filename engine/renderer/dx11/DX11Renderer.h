@@ -246,6 +246,8 @@ public:
         const glm::vec4& color, ID3D11ShaderResourceView* srv = nullptr);
     void beginUIPass(uint32_t screenWidth, uint32_t screenHeight);
     void endUIPass();
+    void setUILocalMousePos(const glm::vec2& pos) noexcept { m_uiLocalMousePos = pos; }
+    [[nodiscard]] glm::vec2 getUILocalMousePos() const noexcept { return m_uiLocalMousePos; }
 
     void generateEnvironmentMap(const SkySettingsCB& settings,
         ID3D11ShaderResourceView* skySRV);
@@ -362,6 +364,8 @@ private:
     ComPtr<ID3D11DepthStencilState> m_uiDepthState;
     ComPtr<ID3D11RasterizerState> m_uiRasterizerState;
     glm::mat4 m_uiOrthoProjection = glm::mat4(1.0f);
+    glm::vec2 m_uiLocalMousePos = { 0.0f,0.0f };
+    
 
     ID3D11Buffer* m_boundVB = nullptr;
     ID3D11Buffer* m_boundIB = nullptr;

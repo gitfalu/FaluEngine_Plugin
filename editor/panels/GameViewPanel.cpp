@@ -8,7 +8,8 @@ namespace Editor
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 		ImGui::Begin("Game View");
-		ImGui::PopStyleVar();
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+		m_screenPos = { pos.x,pos.y };
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		if (size.x < 1.0f) 
@@ -18,6 +19,10 @@ namespace Editor
 		m_width = size.x;
 		m_height = size.y;
 
+		ImVec2 mouse = ImGui::GetMousePos();
+		m_localMousePos = { mouse.x - m_screenPos.x,mouse.y - m_screenPos.y };
+
+		ImGui::PopStyleVar();
 		ImGui::End();
 	}
 

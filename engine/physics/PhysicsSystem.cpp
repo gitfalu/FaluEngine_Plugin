@@ -173,7 +173,7 @@ namespace FaluEngine
 			if (!rb.registered || rb.bodyType == BodyType::Static) continue;
 
 			transform.position = toGLM(bodyInterfase.GetPosition(rb.bodyID));
-			transform.rotation = toGLM(bodyInterfase.GetRotation(rb.bodyID));
+			transform.setRotationQuat(toGLM(bodyInterfase.GetRotation(rb.bodyID)));
 		}
 	}
 

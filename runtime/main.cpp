@@ -83,6 +83,9 @@ public:
 
     void onUpdate(float deltaTime) override
     {
+        auto renderer = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
+        renderer->setUILocalMousePos(FaluEngine::InputManager::get().getMousePosition());
+
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
 
         if (m_cameraCtrl) m_cameraCtrl->onUpdate(deltaTime);

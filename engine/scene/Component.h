@@ -41,6 +41,7 @@ struct TagComponent {
 struct TransformComponent {
     glm::vec3 position = { 0.f, 0.f, 0.f };
     glm::quat rotation = glm::identity<glm::quat>();
+    glm::vec3 rotationEulerHint{ 0.0f };
     glm::vec3 scale    = { 1.f, 1.f, 1.f };
 
     [[nodiscard]] glm::mat4 getMatrix() const {
@@ -53,8 +54,15 @@ struct TransformComponent {
     glm::mat4 worldMatrix = glm::mat4(1.0f);
 
     // 便利メソッド
-    void setRotationEuler(float pitchDeg, float yawDeg, float rollDeg) {
-        rotation = glm::quat(glm::radians(glm::vec3(pitchDeg, yawDeg, rollDeg)));
+    void setRotationEuler(const glm::vec3& eularDeg) {
+        rotationEulerHint = eularDeg;
+        rotation = glm::quat(glm::radians(eularDeg));
+    }
+
+    void setRotationQuat(const glm::quat& q)
+    {
+        rotation = q;
+        rotationEulerHint = glm::degrees(glm::eulerAngles(q));
     }
 };
 
