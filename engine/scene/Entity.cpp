@@ -26,6 +26,8 @@ void Entity::setParent(Entity parent)
     auto& parentRel = getRegistry().get_or_emplace<RelationshipComponent>(
         static_cast<entt::entity>(parent));
     parentRel.children.push_back(m_handle);
+
+    if (m_scene) m_scene->removeFromRootOrder(*this);
 }
 
 void Entity::removeParent()
@@ -44,6 +46,8 @@ void Entity::removeParent()
         parentRel.children.end());
 
     rel.parent = entt::null;
+
+    if (m_scene) m_scene->addToRootOrder(*this);
 }
 
 void Entity::addChild(Entity child)

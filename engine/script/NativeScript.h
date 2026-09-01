@@ -4,7 +4,6 @@ namespace FaluEngine
 {
 	class Entity;
 
-
 	class NativeScript
 	{
 	public:

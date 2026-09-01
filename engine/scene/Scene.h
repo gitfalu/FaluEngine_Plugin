@@ -39,6 +39,12 @@ public:
     }
     [[nodiscard]] Entity findEntityByName(const std::string& name);
 
+    //===== UUID管理 ======
+    const std::vector<entt::entity>& getRootOrder() const noexcept { return m_rootOrder; }
+    void addToRootOrder(entt::entity e);
+    void removeFromRootOrder(entt::entity e);
+    void clearRootOrder() { m_rootOrder.clear(); }
+
 private:
     void updateWorldMatrices();
     void renderShadowPass(class DX11Renderer* renderer);
@@ -53,6 +59,7 @@ private:
 private:
     std::string    m_name;
     entt::registry m_registry;
+    std::vector<entt::entity> m_rootOrder;
 };
 
 } // namespace FaluEngine

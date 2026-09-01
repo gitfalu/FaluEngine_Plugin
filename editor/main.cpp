@@ -9,6 +9,7 @@
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "core/EditorStateManager.h"
+#include "core/InputManager.h"
 #include "scene/Scene.h"
 #include "scene/Entity.h"
 #include "scene/Component.h"
@@ -24,7 +25,7 @@
 #include "panels/ContentBrowserPanel.h"
 #include "panels/GameViewPanel.h"
 #include "platform/Window.h"
-#include "core/InputManager.h"
+#include "plugin/PluginManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
 
@@ -229,6 +230,26 @@ public:
         {
             if (ImGui::BeginMenu("File"))
             {
+                //====== Script Reload ======
+                if (ImGui::MenuItem("Reload Scripts"))
+                {
+                    auto view = scene->registry().view<FaluEngine::NativeScriptComponent>();
+                    for (auto entity : view)
+                    {
+                        auto& nsc = view.get<FaluEngine::NativeScriptComponent>(entity);
+                        nsc.instance = nullptr;
+                        nsc.initialize = false;
+                    }
+
+                    std::string gameCodePath =
+                        FaluEngine::PathResolver::resolveStr("GameCode.dll");
+
+                    if (FaluEngine::PluginManager::get().reload(gameCodePath))
+                        LOG_INFO("Scripts reloaded");
+                    else
+                        LOG_ERROR("Failed to reload GameCode.dll");
+                }
+
                 if (ImGui::MenuItem("New"))
                 {
                     if (getSceneManager().isDirty())

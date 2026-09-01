@@ -11,7 +11,8 @@
 #include "Camera.h"
 #include "asset/loaders/MeshLoader.h"
 #include "script/ScriptInstance.h"
-#include "scripting/NativeScript.h"
+#include "script/NativeScript.h"
+#include "script/NativeScriptRegistry.h"
 #include "asset/loaders/TextureLoader.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "asset/loaders/ShaderLoader.h"
@@ -20,6 +21,7 @@
 #include "ui/UITypes.h"
 #include "audio/AudioClip.h"
 #include "audio/AudioEngine.h"
+#include <random>
 
 namespace FaluEngine {
 
@@ -29,6 +31,19 @@ struct RelationshipComponent {
     std::vector<entt::entity> children;
 };
 
+//==== UUID ======
+struct IDComponent
+{
+    uint64_t uuid = 0;
+};
+
+inline uint64_t generateUUID()
+{
+    static std::random_device rd;
+    static std::mt19937_64 gen(rd());
+    static std::uniform_int_distribution<uint64_t> dist;
+    return dist(gen);
+}
 
 // ── 名前タグ ──────────────────────────────────────────────────────────────
 struct TagComponent {
@@ -102,12 +117,19 @@ struct NativeScriptComponent
     std::unique_ptr<NativeScript> instance;
     // 実生成遅延用
     std::function<std::unique_ptr<NativeScript>()> factory;
+    std::string scriptName;
     bool initialize = false;
 
     template<typename T>
     void bind()
     {
         factory = []() { return std::make_unique<T>(); };
+    }
+
+    void bindByName(const std::string& name)
+    {
+        scriptName = name;
+        factory = [name]() { return NativeScriptRegistry::get().create(name); };
     }
 };
 

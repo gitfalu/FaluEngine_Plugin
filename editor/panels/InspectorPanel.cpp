@@ -49,7 +49,11 @@ namespace Editor
 		drawMeshComponent(scene, selected);
 		drawCameraComponent(scene, selected);
 		drawRigidbodyComponent(scene, selected);
+
+		//==== Script ====
 		drawScriptComponent(scene, selected);
+		drawNativeScriptComponent(scene, selected);
+
 		drawLightComponent(scene, selected);
 		drawSkyComponent(scene, selected);
 		drawAudioComponent(scene, selected);
@@ -89,7 +93,7 @@ namespace Editor
 			glm::vec3 eular = t.rotationEulerHint;
 			if (ImGui::DragFloat3("Rotation", glm::value_ptr(eular), 0.5f))
 			{
-				t.setRotationEuler(glm::radians(eular));
+				t.setRotationEuler(eular);
 			}
 
 			ImGui::DragFloat3("Scale", glm::value_ptr(t.scale), 0.01f, 0.001f, 100.0f);
@@ -263,6 +267,31 @@ namespace Editor
 			auto& sc = scene->registry().get<FaluEngine::ScriptComponent>(entity);
 			ImGui::Text("Script: %s", sc.scriptPath.empty() ? "(none)" : sc.scriptPath.c_str());
 			ImGui::TextDisabled("Initialized: %s", sc.scriptPath.empty() ? "No" : (sc.instance ? "Yes" : "No"));
+		}
+	}
+
+	void InspectorPanel::drawNativeScriptComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::NativeScriptComponent>("NativeScript", scene, entity)) return;
+		auto& nsc = scene->registry().get<FaluEngine::NativeScriptComponent>(entity);
+
+		auto names = FaluEngine::NativeScriptRegistry::get().getRegisteredNames();
+		std::string current = nsc.scriptName.empty() ? "(None)" : nsc.scriptName;
+
+		if (ImGui::BeginCombo("Script", current.c_str()))
+		{
+			for (auto& name : names)
+			{
+				bool isSelected = (name == nsc.scriptName);
+				if (ImGui::Selectable(name.c_str(), isSelected))
+				{
+					nsc.bindByName(name);
+					nsc.instance = nullptr;
+					nsc.initialize = false;
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+			ImGui::EndCombo();
 		}
 	}
 

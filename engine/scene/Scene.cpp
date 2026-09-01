@@ -5,6 +5,7 @@
 #include "core/Application.h"
 #include "core/InputManager.h"
 #include "core/PathResolver.h"
+#include "core/EditorStateManager.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -29,6 +30,9 @@ Entity Scene::createEntity(const std::string& name) {
     e.addComponent<TagComponent>(name);
     e.addComponent<TransformComponent>();
     e.addComponent<RelationshipComponent>();
+    e.addComponent<IDComponent>().uuid = generateUUID();
+
+    m_rootOrder.push_back(e);
     LOG_TRACE("Entity created: '{}'", name);
     return e;
 }
@@ -84,12 +88,17 @@ void Scene::destroyEntity(Entity entity) {
         LOG_TRACE("Entity destroyed: '{}'",
             entity.getComponent<TagComponent>().name);
 
+    removeFromRootOrder(entity);
+
     m_registry.destroy(entity);
 }
 
 void Scene::onUpdate(float deltaTime) {
-    PhysicsSystem::get().step(deltaTime);
-    PhysicsSystem::get().syncTransforms(*this);
+    if (FaluEngine::EditorStateManager::get().isPlaying())
+    {
+        PhysicsSystem::get().step(deltaTime);
+        PhysicsSystem::get().syncTransforms(*this);
+    }
 
     //==== Audio update =====
     AudioEngine::get().update();
@@ -257,6 +266,19 @@ Entity Scene::findEntityByName(const std::string& name)
     }
 
     return Entity();
+}
+
+void Scene::addToRootOrder(entt::entity e)
+{
+    if (std::find(m_rootOrder.begin(), m_rootOrder.end(), e) == m_rootOrder.end())
+    {
+        m_rootOrder.push_back(e);
+    }
+}
+
+void Scene::removeFromRootOrder(entt::entity e)
+{
+    m_rootOrder.erase(std::remove(m_rootOrder.begin(), m_rootOrder.end(), e), m_rootOrder.end());
 }
 
 void Scene::updateWorldMatrices()

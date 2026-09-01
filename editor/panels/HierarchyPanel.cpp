@@ -35,26 +35,19 @@ namespace Editor
 			}
 			ImGui::EndPopup();
 		}
-
-
-		auto view = scene->registry().view<FaluEngine::TagComponent,
-											FaluEngine::RelationshipComponent>();
-		for (auto entity : view)
+		
+		for (auto entity : scene->getRootOrder())
 		{
-			auto& rel = view.get<FaluEngine::RelationshipComponent>(entity);
-			if (rel.parent == entt::null)
+			if (m_categoryFilter[0] != '\0')
 			{
-				if (m_categoryFilter[0] != '\0')
-				{
-					auto& tag = scene->registry().get<FaluEngine::TagComponent>(entity);
-					std::string cat = tag.category;
-					std::string filter = m_categoryFilter;
-					std::transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
-					std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
-					if (cat.find(filter) == std::string::npos) continue;
-				}
-				drawEntityNode(scene, entity);
+				auto& tag = scene->registry().get<FaluEngine::TagComponent>(entity);
+				std::string cat = tag.category;
+				std::string filter = m_categoryFilter;
+				std::transform(cat.begin(), cat.end(), cat.begin(), ::tolower);
+				std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
+				if (cat.find(filter) == std::string::npos) continue;
 			}
+			drawEntityNode(scene, entity);
 		}
 
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())

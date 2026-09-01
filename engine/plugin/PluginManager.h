@@ -22,6 +22,12 @@ namespace FaluEngine {
 
 class PluginManager {
 public:
+    static PluginManager& get()
+    {
+        static PluginManager instance;
+        return instance;
+    }
+
     ~PluginManager() { unloadAll(); }
 
     bool load(const std::string& dllPath);
@@ -30,6 +36,17 @@ public:
     void updateAll(float deltaTime);
 
     [[nodiscard]] IPlugin* getPlugin(const std::string& dllPath) const;
+    [[nodiscard]] bool isLoaded(const std::string& dllPath) const
+    {
+        return m_plugins.count(dllPath) > 0;
+    }
+
+    bool reload(const std::string& dllPath)
+    {
+        if (isLoaded(dllPath))
+            unload(dllPath);
+        return load(dllPath);
+    }
 
 private:
     struct Entry {

@@ -119,7 +119,6 @@ namespace Editor
 			glm::quat rotation;
 			glm::decompose(worldMatrix, scale, rotation, translation, skew, perspective);
 
-
 			auto& rel = scene->registry().get<FaluEngine::RelationshipComponent>(selected);
 			if (rel.parent != entt::null)
 			{

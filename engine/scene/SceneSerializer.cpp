@@ -63,20 +63,36 @@ namespace FaluEngine
 		root["version"] = "1.0";
 		root["entities"] = json::array();
 
+		std::vector<entt::entity> orderedEntities;
+		std::function<void(entt::entity)> visit = [&](entt::entity e) {
+			orderedEntities.push_back(e);
+			if (m_scene.registry().all_of<RelationshipComponent>(e))
+			{
+				auto& rel = m_scene.registry().get<RelationshipComponent>(e);
+				for (auto& child : rel.children)
+					visit(child);
+			}
+		};
+		for (auto root : m_scene.getRootOrder())
+		{
+			visit(root);
+		}
+
 		std::unordered_map<entt::entity, uint32_t> entityToId;
 		uint32_t idCounter = 0;
-
-		auto view = m_scene.registry().view<TagComponent>();
-		for (auto entity : view)
+		for (auto entity : orderedEntities)
 			entityToId[entity] = idCounter++;
 
-		for (auto entity : view)
+		for (auto entity : orderedEntities)
 		{
 			json entityJson;
-			auto& tag = view.get<TagComponent>(entity);
+			auto& tag = m_scene.registry().get<TagComponent>(entity);
 			entityJson["name"] = tag.name;
 			entityJson["category"] = tag.category;
 			entityJson["id"] = entityToId[entity];
+
+			if (m_scene.registry().all_of<IDComponent>(entity))
+				entityJson["uuid"] = m_scene.registry().get<IDComponent>(entity).uuid;
 
 			if (m_scene.registry().all_of<TransformComponent>(entity))
 			{
@@ -128,6 +144,9 @@ namespace FaluEngine
 				};
 			}
 
+
+			//======= Script ==========
+			//== Lua =====
 			if (m_scene.registry().all_of<ScriptComponent>(entity))
 			{
 				auto& sc = m_scene.registry().get<ScriptComponent>(entity);
@@ -136,6 +155,12 @@ namespace FaluEngine
 				};
 			}
 
+			//== Native(C++) =====
+			if (m_scene.registry().all_of<NativeScriptComponent>(entity))
+			{
+				auto& nsc = m_scene.registry().get<NativeScriptComponent>(entity);
+				entityJson["nativeScript"] = { {"scriptName",nsc.scriptName} };
+			}
 			// AnimatorComponent
 			if (m_scene.registry().all_of<AnimatorComponent>(entity))
 			{
@@ -256,7 +281,7 @@ namespace FaluEngine
 		}
 
 		file << root.dump(4);
-		LOG_INFO("SceneSerializer: saved '{}' ({} entities)", path, view.size());
+		LOG_INFO("SceneSerializer: saved '{}' ({} entities)", path, orderedEntities.size());
 
 		return true;
 	}
@@ -298,6 +323,8 @@ namespace FaluEngine
 			m_scene.destroyEntity(e);
 		}
 
+		m_scene.clearRootOrder();
+
 		std::unordered_map<uint32_t, entt::entity> idMap;
 
 		// restoration
@@ -306,11 +333,12 @@ namespace FaluEngine
 			Entity entity = m_scene.createEntity(name);
 			uint32_t savedId = entityJson.value("id", 0u);
 			idMap[savedId] = static_cast<entt::entity>(entity);
-
 			
 			auto& tagComp = entity.getComponent<TagComponent>();
 			tagComp.category = entityJson.value("category", "Untagged");
 
+			if (entityJson.contains("uuid"))
+				entity.getComponent<IDComponent>().uuid = entityJson["uuid"].get<uint64_t>();
 
 			// TransformComponent
 			if (entityJson.contains("transform")) {
@@ -362,11 +390,20 @@ namespace FaluEngine
 				rb.useGravity= rj.value("useGravity", true);
 			}
 
-			// ScriptComponent
+			//======= Script =========
+			//== Lua =====
 			if (entityJson.contains("script")) {
 				auto& sj = entityJson["script"];
 				auto& sc = entity.addComponent<ScriptComponent>();
 				sc.scriptPath = sj.value("scriptPath", "");
+			}
+
+			//== Native(C++) =====
+			if (entityJson.contains("nativeScript"))
+			{
+				auto& nj = entityJson["nativeScript"];
+				auto& nsc = entity.addComponent<NativeScriptComponent>();
+				nsc.bindByName(nj.value("scriptName", ""));
 			}
 
 			// Animator

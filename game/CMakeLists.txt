@@ -1,5 +1,6 @@
-add_library(GameCode STATIC
-    
+add_library(GameCode SHARED
+    scripts/PlayerController.cpp
+    GameModule.cpp
 )
 
 target_link_libraries(GameCode PUBLIC FaluEngine::Engine)
