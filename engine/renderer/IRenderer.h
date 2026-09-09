@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
@@ -7,7 +8,7 @@ class Scene;
 
 // レンダラーの抽象インターフェース。
 // DirectX11 / Vulkan / OpenGL など実装を差し替えられるようにするための PAL。
-class IRenderer {
+class FALU_ENGINE_API IRenderer {
 public:
     virtual ~IRenderer() = default;
 

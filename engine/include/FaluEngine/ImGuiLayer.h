@@ -5,10 +5,11 @@
 #endif
 #include <Windows.h>
 #include <d3d11.h>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 	
-class ImGuiLayer {
+class FALU_ENGINE_API ImGuiLayer {
 public:
 	bool init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context);
 
@@ -21,6 +22,11 @@ public:
 	static bool handleWin32Message(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
 	[[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
+
+	[[nodiscard]] void* getContext() const noexcept;
+private:
+	void ApplyModernEngineStyle();
+
 private:
 	bool m_initialized = false;
 };

@@ -1,15 +1,13 @@
 #pragma once
-#include "Input.h"
+#include <FaluEngine/EngineExport.h>
+#include "FaluEngine/Input.h"
 #include <array>
 #include <glm/glm.hpp>
 
 namespace FaluEngine {
-	class InputManager {
+	class FALU_ENGINE_API InputManager {
 	public:
-		static InputManager& get() {
-			static InputManager instance;
-			return instance;
-		}
+		static InputManager& get();
 
 		void update();
 

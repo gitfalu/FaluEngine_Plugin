@@ -3,15 +3,15 @@
 #include <string>
 #include <cstdint>
 
-#include "scene/SceneManager.h"
-#include "EventBus.h"
-#include "Events.h"
-#include "renderer/dx11/ImGuiLayer.h"
+#include <FaluEngine/EngineExport.h>
+#include "FaluEngine/ImGuiLayer.h"
 
 namespace FaluEngine {
 
 class Window;
 class IRenderer;
+class EventBus;
+class SceneManager;
 
 struct AppConfig {
     const std::wstring title  = L"FaluEngine";
@@ -21,8 +21,11 @@ struct AppConfig {
 };
 
 // ゲーム / エディタはこのクラスを継承して各フックを実装する
-class Application {
+class FALU_ENGINE_API Application {
 public:
+    Application(const Application&) = delete;
+    Application& operator=(const Application&) = delete;
+
     explicit Application(const AppConfig& config);
     virtual ~Application();
 
@@ -40,8 +43,8 @@ public:
     [[nodiscard]] const AppConfig& getConfig() const noexcept { return m_config; }
     [[nodiscard]] IRenderer* getRenderer() const noexcept { return m_renderer.get(); }
     [[nodiscard]] ImGuiLayer& getImGuiLayer() noexcept { return m_imguiLayer; }
-    [[nodiscard]] static EventBus& getEventBus() noexcept { return EventBus::get(); }
-    [[nodiscard]] static SceneManager& getSceneManager() noexcept { return SceneManager::get(); }
+    [[nodiscard]] static EventBus& getEventBus() noexcept;
+        [[nodiscard]] static SceneManager& getSceneManager() noexcept;
     [[nodiscard]] bool isRunning()             const noexcept { return m_running; }
     void quit() noexcept { m_running = false; }
 

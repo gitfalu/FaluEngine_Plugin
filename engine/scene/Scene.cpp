@@ -1,11 +1,10 @@
-#include "Scene.h"
-#include "Entity.h"
-#include "Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
+#include "FaluEngine/Application.h"
+#include "FaluEngine/InputManager.h"
 #include "core/Logger.h"
-#include "core/Application.h"
-#include "core/InputManager.h"
 #include "core/PathResolver.h"
-#include "core/EditorStateManager.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -94,11 +93,9 @@ void Scene::destroyEntity(Entity entity) {
 }
 
 void Scene::onUpdate(float deltaTime) {
-    if (FaluEngine::EditorStateManager::get().isPlaying())
-    {
-        PhysicsSystem::get().step(deltaTime);
-        PhysicsSystem::get().syncTransforms(*this);
-    }
+    
+    PhysicsSystem::get().step(deltaTime);
+    PhysicsSystem::get().syncTransforms(*this);
 
     //==== Audio update =====
     AudioEngine::get().update();

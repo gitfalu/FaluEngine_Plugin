@@ -4,20 +4,18 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <FaluEngine/EngineExport.h>
 #include "NativeScript.h"
 
 namespace FaluEngine
 {
-	class NativeScriptRegistry
+	class FALU_ENGINE_API NativeScriptRegistry
 	{
 	public:
 		using FactoryFn = std::function<std::unique_ptr<NativeScript>()>;
 
-		static NativeScriptRegistry& get()
-		{
-			static NativeScriptRegistry instance;
-			return instance;
-		}
+		static NativeScriptRegistry& get();
+		
 
 		void registerScript(const std::string& name, FactoryFn factory)
 		{
@@ -36,6 +34,15 @@ namespace FaluEngine
 			names.reserve(m_factories.size());
 			for (auto& [name, fn] : m_factories) names.push_back(name);
 			return names;
+		}
+
+		[[nodiscard]] std::vector < std::pair < std::string, FactoryFn>> exportAll() const
+		{
+			std::vector<std::pair<std::string, FactoryFn>> result;
+			result.reserve(m_factories.size());
+			for (auto& [name, fn] : m_factories)
+				result.emplace_back(name, fn);
+			return result;
 		}
 
 		void clear() { m_factories.clear(); }

@@ -1,12 +1,12 @@
 #pragma once
 #include <string>
-
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
 	class Scene;
 
-	class SceneSerializer
+	class FALU_ENGINE_API SceneSerializer
 	{
 	public:
 		explicit SceneSerializer(Scene& scene) : m_scene(scene) {}

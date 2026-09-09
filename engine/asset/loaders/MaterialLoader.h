@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
+#include <FaluEngine/EngineExport.h>
 #include "asset/AssetManager.h"
 #include "asset/loaders/TextureLoader.h"
 #include "asset/loaders/ShaderLoader.h"
@@ -37,11 +38,11 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	std::shared_ptr<MaterialAsset> loadMaterial(const std::string& path);
+	FALU_ENGINE_API std::shared_ptr<MaterialAsset> loadMaterial(const std::string& path);
 
-	bool saveMaterial(const std::string& path, const MaterialAsset& material);
+	FALU_ENGINE_API bool saveMaterial(const std::string& path, const MaterialAsset& material);
 
-	void registerMaterialLoader();
+	FALU_ENGINE_API void registerMaterialLoader();
 
 
 }

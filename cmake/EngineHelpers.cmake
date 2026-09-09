@@ -8,7 +8,7 @@ macro(engine_add_module NAME)
         "${CMAKE_SOURCE_DIR}/engine/${NAME}/*.hpp"
     )
 
-    add_library(engine_${NAME} STATIC ${MOD_SOURCES} ${MOD_HEADERS})
+    add_library(engine_${NAME} SHARED ${MOD_SOURCES} ${MOD_HEADERS})
     add_library(FaluEngine::${NAME} ALIAS engine_${NAME})
 
     source_group(TREE "${CMAKE_SOURCE_DIR}/engine"
@@ -24,6 +24,8 @@ macro(engine_add_module NAME)
     )
 
     target_link_libraries(engine_${NAME} PUBLIC ${MOD_DEPS})
+    string(TOUPPER ${NAME} NAME_UPPER)
+    target_compile_definitions(engine_${NAME} PRIVATE ENGINE_${NAME_UPPER}_EXPORTS)
 
     set_target_properties(engine_${NAME} PROPERTIES
         CXX_STANDARD 20

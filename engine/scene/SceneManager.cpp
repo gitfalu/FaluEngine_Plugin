@@ -4,6 +4,13 @@
 
 namespace FaluEngine
 {
+	SceneManager& SceneManager::get()
+	{
+		static SceneManager instance;
+		return instance;
+	}
+
+
 	void SceneManager::loadSceneFromFile(const std::string& path)
 	{
 		std::string name = std::filesystem::path(path).stem().string();

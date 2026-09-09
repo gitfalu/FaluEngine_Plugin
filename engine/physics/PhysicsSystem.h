@@ -8,12 +8,13 @@
 #include <memory>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
 	class Scene;
 
-	struct RaycastHit
+	struct FALU_ENGINE_API RaycastHit
 	{
 		bool hit = false;
 		entt::entity entity = entt::null;
@@ -22,14 +23,13 @@ namespace FaluEngine {
 		float distance = 0.0f;
 	};
 
-	class PhysicsSystem
+	class FALU_ENGINE_API PhysicsSystem
 	{
 	public:
-		static PhysicsSystem& get() {
-			static PhysicsSystem instance;
-			return instance;
-		}
+		static PhysicsSystem& get();
 
+		PhysicsSystem(const PhysicsSystem&) = delete;
+		PhysicsSystem& operator=(const PhysicsSystem&) = delete;
 
 		bool init(
 			uint32_t maxBodies = 1024,

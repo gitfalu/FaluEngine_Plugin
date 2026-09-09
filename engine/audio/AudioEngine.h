@@ -5,17 +5,14 @@
 #include <vector>
 #include <string>
 #include "AudioClip.h"
+#include <FaluEngine/AudioTypes.h>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
 	using Microsoft::WRL::ComPtr;
 
-	struct AudioVoiceHandle
-	{
-		IXAudio2SourceVoice* voice = nullptr;
-	};
-
-	class AudioEngine
+	class FALU_ENGINE_API AudioEngine
 	{
 	private:
 		struct ActiveVoice : public IXAudio2VoiceCallback
@@ -43,11 +40,10 @@ namespace FaluEngine
 
 
 	public:
-		static AudioEngine& get()
-		{
-			static AudioEngine instance;
-			return instance;
-		}
+		static AudioEngine& get();
+
+		AudioEngine(const AudioEngine&) = delete;
+		AudioEngine& operator=(const AudioEngine&) = delete;
 
 		bool init();
 		void shutdown();

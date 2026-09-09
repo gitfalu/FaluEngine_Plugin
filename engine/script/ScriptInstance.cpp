@@ -1,7 +1,7 @@
 #include "ScriptInstance.h"
 #include "ScriptEngine.h"
 #include "core/Logger.h"
-#include "scene/Entity.h"
+#include "FaluEngine/Entity.h"
 
 namespace FaluEngine {
 	ScriptInstance::ScriptInstance(sol::state& lua, const std::string& scriptPath)

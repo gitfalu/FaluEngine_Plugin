@@ -1,11 +1,12 @@
 #pragma once
+#include <FaluEngine/EngineExport.h>
 #include <entt/entt.hpp>
 
 namespace FaluEngine {
 
 class Scene;
 
-class Entity {
+class FALU_ENGINE_API Entity {
 public:
     Entity() = default;
     Entity(entt::entity handle, Scene* scene)

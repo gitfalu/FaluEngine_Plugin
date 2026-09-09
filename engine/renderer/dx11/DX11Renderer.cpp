@@ -1,7 +1,7 @@
 #include "DX11Renderer.h"
 #include "core/Logger.h"
-#include "scene/Scene.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Component.h"
 #include "core/PathResolver.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -979,7 +979,7 @@ void DX11Renderer::drawMesh(const Vertex* vertices, uint32_t vertexCount, const 
 
 void DX11Renderer::drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
     const glm::mat4& transform,
-    class MaterialAsset* material)
+    struct MaterialAsset* material)
 {
     bool hasCustom = material && material->cachedShader &&
         material->cachedShader->valid;

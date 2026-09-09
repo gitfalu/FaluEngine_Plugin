@@ -1,7 +1,7 @@
 #include "Win32Platform.h"
 #include "core/Logger.h"
-#include "renderer/dx11/ImGuiLayer.h"
-#include "core/InputManager.h"
+#include "FaluEngine/ImGuiLayer.h"
+#include "FaluEngine/InputManager.h"
 
 namespace FaluEngine {
 

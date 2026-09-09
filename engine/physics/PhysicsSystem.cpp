@@ -1,8 +1,8 @@
 #include "PhysicsSystem.h"
 #include "RigidbodyComponent.h"
 #include "core/Logger.h"
-#include "scene/Scene.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Component.h"
 
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
@@ -22,7 +22,11 @@ namespace FaluEngine
 	static glm::vec3 toGLM(const JPH::Vec3& v) { return { v.GetX(),v.GetY(),v.GetZ()}; }
 	static glm::quat toGLM(const JPH::Quat& q) { return { q.GetW(),q.GetX(),q.GetY(),q.GetZ() }; }
 
-	
+	PhysicsSystem& PhysicsSystem::get()
+	{
+		static PhysicsSystem instance;
+		return instance;
+	}
 
 	bool PhysicsSystem::init(uint32_t maxBodies, uint32_t maxBodyPairs, uint32_t maxContactConstraints)
 	{

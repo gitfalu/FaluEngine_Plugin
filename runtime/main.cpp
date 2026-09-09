@@ -5,14 +5,16 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
-#include "core/Application.h"
+#include "FaluEngine/Application.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
+#include "plugin/PluginManager.h"
+#include "scene/SceneManager.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
-#include "core/InputManager.h"
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
-#include "scene/Camera.h"
+#include "FaluEngine/InputManager.h"
+#include "FaluEngine/Camera.h"
 #include "scene/CameraController.h"
 #include "scene/SceneSerializer.h"
 #include "renderer/dx11/DX11Renderer.h"
@@ -62,7 +64,28 @@ public:
     RuntimeApp() : Application({.title = L"FaluEngine",.width = 1280,.height = 720}) {}
 
     void onInit() override {
+#ifdef ENGINE_DEBUG
+        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(getImGuiLayer().getContext()));
+#endif
+
         FaluEngine::AudioEngine::get().init();
+
+        // GameCodeの取得
+        std::string gameCodePath = FaluEngine::PathResolver::resolveStr("GameCode.dll");
+        if (FaluEngine::PluginManager::get().load(gameCodePath))
+        {
+            auto* plugin = FaluEngine::PluginManager::get().getPlugin(gameCodePath);
+            if (plugin)
+            {
+                for (auto& [name, factory] : plugin->getScriptFactories())
+                    FaluEngine::NativeScriptRegistry::get().registerScript(name, factory);
+            }
+            LOG_INFO("GameCode loaded at startup");
+        }
+        else
+        {
+            LOG_WARN("GameCode.dll not found or failed to load - native scripts will not be available");
+        }
 
         getSceneManager().registerScene<GameScene>("game");
         getSceneManager().switchTo("game");

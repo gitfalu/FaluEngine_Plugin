@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
 
 using namespace FaluEngine;
 

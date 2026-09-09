@@ -8,22 +8,21 @@
 #include <string>
 #include <memory>
 #include <functional>
-#include "Camera.h"
-#include "asset/loaders/MeshLoader.h"
-#include "script/ScriptInstance.h"
-#include "script/NativeScript.h"
-#include "script/NativeScriptRegistry.h"
-#include "asset/loaders/TextureLoader.h"
-#include "renderer/dx11/DX11Renderer.h"
-#include "asset/loaders/ShaderLoader.h"
-#include "asset/loaders/MaterialLoader.h"
-#include "asset/loaders/AnimationClip.h"
-#include "ui/UITypes.h"
-#include "audio/AudioClip.h"
-#include "audio/AudioEngine.h"
+#include "FaluEngine/NativeScript.h"
+#include "FaluEngine/NativeScriptRegistry.h"
+#include "FaluEngine/UITypes.h"
+#include "FaluEngine/Camera.h"
+#include "FaluEngine/LightTypes.h"
+#include "FaluEngine/AudioTypes.h"
+#include "FaluEngine/Entity.h"
 #include <random>
 
 namespace FaluEngine {
+    struct MeshAsset;
+    struct MaterialAsset;
+    struct TextureAsset;
+    struct ScriptInstance;
+
 
 //=== 親子関係 =========================================
 struct RelationshipComponent {
@@ -106,10 +105,8 @@ struct ScriptComponent {
     std::string scriptPath; // assets/scripts/xxx.lua
     std::unique_ptr<ScriptInstance> instance;
 
-    ~ScriptComponent()
-    {
-        instance.reset();
-    }
+    FALU_ENGINE_API ScriptComponent();
+    FALU_ENGINE_API ~ScriptComponent();
 };
 
 struct NativeScriptComponent

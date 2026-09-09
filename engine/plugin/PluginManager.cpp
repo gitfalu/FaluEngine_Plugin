@@ -3,6 +3,12 @@
 
 namespace FaluEngine {
 
+    PluginManager& PluginManager::get()
+    {
+        static PluginManager instance;
+        return instance;
+    }
+
 bool PluginManager::load(const std::string& dllPath) {
 #ifdef _WIN32
     DllHandle handle = LoadLibraryA(dllPath.c_str());

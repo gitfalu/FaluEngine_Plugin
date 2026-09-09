@@ -1,67 +1,46 @@
-cmake_minimum_required(VERSION 3.25)
+add_library(FaluEngine SHARED)
 
-# ── 外部ライブラリ ──────────────────────────────────────────────────────────
-include(FetchContent)
+# 公開API
+add_library(FaluEngineInternal INTERFACE)
+add_library(FaluEngine::Internal ALIAS FaluEngineInternal)
 
-set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-    joltphysics
-    GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
-    GIT_TAG v5.0.0
-    SOURCE_SUBDIR Build
+target_include_directories(FaluEngineInternal INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(FaluEngineInternal INTERFACE 
+    FaluEngine::Engine
+    Jolt
+    sol2::sol2
+    ${LUA_LIBRARIES}
+    assimp::assimp
+    imgui::imgui
+    imguizmo::imguizmo
+    Microsoft::DirectXTex
+    DirectX::D3D11
+    spdlog::spdlog
 )
 
-find_package(spdlog   CONFIG REQUIRED)
-find_package(glm      CONFIG REQUIRED)
-find_package(EnTT     CONFIG REQUIRED)  # ECS
-find_package(sol2     CONFIG REQUIRED)  # Lua バインディング
-find_package(Lua      CONFIG REQUIRED)
-find_package(assimp   CONFIG REQUIRED)  # メッシュローダー
-find_package(imgui CONFIG REQUIRED)
-find_package(imguizmo CONFIG REQUIRED)
-find_package(directxtex CONFIG REQUIRED)
-find_package(DirectX  REQUIRED)         # DirectX 11 (カスタム Find モジュール)
-find_package(nlohmann_json CONFIG REQUIRED)
+add_library(FaluEngine::Engine ALIAS FaluEngine)
 
-FetchContent_MakeAvailable(joltphysics)
-
-# ── Core モジュール ─────────────────────────────────────────────────────────
-engine_add_module(core
-    SOURCES
+target_sources(FaluEngine
+    PRIVATE
         core/Application.cpp
-        core/GameLoop.cpp
         core/EventBus.cpp
         core/Logger.cpp
-        core/Memory/PoolAllocator.cpp
         core/InputManager.cpp
         core/EditorStateManager.cpp
         core/FileWatcher.cpp
-    DEPS
-        spdlog::spdlog
-        glm::glm
-        nlohmann_json::nlohmann_json
-    INCLUDE_DIRS
-        ${joltphysics_SOURCE_DIR}
-)
+        core/GameLoop.cpp
+        core/Memory/PoolAllocator.cpp
 
-# ── Scene モジュール ────────────────────────────────────────────────────────
-engine_add_module(scene
-    SOURCES
         scene/Scene.cpp
         scene/Entity.cpp
+        scene/Component.cpp
         scene/CameraController.cpp
         scene/SceneSerializer.cpp
         scene/SceneManager.cpp
-    DEPS
-        engine_core
-        EnTT::EnTT
-    INCLUDE_DIRS
-        ${joltphysics_SOURCE_DIR}
-)
 
-# ── Renderer モジュール ─────────────────────────────────────────────────────
-engine_add_module(renderer
-    SOURCES
         renderer/RenderGraph.cpp
         renderer/dx11/DX11Renderer.cpp
         renderer/dx11/DX11Device.cpp
@@ -69,106 +48,70 @@ engine_add_module(renderer
         renderer/dx11/RenderTexture.cpp
         renderer/dx11/ShadowMap.cpp
         renderer/dx11/EnvironmentMap.cpp
-    DEPS
-        engine_core
-        engine_scene
-        DirectX::D3D11
-        glm::glm
-        imgui::imgui
-        imguizmo::imguizmo
-)
 
-# ── Asset モジュール ────────────────────────────────────────────────────────
-engine_add_module(asset
-    SOURCES
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp
         asset/loaders/TextureLoader.cpp
         asset/loaders/ShaderLoader.cpp
         asset/loaders/MaterialLoader.cpp
         asset/loaders/AnimationClip.cpp
-    DEPS
-        engine_core
-        assimp::assimp
-        Microsoft::DirectXTex
-)
+        asset/loaders/AnimationCache.cpp
 
-# ── Platform モジュール ─────────────────────────────────────────────────────
-engine_add_module(platform
-    SOURCES
         platform/Window.cpp
         platform/win32/Win32Platform.cpp
-    DEPS
-        engine_core
-        DirectX::D3D11
-)
-# ── Physics モジュール ───────────────────────────────────────────────────────
-engine_add_module(physics
-    SOURCES
+
         physics/PhysicsSystem.cpp
-    DEPS
-        engine_core
-        engine_scene
-        Jolt
-    INCLUDE_DIRS
+        
+        audio/AudioClip.cpp
+        audio/AudioEngine.cpp
+
+        script/ScriptEngine.cpp
+        script/ScriptInstance.cpp
+        script/NativeScriptRegistry.cpp
+
+        plugin/PluginManager.cpp
+)
+
+get_target_property(FALU_ENGINE_SOURCES FaluEngine SOURCES)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${FALU_ENGINE_SOURCES})
+
+target_include_directories(FaluEngine
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${joltphysics_SOURCE_DIR}
 )
 
-target_include_directories(engine_physics PUBLIC
-    ${joltphysics_SOURCE_DIR}
-)
-
-# ==== Audio ======
-engine_add_module(audio
-    SOURCES
-        audio/AudioClip.cpp
-        audio/AudioEngine.cpp
-    DEPS
-        engine_asset
-        engine_core
-)
-target_link_libraries(engine_audio PUBLIC xaudio2.lib)
-
-
-# == UI Module ========
-
-
-# ── Plugin モジュール ───────────────────────────────────────────────────────
-engine_add_module(plugin
-    SOURCES
-        plugin/PluginManager.cpp
-    DEPS
-        engine_core
-)
-
-# ── Script モジュール ───────────────────────────────────────────────────────
-engine_add_module(script
-    SOURCES
-        script/ScriptEngine.cpp
-        script/ScriptInstance.cpp
-    DEPS
-        engine_core
-        engine_scene
+target_link_libraries(FaluEngine
+    PUBLIC
+        falu_compiler_options
+        glm::glm
+        EnTT::EnTT
+    PRIVATE
+        spdlog::spdlog
         sol2::sol2
         ${LUA_LIBRARIES}
+        assimp::assimp
+        imgui::imgui
+        imguizmo::imguizmo
+        Microsoft::DirectXTex
+        DirectX::D3D11
+        Jolt
+        d3dcompiler.lib
+        xaudio2.lib
 )
 
-target_include_directories(engine_script PUBLIC
-    ${LUA_INCLUDE_DIR}
+target_compile_definitions(FaluEngine
+    PRIVATE
+        FALU_ENGINE_BUILD_DLL
+    INTERFACE
+        FALU_ENGINE_USE_DLL
 )
 
-# ── 統合エイリアス FaluEngine::Engine ────────────────────────────────────────
-# 各モジュールを個別にリンクしたくない場合に使う便利ターゲット
-add_library(engine_all INTERFACE)
-add_library(FaluEngine::Engine ALIAS engine_all)
-target_link_libraries(engine_all INTERFACE
-    engine_core
-    engine_scene
-    engine_renderer
-    engine_asset
-    engine_platform
-    engine_plugin
-    engine_script
-    engine_physics
-    engine_audio
+set_target_properties(FaluEngine PROPERTIES
+    OUTPUT_NAME "FaluEngine"
+    WINDOWS_EXPORT_ALL_SYMBOLS OFF
+    FOLDER "Engine"
 )

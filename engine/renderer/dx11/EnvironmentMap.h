@@ -6,12 +6,13 @@
 #include <wrl/client.h>
 #include <glm/glm.hpp>
 #include <cstdint>
+#include <FaluEngine/EngineExport.h>
 
 using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine
 {
-	class EnvironmentMap
+	class FALU_ENGINE_API EnvironmentMap
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t size = 512, uint32_t mipLevels = 1);

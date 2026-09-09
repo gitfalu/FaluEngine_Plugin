@@ -1,15 +1,16 @@
-#include "Application.h"
+#include "FaluEngine/Application.h"
+#include "FaluEngine/InputManager.h"
 #include "Logger.h"
+#include "EventBus.h"
+#include "PathResolver.h"
+#include "core/Events.h"
 #include "platform/Window.h"
 #include "renderer/IRenderer.h"
 #include "scene/SceneManager.h"
-#include "Events.h"
-#include "asset/loaders/MeshLoader.h"
-#include "asset/loaders/TextureLoader.h"
 #include "physics/PhysicsSystem.h"
 #include "script/ScriptEngine.h"
-#include "InputManager.h"
-#include "PathResolver.h"
+#include "asset/loaders/MeshLoader.h"
+#include "asset/loaders/TextureLoader.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "audio/AudioEngine.h"
@@ -146,6 +147,7 @@ int Application::run() {
     }
 
     onShutdown();
+    SceneManager::get().shutdown();
     PhysicsSystem::get().shutdown();
     m_imguiLayer.shutdown();
 
@@ -156,6 +158,16 @@ int Application::run() {
 
     LOG_INFO("FaluEngine shutdown");
     return 0;
+}
+
+EventBus& Application::getEventBus() noexcept
+{
+    return EventBus::get();
+}
+
+SceneManager& Application::getSceneManager() noexcept
+{
+    return SceneManager::get();
 }
 
 } // namespace FaluEngine

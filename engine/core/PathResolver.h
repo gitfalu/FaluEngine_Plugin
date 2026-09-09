@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include "Logger.h"
+#include <FaluEngine/EngineExport.h>
 
 #ifdef _WIN32
  #ifndef WIN32_LEAN_AND_MEAN
@@ -14,7 +15,7 @@
 
 
 namespace FaluEngine {
-	class PathResolver {
+	class FALU_ENGINE_API PathResolver {
 	public:
 		static void Init(const std::filesystem::path& exePath = getExePath()) {
 			if (std::filesystem::exists(std::filesystem::current_path() / "assets")) {

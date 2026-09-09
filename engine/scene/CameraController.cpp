@@ -1,5 +1,5 @@
 #include "CameraController.h"
-#include "core/InputManager.h"
+#include "FaluEngine/InputManager.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 

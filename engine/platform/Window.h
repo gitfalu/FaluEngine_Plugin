@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <functional>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
@@ -9,7 +10,7 @@ namespace FaluEngine {
 using ResizeCallback = std::function<void(uint32_t w, uint32_t h)>;
 using CloseCallback  = std::function<void()>;
 
-class Window {
+class FALU_ENGINE_API Window {
 public:
     struct Desc {
         std::wstring title  = L"FaluEngine";

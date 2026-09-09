@@ -6,7 +6,7 @@
 #include <any>
 #include <algorithm>
 #include <cstdint>
-
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
@@ -23,15 +23,12 @@ namespace FaluEngine {
 // bus.unsubscribe<WindowResizeEvent>(id);
 // ──────────────────────────────────────────────────────────────────────────
 
-class EventBus {
+class FALU_ENGINE_API EventBus {
 public:
     /// @brief シングルトン
     /// @return 
-    static EventBus& get()
-    {
-        static EventBus instance;
-        return instance;
-    }
+    static EventBus& get();
+    
 
     //======== 購読 ============
     

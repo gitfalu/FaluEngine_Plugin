@@ -1,56 +1,51 @@
 cmake_minimum_required(VERSION 3.25)
-set(VCPKG_APPLOCAL_DEPS ON CACHE BOOL "" FORCE)
-project(FaluEngine VERSION 0.1.0 LANGUAGES CXX)
+
+project(FaluEngine 
+    VERSION 0.1.0 
+    LANGUAGES CXX
+)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+option(FALU_BUILD_EDITOR  "Build editor" ON)
+option(FALU_BUILD_RUNTIME "Build runtime" ON)
+option(FALU_BUILD_GAME    "Build game module" ON)
+option(FALU_BUILD_PLUGINS "Build plugins" ON)
+option(FALU_BUILD_TESTS   "Build tests" ON)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(EngineHelpers)
 
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE
-        "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "vcpkg toolchain")
-endif()
-
-option(ENGINE_BUILD_EDITOR  "Build the editor"      ON)
-option(ENGINE_BUILD_TESTS   "Build unit tests"      ON)
-option(ENGINE_BUILD_PLUGINS "Build example plugins" ON)
-
-
-# ── コンパイルオプション ────────────────────────────────────────────────────
-if(MSVC)
-    add_compile_options(/W4 /MP /utf-8 /wd4100 /wd4505)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
-# WIN32_LEAN_AND_MEAN / NOMINMAX はヘッダー側で #ifndef ガードして定義するため
-# ここではグローバル定義しない（再定義警告の原因になる）
-# ENGINE_DEBUG だけ Debug ビルド時に定義する
-add_compile_definitions($<$<CONFIG:Debug>:ENGINE_DEBUG>)
-add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
+include(CompilerOptions)
+include(Dependencies)
+include(GNUInstallDirs)
 
 add_subdirectory(engine)
-add_subdirectory(game)
-add_subdirectory(runtime)
 
-if(ENGINE_BUILD_EDITOR)
+if(FALU_BUILD_GAME)
+    add_subdirectory(game)
+endif()
+
+if(FALU_BUILD_RUNTIME)
+    add_subdirectory(runtime)
+endif()
+
+if(FALU_BUILD_EDITOR)
     add_subdirectory(editor)
 endif()
 
-if(ENGINE_BUILD_PLUGINS)
+if(FALU_BUILD_PLUGINS)
     add_subdirectory(plugins/PhysicsPlugin)
 endif()
 
-if(ENGINE_BUILD_TESTS)
+if(FALU_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+include(InstallRules)

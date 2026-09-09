@@ -1,5 +1,13 @@
-cmake_minimum_required(VERSION 3.25)
+add_library(PhysicsPlugin SHARED
+    PhysicsPlugin.cpp
+)
 
-engine_add_plugin(PhysicsPlugin
-    SOURCES PhysicsPlugin.cpp
+target_link_libraries(PhysicsPlugin
+    PRIVATE
+        FaluEngine::Engine
+)
+
+set_target_properties(PhysicsPlugin PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY
+        "${CMAKE_BINARY_DIR}/bin/plugins"
 )

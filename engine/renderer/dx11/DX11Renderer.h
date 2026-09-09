@@ -22,12 +22,13 @@
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/SkeletonType.h"
+#include <FaluEngine/EngineExport.h>
 
 using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine {
 
-struct Vertex {
+struct FALU_ENGINE_API Vertex {
     glm::vec3 position;
     glm::vec4 color;
     glm::vec2 uv;
@@ -36,7 +37,7 @@ struct Vertex {
     glm::vec3 bitangent;
 };
 
-struct SkinnedVertex
+struct FALU_ENGINE_API SkinnedVertex
 {
     glm::vec3 position;
     glm::vec4 color;
@@ -48,19 +49,12 @@ struct SkinnedVertex
     glm::vec4 boneWeights = { 0.0f,0.0f,0.0f,0.0f };
 };
 #define MAX_BONES (128)
-struct SkinningCB
+struct FALU_ENGINE_API SkinningCB
 {
     glm::mat4 boneMatrices[MAX_BONES];
 };
 
-enum class LightType : int
-{
-    Directional = 0,
-    Point = 1,
-    Spot = 2,
-};
-
-struct LightData {
+struct FALU_ENGINE_API LightData {
     glm::vec4 position;
     glm::vec4 direction;
     glm::vec4 color;
@@ -70,7 +64,7 @@ struct LightData {
     float spotOuter;
 };
 
-struct LightCB {
+struct FALU_ENGINE_API LightCB {
     LightData lights[16];
     int lightCount = 0;
     float _pad0[3];
@@ -79,13 +73,13 @@ struct LightCB {
     glm::vec4 ambientColor = { 0.2f,0.2f,0.2f,1.0f };
 };
 
-struct TransformCB {
+struct FALU_ENGINE_API TransformCB {
     glm::mat4 mvp;
     glm::mat4 world;
     glm::mat4 normalMatrix;
 };
 
-struct MaterialCB {
+struct FALU_ENGINE_API MaterialCB {
     glm::vec4 albedoColor = { 1.0f,1.0f,1.0f,1.0f };
     float metallic = 0.0f;
     float roughness = 0.5f;
@@ -99,12 +93,12 @@ struct MaterialCB {
     float _matPad = 0.0f;
 };
 
-struct ShadowCB
+struct FALU_ENGINE_API ShadowCB
 {
     glm::mat4 lightMVP;
 };
 
-struct ShadowSettingsCB
+struct FALU_ENGINE_API ShadowSettingsCB
 {
     glm::mat4 lightSpaceMatrix;
     int useShadow = 0;
@@ -113,12 +107,12 @@ struct ShadowSettingsCB
     float pcfRadius = 1.5f;
 };
 
-struct SkyCB
+struct FALU_ENGINE_API SkyCB
 {
     glm::mat4 viewProj;
 };
 
-struct SkySettingsCB
+struct FALU_ENGINE_API SkySettingsCB
 {
     glm::vec4 topColor;
     glm::vec4 bottomColor;
@@ -128,13 +122,13 @@ struct SkySettingsCB
     float _pad[2] = {};
 };
 
-struct PrefilterCB
+struct FALU_ENGINE_API PrefilterCB
 {
     float roughness = 0.0f;
     glm::vec3 _pad = {};
 };
 
-struct UITransformCB
+struct FALU_ENGINE_API UITransformCB
 {
     glm::mat4 orthoProjection;
     glm::vec2 position;
@@ -143,15 +137,18 @@ struct UITransformCB
     glm::vec3 _pad;
 };
 
-struct UIMaterialCB
+struct FALU_ENGINE_API UIMaterialCB
 {
     glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
     int useTexture = 0;
     glm::vec3 _pad;
 };
 
-class DX11Renderer final : public IRenderer {
+class FALU_ENGINE_API DX11Renderer final : public IRenderer {
 public:
+    DX11Renderer(const DX11Renderer&) = delete;
+    DX11Renderer& operator=(const DX11Renderer&) = delete;
+
     DX11Renderer()  = default;
     ~DX11Renderer() override { shutdown(); }
 
@@ -190,7 +187,7 @@ public:
     );
     void drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform,
-        class MaterialAsset* material);
+        struct MaterialAsset* material);
 
     void drawSkySphere(const glm::mat4& view, const glm::mat4& proj,
         const SkySettingsCB& settings,
@@ -239,7 +236,7 @@ public:
     // Skinning
     void updateSkinningMatrices(const std::vector<glm::mat4>& boneMatrices);
     void drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
-        const glm::mat4& transform, class MaterialAsset* material);
+        const glm::mat4& transform, struct MaterialAsset* material);
 
     // UI
     void drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation,

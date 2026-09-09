@@ -5,10 +5,11 @@
 #include <spdlog/sinks/dist_sink.h>
 #include <memory>
 #include <filesystem>
+#include "FaluEngine/EngineExport.h"
 
 namespace FaluEngine {
 
-class Logger {
+class FALU_ENGINE_API Logger {
 public:
     static void init(const std::filesystem::path& logDir = "logs");
     static void shutdown();

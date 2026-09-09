@@ -2,10 +2,11 @@
 #include <cstdint>
 #include <array>
 #include <glm/glm.hpp>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
-	enum class Key : uint16_t {
+	enum class FALU_ENGINE_API Key : uint16_t {
         // アルファベット
         A = 'A', B = 'B', C = 'C', D = 'D', E = 'E', F = 'F',
         G = 'G', H = 'H', I = 'I', J = 'J', K = 'K', L = 'L',
@@ -37,16 +38,16 @@ namespace FaluEngine {
         F5 = 0x74, F6 = 0x75, F7 = 0x76, F8 = 0x77,
 	};
 
-    enum class MouseButton : uint16_t {
+    enum class FALU_ENGINE_API MouseButton : uint16_t {
         Left = 0,
         Right = 1,
         Middle = 2,
     };
 
-    struct KeyPressedEvent { Key key; bool repeat; };
-    struct KeyReleasedEvent { Key key; };
-    struct MouseMovedEvent { float x; float y; float dx; float dy; };
-    struct MouseScrolledEvent { float offsetY; };
-    struct MouseButtonPressedEvent { MouseButton button; };
-    struct MouseButtonReleasedEvent { MouseButton button; };
+    struct FALU_ENGINE_API KeyPressedEvent { Key key; bool repeat; };
+    struct FALU_ENGINE_API KeyReleasedEvent { Key key; };
+    struct FALU_ENGINE_API MouseMovedEvent { float x; float y; float dx; float dy; };
+    struct FALU_ENGINE_API MouseScrolledEvent { float offsetY; };
+    struct FALU_ENGINE_API MouseButtonPressedEvent { MouseButton button; };
+    struct FALU_ENGINE_API MouseButtonReleasedEvent { MouseButton button; };
 }

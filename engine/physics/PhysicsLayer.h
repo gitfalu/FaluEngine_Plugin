@@ -3,6 +3,7 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
@@ -20,7 +21,7 @@ namespace FaluEngine
 		static constexpr JPH::uint NUM_LAYERS = 2;
 	}
 
-	class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
+	class FALU_ENGINE_API ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 	{
 	public:
 		bool ShouldCollide(JPH::ObjectLayer a, JPH::ObjectLayer b) const override
@@ -38,7 +39,7 @@ namespace FaluEngine
 	};
 
 
-	class BPlayerInterfaceImpl : public JPH::BroadPhaseLayerInterface
+	class FALU_ENGINE_API BPlayerInterfaceImpl : public JPH::BroadPhaseLayerInterface
 	{
 	public:
 		BPlayerInterfaceImpl() {
@@ -75,7 +76,7 @@ namespace FaluEngine
 		JPH::BroadPhaseLayer m_objectToBP[Layers::NUM_LAYERS];
 	};
 
-	class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
+	class FALU_ENGINE_API ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 	{
 	public:
 		bool ShouldCollide(JPH::ObjectLayer layer, JPH::BroadPhaseLayer bpLayer) const override

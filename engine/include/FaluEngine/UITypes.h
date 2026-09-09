@@ -1,15 +1,16 @@
 #pragma once
+#include <FaluEngine/EngineExport.h>
 #include <glm/glm.hpp>
 
 namespace FaluEngine
 {
 
-	enum class CanvasRenderMode {
+	enum class FALU_ENGINE_API CanvasRenderMode {
 		ScreenSpaceOverlay,
 		WorldSpace,
 	};
 
-	struct RectTransformComponent
+	struct FALU_ENGINE_API RectTransformComponent
 	{
 		glm::vec2 anchorMin = { 0.5f,0.5f };
 		glm::vec2 anchorMax = { 0.5f,0.5f };
@@ -24,7 +25,7 @@ namespace FaluEngine
 		glm::vec2 computedSize = { 100.0f,100.0f };
 	};
 
-	struct CanvasComponent
+	struct FALU_ENGINE_API CanvasComponent
 	{
 		CanvasRenderMode renderMode = CanvasRenderMode::ScreenSpaceOverlay;
 		glm::vec2 referenceResolution = { 1920.0f,1080.0f };

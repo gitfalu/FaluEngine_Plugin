@@ -6,13 +6,14 @@
 #include <wrl/client.h>
 #include <glm/glm.hpp>
 #include <cstdint>
+#include <FaluEngine/EngineExport.h>
 
 using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine
 {
 
-	class ShadowMap
+	class FALU_ENGINE_API ShadowMap
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t size = 2048);
