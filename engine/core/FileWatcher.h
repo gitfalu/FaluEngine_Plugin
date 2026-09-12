@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <FaluEngine/EngineExport.h>
 
+
+
 class FALU_ENGINE_API FileWatcher
 {
 public:
@@ -17,8 +19,9 @@ public:
 	void poll();
 
 private:
-	struct Entry 
+	struct Entry
 	{
+		std::filesystem::path path;
 		std::filesystem::file_time_type lastWriteTime;
 		std::function<void()> onChanged;
 	};

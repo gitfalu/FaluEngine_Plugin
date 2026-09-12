@@ -132,6 +132,9 @@ namespace FaluEngine
 			settings.mFriction = rb.friction;
 			if (!rb.useGravity)
 				settings.mGravityFactor = 0.0f;
+			settings.mUserData =
+				static_cast<uint64_t>(
+					static_cast<uint32_t>(entity));
 
 			rb.bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::Activate);
 			rb.registered = true;
@@ -156,6 +159,18 @@ namespace FaluEngine
 			bodyInterface.DestroyBody(rb.bodyID);
 			rb.registered = false;
 		}
+	}
+
+	void PhysicsSystem::unregisterEntity(Entity& entity)
+	{
+		auto& bodyInterface = m_physicsSystem->GetBodyInterface();
+		
+		auto& rb = entity.getComponent<RigidbodyComponent>();
+		if (!rb.registered) return;
+
+		bodyInterface.RemoveBody(rb.bodyID);
+		bodyInterface.DestroyBody(rb.bodyID);
+		rb.registered = false;
 	}
 
 	void PhysicsSystem::step(float deltaTime, int subSteps)

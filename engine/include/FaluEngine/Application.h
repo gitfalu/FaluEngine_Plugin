@@ -2,15 +2,16 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include <glm/glm.hpp>
 
 #include <FaluEngine/EngineExport.h>
+#include <FaluEngine/EventBus.h>
 #include "FaluEngine/ImGuiLayer.h"
 
 namespace FaluEngine {
 
 class Window;
 class IRenderer;
-class EventBus;
 class SceneManager;
 
 struct AppConfig {
@@ -47,6 +48,10 @@ public:
         [[nodiscard]] static SceneManager& getSceneManager() noexcept;
     [[nodiscard]] bool isRunning()             const noexcept { return m_running; }
     void quit() noexcept { m_running = false; }
+
+    // 仮置き公開関数
+    [[nodiscard]] glm::vec3 getCameraPosition() const;
+    static void switchScene(const std::string& name);
 
 protected:
     static Application* s_instance;

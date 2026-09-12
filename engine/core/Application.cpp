@@ -1,7 +1,6 @@
 #include "FaluEngine/Application.h"
 #include "FaluEngine/InputManager.h"
 #include "Logger.h"
-#include "EventBus.h"
 #include "PathResolver.h"
 #include "core/Events.h"
 #include "platform/Window.h"
@@ -155,6 +154,7 @@ int Application::run() {
     m_window.reset();
 
     ScriptEngine::get().shutdown();
+    AudioEngine::get().shutdown();
 
     LOG_INFO("FaluEngine shutdown");
     return 0;
@@ -168,6 +168,16 @@ EventBus& Application::getEventBus() noexcept
 SceneManager& Application::getSceneManager() noexcept
 {
     return SceneManager::get();
+}
+
+glm::vec3 Application::getCameraPosition() const
+{
+    return m_renderer ? m_renderer->getCameraPosition() : glm::vec3(0.0f);
+}
+
+void Application::switchScene(const std::string& name)
+{
+    SceneManager::get().switchTo(name);
 }
 
 } // namespace FaluEngine

@@ -8,7 +8,7 @@
 #include <FaluEngine/EngineExport.h>
 #include "FaluEngine/Scene.h"
 #include "core/Logger.h"
-#include "core/EventBus.h"
+#include "FaluEngine/EventBus.h"
 #include "core/Events.h"
 
 namespace FaluEngine {

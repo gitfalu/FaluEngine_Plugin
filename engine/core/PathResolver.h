@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include "Logger.h"
+
 #include <FaluEngine/EngineExport.h>
 
 #ifdef _WIN32
@@ -17,64 +18,53 @@
 namespace FaluEngine {
 	class FALU_ENGINE_API PathResolver {
 	public:
-		static void Init(const std::filesystem::path& exePath = getExePath()) {
-			if (std::filesystem::exists(std::filesystem::current_path() / "assets")) {
-				s_root = std::filesystem::current_path();
-				LOG_INFO("PathResolver: root = '{}' (cwd)", s_root.string());
-				return;
-			}
+		static void Init(const std::filesystem::path& exePath = getExePath());
 
-			const std::vector<std::string> candidates = {
-				"bin/Debug","bin/Release",
-				"bin/Debug/","bin/Release/",
-			};
+		/// @brief Engine root からの相対パス->絶対パス
+		/// @param path 
+		/// @return 
+		[[nodiscard]] static std::filesystem::path resolve(const std::string_view path);
 
-			auto cwd = std::filesystem::current_path();
-			for (const auto& c : candidates)
-			{
-				auto candidate = cwd / c;
-				if (std::filesystem::exists(candidate / "assets")) {
-					s_root = candidate;
-					LOG_INFO("PathResolver: root = '{}' (subdirectory", s_root.string());
-					return;
-				}
-			}
+		/// @brief UTF-8 -> filesystem::path
+		/// @param utf8 
+		/// @return 
+		[[nodiscard]] static std::filesystem::path fromUtf8(std::string_view utf8);
 
-			auto exeDir = exePath.parent_path();
-			if (std::filesystem::exists(exeDir / "assets")) {
-				s_root = exeDir;
-				LOG_INFO("PathResolver: root = '{}' (exe dir)", s_root.string());
-				return;
-			}
+		/// @brief filesystem::path -> UTF-8
+		/// @param path 
+		/// @return 
+		[[nodiscard]] static std::string toUtf8(const std::filesystem::path& path);
+		
+		/// @brief UTF-8 -> UTF-16
+		/// @param wide 
+		/// @return 
+		[[nodiscard]] static std::wstring toWide(const std::string& utf8);
 
-			s_root = std::filesystem::current_path();
-			LOG_WARN("PathREsolver: assets/ not found, using ced = '{}'", s_root.string());
-		}
+		/// @brief UTF-16 -> UTF-8
+		/// @param relativePath 
+		/// @return 
+		[[nodiscard]] static std::string fromWide(std::wstring_view wide);
 
-		[[nodiscard]] static std::filesystem::path resolve(const std::string& relativePath) {
-			return s_root / relativePath;
-		}
+		/// @brief filesystem絶対path -> asset path
+		/// @param absolutePath 
+		/// @return 
+		[[nodiscard]] static std::string toAssetPath(const std::filesystem::path& absolutePath);
 
-		[[nodiscard]] static std::string resolveStr(const std::string& relativePath) {
-			return resolve(relativePath).string();
-		}
+		/// @brief AssetPath -> filesystem path
+		/// @param assetPath 
+		/// @return 
+		[[nodiscard]] static std::filesystem::path assetPathToFilesystem(std::string_view assetPath);
+		
+		[[nodiscard]] static std::string normalizeAssetPath(std::string_view path);
 
-		[[nodiscard]] static const std::filesystem::path& getRoot() noexcept {
-			return s_root;
-		}
+		[[nodiscard]] static const std::filesystem::path& getRoot() noexcept;
+
+		[[nodiscard]] static const std::filesystem::path& getAssetRoot() noexcept;
 
 	private:
-		static std::filesystem::path getExePath() {
-#ifdef _WIN32
-			wchar_t buf[MAX_PATH] = {};
-			GetModuleFileNameW(nullptr, buf, MAX_PATH);
-			return std::filesystem::path(buf);
-#else
-			return std::filesystem::canonical("/proc/self/exe");
-#endif // _WIN32
-
-		}
+		static std::filesystem::path getExePath();
 
 		static inline std::filesystem::path s_root;
+		static inline std::filesystem::path s_assetRoot;
 	};
 }

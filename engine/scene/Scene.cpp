@@ -12,6 +12,7 @@
 #include "script/ScriptEngine.h"
 #include "script/ScriptInstance.h"
 #include "physics/PhysicsSystem.h"
+#include "physics/RigidbodyComponent.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioClip.h"
 
@@ -38,6 +39,12 @@ Entity Scene::createEntity(const std::string& name) {
 
 void Scene::destroyEntity(Entity entity) {
     if (!entity.isValid()) return;
+
+    if (m_registry.all_of<RigidbodyComponent>(entity))
+    {
+        PhysicsSystem::get().unregisterEntity(entity);
+    }
+
     if (m_registry.all_of<ScriptComponent>(entity))
     {
         auto& sc = m_registry.get<ScriptComponent>(entity);
@@ -106,8 +113,9 @@ void Scene::onUpdate(float deltaTime) {
         auto& src = audioView.get<AudioSourceComponent>(entity);
         if (src.playOnAwake && !src.hasStarted)
         {
+
             src.handle = AudioEngine::get().play(
-                PathResolver::resolveStr(src.clipPath),src.volume,src.loop
+                PathResolver::toUtf8(PathResolver::resolve(src.clipPath)), src.volume, src.loop
             );
             src.hasStarted = true;
         }
@@ -181,10 +189,6 @@ void Scene::onUpdate(float deltaTime) {
             animator.boneMatrices[i] = mesh.cachedMesh->globalInverseTransform *
                 globalTransforms[i] * skeleton.bones[i].offsetMatrix;
         }
-
-        // アニメーション更新の最後に追加
-        LOG_INFO("Skeleton bones: {}, computed matrices: {}",
-            skeleton.bones.size(), animator.boneMatrices.size());
     }
 
     // luaスクリプトによる更新処理

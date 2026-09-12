@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <glm/gtc/matrix_transform.hpp>
 #include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
@@ -21,6 +22,8 @@ public:
     virtual void renderScene(const Scene& scene) = 0;
 
     virtual void onResize(uint32_t width, uint32_t height) = 0;
+
+    virtual glm::vec3 getCameraPosition() const = 0;
 
     [[nodiscard]] virtual uint32_t getWidth()  const noexcept = 0;
     [[nodiscard]] virtual uint32_t getHeight() const noexcept = 0;

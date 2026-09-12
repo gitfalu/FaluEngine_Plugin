@@ -1,5 +1,9 @@
 add_library(GameCode SHARED
     scripts/PlayerController.cpp
+    scripts/CollectiblesScript.cpp
+    scripts/HitEffectScript.cpp
+    scripts/BillboardScript.cpp
+    scripts/GameManager.cpp
     GameModule.cpp
 )
 

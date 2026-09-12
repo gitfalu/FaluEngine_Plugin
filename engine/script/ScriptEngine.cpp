@@ -111,7 +111,7 @@ namespace FaluEngine {
         //=============================================
         //======= PathResolver ==================
         m_lua.set_function("resolverPath", [](const std::string& path)->std::string {
-            return PathResolver::resolveStr(path);
+            return PathResolver::toUtf8(PathResolver::resolve(path));
             });
 
         //=============================================

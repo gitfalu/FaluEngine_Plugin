@@ -5,6 +5,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include "PhysicsLayer.h"
+#include "FaluEngine/Entity.h"
 #include <memory>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -41,6 +42,8 @@ namespace FaluEngine {
 		void registerScene(Scene& scene);
 
 		void unregisterScene(Scene& scene);
+
+		void unregisterEntity(Entity& entity);
 
 		void step(float deltaTime, int subSteps = 1);
 

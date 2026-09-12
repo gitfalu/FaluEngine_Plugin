@@ -33,6 +33,7 @@ target_sources(FaluEngine
         core/FileWatcher.cpp
         core/GameLoop.cpp
         core/Memory/PoolAllocator.cpp
+        core/PathResolver.cpp
 
         scene/Scene.cpp
         scene/Entity.cpp
@@ -48,6 +49,7 @@ target_sources(FaluEngine
         renderer/dx11/RenderTexture.cpp
         renderer/dx11/ShadowMap.cpp
         renderer/dx11/EnvironmentMap.cpp
+        renderer/dx11/UI.cpp
 
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp
@@ -64,6 +66,7 @@ target_sources(FaluEngine
         
         audio/AudioClip.cpp
         audio/AudioEngine.cpp
+        audio/Audio.cpp
 
         script/ScriptEngine.cpp
         script/ScriptInstance.cpp

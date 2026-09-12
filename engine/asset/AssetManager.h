@@ -17,6 +17,11 @@ struct FALU_ENGINE_API Asset {
     bool loaded = false;
 };
 
+struct AssetHandle
+{
+    std::string assetPath;
+};
+
 using AssetLoaderFn = std::function<std::shared_ptr<Asset>(const std::string&)>;
 
 // 型安全なアセットキャッシュ。

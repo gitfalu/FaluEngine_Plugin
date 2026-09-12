@@ -36,14 +36,17 @@ public:
     GameScene() : Scene("GameScene") {}
 
     void onEnter() override {
-        std::string scenePath = FaluEngine::PathResolver::resolveStr(kStartupScenePath);
+        const auto scenePath = FaluEngine::PathResolver::resolve(kStartupScenePath);
 
         FaluEngine::SceneSerializer serializer(*this);
-        bool loaded = std::filesystem::exists(scenePath) && serializer.deserialize(scenePath);
+
+        bool loaded = std::filesystem::exists(scenePath) && 
+            serializer.deserialize(kStartupScenePath);
 
         if (!loaded)
         {
-            LOG_ERROR("Failed to loaded startup scene: '{}'. Falling back to a minimal empty scene.", scenePath);
+            LOG_ERROR("Failed to loaded startup scene: '{}'.",
+                kStartupScenePath);
 
             // fallback when SceneFile is not found / broken(continue startup to ready only camera)
             auto camEntity = createEntity("MainCamera");
@@ -71,7 +74,8 @@ public:
         FaluEngine::AudioEngine::get().init();
 
         // GameCodeの取得
-        std::string gameCodePath = FaluEngine::PathResolver::resolveStr("GameCode.dll");
+        std::string gameCodePath = FaluEngine::PathResolver::toUtf8(
+            FaluEngine::PathResolver::resolve("GameCode.dll"));
         if (FaluEngine::PluginManager::get().load(gameCodePath))
         {
             auto* plugin = FaluEngine::PluginManager::get().getPlugin(gameCodePath);

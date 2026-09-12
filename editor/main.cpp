@@ -46,7 +46,7 @@ public:
         auto& gTransform = ground.getComponent<FaluEngine::TransformComponent>();
         gTransform.position = { 0.0f,-1.0f,0.0f };
         auto& gMesh = ground.addComponent<FaluEngine::MeshComponent>();
-        gMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/plane.obj");
+        gMesh.meshPath = "assets/meshes/plane.obj";
         auto& gRb = ground.addComponent<FaluEngine::RigidbodyComponent>();
         gRb.bodyType = FaluEngine::BodyType::Static;
         gRb.halfExtents = { 10.0f,0.1f,10.0f };
@@ -56,7 +56,7 @@ public:
         auto& bTransform = box.getComponent<FaluEngine::TransformComponent>();
         bTransform.position = { 0.0f,3.0f,0.0f };
         auto& bMesh = box.addComponent<FaluEngine::MeshComponent>();
-        bMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
+        bMesh.meshPath = "assets/meshes/box.obj";
         auto& bRb = box.addComponent<FaluEngine::RigidbodyComponent>();
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
@@ -78,7 +78,7 @@ public:
 
         auto character = createEntity("Character");
         auto& cMesh = character.addComponent<FaluEngine::MeshComponent>();
-        cMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/Laughing.fbx");
+        cMesh.meshPath = "assets/meshes/Laughing.fbx";
 
         auto& animator = character.addComponent<FaluEngine::AnimatorComponent>();
         animator.currentClipName = "mixamo.com";
@@ -113,14 +113,17 @@ public:
 
         getSceneManager().scanSceneFolder(
             std::filesystem::path(
-                FaluEngine::PathResolver::resolveStr("assets/scenes")));
-
-        if (getSceneManager().getSceneNames().empty()) {
-            getSceneManager().registerScene<EditorScene>("editor");
-        }
+                FaluEngine::PathResolver::getAssetRoot() / "scenes"));
 
         auto names = getSceneManager().getSceneNames();
-        if (!names.empty()) {
+        if (names.empty()) {
+            getSceneManager().registerScene<EditorScene>("EditorScene");
+            m_requestSave = true;
+            saveCurrentScene();
+            getSceneManager().switchTo("EditorScene");
+        }
+        else
+        {
             getSceneManager().switchTo(names[0]);
 
             std::string path = getSceneManager().getScenePath(names[0]);
@@ -140,7 +143,7 @@ public:
         m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(m_editorCamera);
 
         m_contentBrowser.init(
-            std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
+            FaluEngine::PathResolver::getAssetRoot());
 
         FaluEngine::EditorStateManager::get().setOnBeforeStop([this]() {
             m_hierarchy.clearSelected();
@@ -244,7 +247,7 @@ public:
                     }
 
                     std::string gameCodePath =
-                        FaluEngine::PathResolver::resolveStr("GameCode.dll");
+                        "GameCode.dll";
 
                     if (FaluEngine::PluginManager::get().reload(gameCodePath))
                     {
@@ -290,9 +293,9 @@ public:
 
                 for (auto& name : getSceneManager().getSceneNames()) {
                     bool isActive = scene && scene->getName() == name;
-                    if (ImGui::MenuItem(name.c_str(), nullptr, isActive)) {
-                        getSceneManager().switchTo(name);
+                    if (ImGui::MenuItem(name.c_str(), nullptr, isActive,!isActive)) {
                         m_hierarchy.clearSelected();
+                        getSceneManager().switchTo(name);
 
                         std::string path = getSceneManager().getScenePath(name);
                         if (!path.empty())
@@ -528,8 +531,8 @@ private:
             std::string savePath = getSceneManager().getScenePath(scene->getName());
             if (savePath.empty())
             {
-                savePath = FaluEngine::PathResolver::resolveStr(
-                    "assets/scenes/" + scene->getName() + ".scene");
+                savePath = 
+                    "assets/scenes/" + scene->getName() + ".scene";
                 getSceneManager().setScenePath(scene->getName(), savePath);
             }
             if (serializer.serialize(savePath))

@@ -18,10 +18,12 @@ bool DX11Renderer::init(void* windowHandle, uint32_t width, uint32_t height) {
 
     if (!createDeviceAndSwapChain(hwnd))       return false;
     if (!createRenderTargetView())    return false;
+    LOG_INFO("[Renderer] Created RenderTargetView");
     if (!createDepthStencilView())    return false;
+    LOG_INFO("[Renderer] Created DSV");
     if (!createShaders(
-        PathResolver::resolveStr("assets/shaders/PBR.vert.hlsl"),
-        PathResolver::resolveStr("assets/shaders/PBR.pixel.hlsl"))) 
+        PathResolver::resolve("assets/shaders/PBR.vert.hlsl"),
+        PathResolver::resolve("assets/shaders/PBR.pixel.hlsl"))) 
         return false;
     if (!createDefaultStates()) return false;
 
@@ -66,6 +68,8 @@ bool DX11Renderer::createDeviceAndSwapChain(HWND hwnd) {
         LOG_ERROR("D3D11CreateDeviceAndSwapChain failed: 0x{:08X}", static_cast<uint32_t>(hr));
         return false;
     }
+
+    LOG_INFO("[Renderer] Created SwapChain");
     return true;
 }
 
@@ -96,10 +100,10 @@ bool DX11Renderer::createDepthStencilView() {
     return SUCCEEDED(hr);
 }
 
-bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& psPath)
+bool DX11Renderer::createShaders(const std::filesystem::path& vsPath, const std::filesystem::path& psPath)
 {
     if (!std::filesystem::exists(vsPath)) {
-        LOG_ERROR("Vertex shader not found: {}", vsPath);
+        LOG_ERROR("Vertex shader not found: '{}'", vsPath.string());
         return false;
     }
 
@@ -110,7 +114,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 #endif
 
     HRESULT hr = D3DCompileFromFile(
-        std::wstring(vsPath.begin(), vsPath.end()).c_str(),
+        vsPath.wstring().c_str(),
         nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
         &vsBlob,&errorBlob
     );
@@ -122,12 +126,12 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     }
 
     if (!std::filesystem::exists(psPath)) {
-        LOG_ERROR("Pixel shader not found: {}", psPath);
+        LOG_ERROR("Pixel shader not found: {}", psPath.string());
         return false;
     }
 
     hr = D3DCompileFromFile(
-        std::wstring(psPath.begin(), psPath.end()).c_str(),
+        psPath.wstring().c_str(),
         nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
         &psBlob, &errorBlob
     );
@@ -217,15 +221,15 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     m_device->CreateSamplerState(&sd, &m_samplerState);
 
     //===== Shadow Depth Shader =======
-    std::string shadowVSPath = PathResolver::resolveStr("assets/shaders/ShadowDepth.vert.hlsl");
+    std::filesystem::path shadowVSPath = PathResolver::resolve("assets/shaders/ShadowDepth.vert.hlsl");
     if (!std::filesystem::exists(shadowVSPath)) {
-        LOG_ERROR("Shadow vertex shader nor found: {}", shadowVSPath);
+        LOG_ERROR("Shadow vertex shader nor found: {}", shadowVSPath.string());
         return false;
     }
 
     ComPtr<ID3DBlob> shadowVSBlob, shadowErrorBlob;
     hr = D3DCompileFromFile(
-        std::wstring(shadowVSPath.begin(), shadowVSPath.end()).c_str(),
+        shadowVSPath.wstring().c_str(),
         nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
         &shadowVSBlob, &shadowErrorBlob
     );
@@ -287,16 +291,16 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     LOG_INFO("Shadow shaders initialized");
 
     //===== Skinned Shadow Dpeth Shdaer ====
-    std::string shadowSkinnedVSPath = PathResolver::resolveStr("assets/shaders/ShadowDepth_Skinned.vert.hlsl");
+    std::filesystem::path shadowSkinnedVSPath = PathResolver::resolve("assets/shaders/ShadowDepth_Skinned.vert.hlsl");
     if (!std::filesystem::exists(shadowSkinnedVSPath))
     {
-        LOG_ERROR("Shadow(Skinned) vertex shader not found: {}", shadowSkinnedVSPath);
+        LOG_ERROR("Shadow(Skinned) vertex shader not found: {}", shadowSkinnedVSPath.string());
         return false;
     }
 
     ComPtr<ID3DBlob> shadowSkinnedVSBlob, shadowSkinnedErrBlob;
     hr = D3DCompileFromFile(
-        std::wstring(shadowSkinnedVSPath.begin(), shadowSkinnedVSPath.end()).c_str(),
+        shadowSkinnedVSPath.wstring().c_str(),
         nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
         &shadowSkinnedVSBlob, &shadowSkinnedErrBlob
     );
@@ -332,13 +336,13 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     //==== SkySphere Shader ========
     {
-        std::string skyVSPath = PathResolver::resolveStr("assets/shaders/SkySphere.vert.hlsl");
-        std::string skyPSPath = PathResolver::resolveStr("assets/shaders/SkySphere.pixel.hlsl");
+        std::filesystem::path skyVSPath = PathResolver::resolve("assets/shaders/SkySphere.vert.hlsl");
+        std::filesystem::path skyPSPath = PathResolver::resolve("assets/shaders/SkySphere.pixel.hlsl");
 
         ComPtr<ID3DBlob> skyVSBlob, skyPSBlob, skyErrBlob;
 
         hr = D3DCompileFromFile(
-            std::wstring(skyVSPath.begin(), skyVSPath.end()).c_str(),
+            skyVSPath.wstring().c_str(),
             nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
             &skyVSBlob, &skyErrBlob);
         if (FAILED(hr))
@@ -350,7 +354,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         }
 
         hr = D3DCompileFromFile(
-            std::wstring(skyPSPath.begin(), skyPSPath.end()).c_str(),
+            skyPSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &skyPSBlob, &skyErrBlob);
         if (FAILED(hr))
@@ -448,13 +452,13 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     // EquirectToCubemap
     {
-        std::string cubeVSPath = PathResolver::resolveStr("assets/shaders/EquirectToCubemap.vert.hlsl");
-        std::string cubePSPath = PathResolver::resolveStr("assets/shaders/EquirectToCubemap.pixel.hlsl");
+        std::filesystem::path cubeVSPath = PathResolver::resolve("assets/shaders/EquirectToCubemap.vert.hlsl");
+        std::filesystem::path cubePSPath = PathResolver::resolve("assets/shaders/EquirectToCubemap.pixel.hlsl");
 
         ComPtr<ID3DBlob> cubeVSBlob, cubePSBlob, cubeErrBlob;
 
         hr = D3DCompileFromFile(
-            std::wstring(cubeVSPath.begin(), cubeVSPath.end()).c_str(),
+            cubeVSPath.wstring().c_str(),
             nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
             &cubeVSBlob, &cubeErrBlob);
         if (FAILED(hr))
@@ -465,7 +469,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         }
 
         hr = D3DCompileFromFile(
-            std::wstring(cubePSPath.begin(), cubePSPath.end()).c_str(),
+            cubePSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &cubePSBlob, &cubeErrBlob);
         if (FAILED(hr))
@@ -504,13 +508,38 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         LOG_INFO("EquirectToCubemap shaders initialized");
     }
 
+    // Cubemap
+    {
+        // 単位立方体(内側から見る想定なので巻き順はスカイスフィアと合わせて逆巻きでOK)
+        const glm::vec3 verts[8] = {
+            {-1,-1,-1}, { 1,-1,-1}, { 1, 1,-1}, {-1, 1,-1},
+            {-1,-1, 1}, { 1,-1, 1}, { 1, 1, 1}, {-1, 1, 1},
+        };
+        const uint32_t idx[36] = {
+            0,1,2, 0,2,3,   // -Z
+            5,4,7, 5,7,6,   // +Z
+            4,0,3, 4,3,7,   // -X
+            1,5,6, 1,6,2,   // +X
+            3,2,6, 3,6,7,   // +Y
+            4,5,1, 4,1,0,   // -Y
+        };
+
+        D3D11_BUFFER_DESC vbd{}; vbd.ByteWidth = sizeof(verts); vbd.Usage = D3D11_USAGE_IMMUTABLE; vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA vsd{ verts };
+        m_device->CreateBuffer(&vbd, &vsd, &m_cubemapVB);
+
+        D3D11_BUFFER_DESC ibd{}; ibd.ByteWidth = sizeof(idx); ibd.Usage = D3D11_USAGE_IMMUTABLE; ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA isd{ idx };
+        m_device->CreateBuffer(&ibd, &isd, &m_cubemapIB);
+    }
+
     // IrradianceConvolution
     {
-        std::string irrPSPath = PathResolver::resolveStr("assets/shaders/IrradianceConvolution.pixel.hlsl");
+        std::filesystem::path irrPSPath = PathResolver::resolve("assets/shaders/IrradianceConvolution.pixel.hlsl");
 
         ComPtr<ID3DBlob> irrPSBlob, irrErrBlob;
         hr = D3DCompileFromFile(
-            std::wstring(irrPSPath.begin(), irrPSPath.end()).c_str(),
+            irrPSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &irrPSBlob, &irrErrBlob);
         if (FAILED(hr))
@@ -532,11 +561,11 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     // PrefilterEnvironment
     {
-        std::string prefPSPath = PathResolver::resolveStr("assets/shaders/PrefilterEnvironment.pixel.hlsl");
+        std::filesystem::path prefPSPath = PathResolver::resolve("assets/shaders/PrefilterEnvironment.pixel.hlsl");
 
         ComPtr<ID3DBlob> prefPSBlob, prefErrBlob;
         hr = D3DCompileFromFile(
-            std::wstring(prefPSPath.begin(), prefPSPath.end()).c_str(),
+            prefPSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &prefPSBlob, &prefErrBlob);
         if (FAILED(hr))
@@ -565,13 +594,13 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     // BRDF LUT
     {
-        std::string lutVSPath = PathResolver::resolveStr("assets/shaders/BRDFLUT.vert.hlsl");
-        std::string lutPSPath = PathResolver::resolveStr("assets/shaders/BRDFLUT.pixel.hlsl");
+        std::filesystem::path lutVSPath = PathResolver::resolve("assets/shaders/BRDFLUT.vert.hlsl");
+        std::filesystem::path lutPSPath = PathResolver::resolve("assets/shaders/BRDFLUT.pixel.hlsl");
 
         ComPtr<ID3DBlob> lutVSBlob, lutPSBlob, lutErrBlob;
 
         hr = D3DCompileFromFile(
-            std::wstring(lutVSPath.begin(), lutVSPath.end()).c_str(),
+            lutVSPath.wstring().c_str(),
             nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
             &lutVSBlob, &lutErrBlob);
         if (FAILED(hr))
@@ -582,7 +611,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         }
 
         hr = D3DCompileFromFile(
-            std::wstring(lutPSPath.begin(), lutPSPath.end()).c_str(),
+            lutPSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &lutPSBlob, &lutErrBlob);
         if (FAILED(hr))
@@ -618,12 +647,12 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
     
     // Skinned PBR Vertex
     {
-        std::string skinVSPath = PathResolver::resolveStr(
+        std::filesystem::path skinVSPath = PathResolver::resolve(
             "assets/shaders/PBR_Skinned.vert.hlsl"
         );
         ComPtr<ID3DBlob> skinVSBlob, skinErrBlob;
         hr = D3DCompileFromFile(
-            std::wstring(skinVSPath.begin(), skinVSPath.end()).c_str(),
+            skinVSPath.wstring().c_str(),
             nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
             &skinVSBlob, &skinErrBlob
         );
@@ -674,13 +703,13 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
 
     // UI
     {
-        std::string uiVSPath = PathResolver::resolveStr("assets/shaders/UI.vert.hlsl");
-        std::string uiPSPath = PathResolver::resolveStr("assets/shaders/UI.pixel.hlsl");
+        std::filesystem::path uiVSPath = PathResolver::resolve("assets/shaders/UI.vert.hlsl");
+        std::filesystem::path uiPSPath = PathResolver::resolve("assets/shaders/UI.pixel.hlsl");
 
         ComPtr<ID3DBlob> uiVSBlob, uiPSBlob, uiErrBlob;
 
         hr = D3DCompileFromFile(
-            std::wstring(uiVSPath.begin(), uiVSPath.end()).c_str(),
+            uiVSPath.wstring().c_str(),
             nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
             &uiVSBlob, &uiErrBlob
         );
@@ -694,7 +723,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         }
 
         hr = D3DCompileFromFile(
-            std::wstring(uiPSPath.begin(), uiPSPath.end()).c_str(),
+            uiPSPath.wstring().c_str(),
             nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
             &uiPSBlob, &uiErrBlob
         );
@@ -788,7 +817,7 @@ bool DX11Renderer::createShaders(const std::string& vsPath, const std::string& p
         LOG_INFO("UI shaders initialized");
     }
 
-    LOG_INFO("Shaders loaded: {} / {}", vsPath, psPath);
+    LOG_INFO("Shaders loaded: {} / {}", vsPath.string(), psPath.string());
     return true;
 }
 
@@ -871,6 +900,11 @@ void DX11Renderer::restoreMainRenderTarget()
     }
 }
 
+void DX11Renderer::drawGrid(const glm::mat4& view, const glm::mat4& proj, float gridSize)
+{
+
+}
+
 void DX11Renderer::updateLights(const LightCB& lightData)
 {
     D3D11_MAPPED_SUBRESOURCE mapped;
@@ -936,6 +970,13 @@ void DX11Renderer::onResize(uint32_t width, uint32_t height) {
 
     float aspect = static_cast<float>(m_width) / static_cast<float>(m_height);
     m_projection = glm::perspectiveLH(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+}
+
+
+glm::vec3 DX11Renderer::getCameraPosition() const
+{
+    glm::mat4  invView = glm::inverse(m_view);
+    return invView[3];
 }
 
 void DX11Renderer::drawMesh(const Vertex* vertices, uint32_t vertexCount, const uint32_t* indices, uint32_t indexCount, const glm::mat4& transform)
@@ -1506,8 +1547,8 @@ void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11S
     if (skySRV) m_context->PSSetShaderResources(0, 1, &skySRV);
 
     UINT stride = sizeof(glm::vec3), offset = 0;
-    m_context->IASetVertexBuffers(0, 1, m_skyVB.GetAddressOf(), &stride, &offset);
-    m_context->IASetIndexBuffer(m_skyIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+    m_context->IASetVertexBuffers(0, 1, m_cubemapVB.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_cubemapIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 
     glm::mat4 proj = EnvironmentMap::getCubeProjectionMatrix();
     uint32_t size = m_environmentMap->getSize();
@@ -1535,7 +1576,7 @@ void DX11Renderer::generateEnvironmentMap(const SkySettingsCB& settings, ID3D11S
         memcpy(cbMapped.pData, &skyCB, sizeof(SkyCB));
         m_context->Unmap(m_cubemapCB.Get(), 0);
 
-        m_context->DrawIndexed(m_skyIndexCount, 0, 0);
+        m_context->DrawIndexed(36, 0, 0);
     }
 
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);

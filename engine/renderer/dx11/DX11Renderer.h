@@ -163,6 +163,8 @@ public:
     void renderScene(const Scene& scene) override;
     void onResize(uint32_t width, uint32_t height) override;
 
+    glm::vec3 getCameraPosition() const override;
+
     [[nodiscard]] uint32_t getWidth()  const noexcept override { return m_width; }
     [[nodiscard]] uint32_t getHeight() const noexcept override { return m_height; }
     [[nodiscard]] uint32_t getActiveWidth() const noexcept { return m_activeWidth; }
@@ -271,12 +273,13 @@ private:
     bool createDeviceAndSwapChain(HWND hwnd);
     bool createRenderTargetView();
     bool createDepthStencilView();
-    bool createShaders(const std::string& vsPath,const std::string& psPath);
+    bool createShaders(const std::filesystem::path& vsPath,const std::filesystem::path& psPath);
     bool createDefaultStates();
 
     void updateViewport();
 
     void restoreMainRenderTarget();
+    void drawGrid(const glm::mat4& view, const glm::mat4& proj, float gridSize = 50.0f);
 
 private:
     ComPtr<ID3D11Device>            m_device;
@@ -342,6 +345,10 @@ private:
     ComPtr<ID3D11DepthStencilState> m_skyDepthState;
     uint32_t m_skyIndexCount = 0;
 
+    // Cubeメッシュ用バッファ
+    ComPtr<ID3D11Buffer> m_cubemapVB;
+    ComPtr<ID3D11Buffer> m_cubemapIB;
+
     // SkinMesh
     ComPtr<ID3D11VertexShader> m_skinnedVertexShader;
     ComPtr<ID3D11VertexShader> m_shadowSkinnedVS;
@@ -383,7 +390,7 @@ private:
 
     glm::mat4 m_view = glm::mat4(1.0f);
     glm::mat4 m_projection = glm::mat4(1.0f);
-
+    glm::vec3 m_cameraPos = glm::vec3(0.0f);
 };
 
 } // namespace FaluEngine

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "core/EventBus.h"
+#include "FaluEngine/EventBus.h"
 
 using namespace FaluEngine;
 

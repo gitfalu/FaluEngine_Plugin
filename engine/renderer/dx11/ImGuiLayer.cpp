@@ -1,17 +1,14 @@
 #include "FaluEngine/ImGuiLayer.h"
 #include "core/Logger.h"
 
-
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
-#include <ImGuizmo.h>
 
 #include "core/PathResolver.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 
 namespace FaluEngine{
 
@@ -28,6 +25,7 @@ namespace FaluEngine{
 		ImGui::StyleColorsDark();
 
 		ApplyModernEngineStyle();
+		DragAcceptFiles(hwnd, TRUE);
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -36,8 +34,9 @@ namespace FaluEngine{
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
+		std::string fullPath = PathResolver::toUtf8(PathResolver::resolve("assets/fonts/CascadiaCode.ttf"));
 		auto font = io.Fonts->AddFontFromFileTTF(
-			PathResolver::resolveStr("assets/fonts/CascadiaCode.ttf").c_str(),
+			fullPath.c_str(),
 			15.0f,
 			NULL,
 			io.Fonts->GetGlyphRangesJapanese());
@@ -78,7 +77,6 @@ namespace FaluEngine{
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiLayer::end()

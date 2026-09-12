@@ -9,6 +9,9 @@
 #endif
 #include <Windows.h>
 
+#include <vector>
+#include <string>
+
 #include "platform/Window.h"
 
 namespace FaluEngine {

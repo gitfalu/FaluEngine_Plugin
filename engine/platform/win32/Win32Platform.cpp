@@ -3,6 +3,8 @@
 #include "FaluEngine/ImGuiLayer.h"
 #include "FaluEngine/InputManager.h"
 
+#include <shellapi.h>
+
 namespace FaluEngine {
 
 bool Win32Window::create(const Desc& desc) {
@@ -115,6 +117,7 @@ LRESULT CALLBACK Win32Window::wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         if (self && self->m_onClose) self->m_onClose();
         PostQuitMessage(0);
         return 0;
+    
     }
     return DefWindowProc(hwnd, msg, wp, lp);
 }

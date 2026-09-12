@@ -1,6 +1,6 @@
 #include "FaluEngine/InputManager.h"
 
-#include "EventBus.h"
+#include "FaluEngine/EventBus.h"
 #include "Logger.h"
 
 namespace FaluEngine {

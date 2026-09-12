@@ -45,5 +45,7 @@ namespace Editor
 		GizmoMode m_mode = GizmoMode::Translate;
 
 		ImVec2 m_windowPos = { 0.0f,0.0f };
+		ImVec2 m_imagePos = { 0.0f,0.0f };
+		ImVec2 m_imageSize = { 1280.0f,720.0f };
 	};
 }

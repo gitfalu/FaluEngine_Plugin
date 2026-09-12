@@ -11,13 +11,15 @@ namespace FaluEngine
 	{
 		auto asset = std::make_shared<ShaderAsset>();
 		
-		if (!std::filesystem::exists(vsPath))
+		const auto fullVSPath = FaluEngine::PathResolver::resolve(vsPath);
+		if (!std::filesystem::exists(fullVSPath))
 		{
 			LOG_ERROR("ShaderLoader: VS not found '{}'", vsPath);
 			return asset;
 		}
 
-		if (!std::filesystem::exists(psPath))
+		const auto fullPSPath = FaluEngine::PathResolver::resolve(psPath);
+		if (!std::filesystem::exists(fullPSPath))
 		{
 			LOG_ERROR("ShaderLoader: PS not found '{}'", psPath);
 			return asset;
@@ -32,7 +34,7 @@ namespace FaluEngine
 
 		// Compile Vertex Shader
 		HRESULT hr = D3DCompileFromFile(
-			std::wstring(vsPath.begin(), vsPath.end()).c_str(),
+			fullVSPath.wstring().c_str(),
 			nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0,
 			&vsBlob, &errBlob);
 		if (FAILED(hr))
@@ -45,7 +47,7 @@ namespace FaluEngine
 
 		// Compile Pixel Shader
 		hr = D3DCompileFromFile(
-			std::wstring(psPath.begin(), psPath.end()).c_str(),
+			fullPSPath.wstring().c_str(),
 			nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0,
 			&psBlob, &errBlob);
 		if (FAILED(hr))
