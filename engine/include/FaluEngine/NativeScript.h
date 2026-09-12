@@ -1,10 +1,11 @@
 #pragma once
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
 	class Entity;
 
-	class NativeScript
+	class FALU_ENGINE_API NativeScript
 	{
 	public:
 		virtual ~NativeScript() = default;

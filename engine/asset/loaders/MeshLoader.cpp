@@ -1,6 +1,7 @@
 #include "MeshLoader.h"
 #include "core/Logger.h"
 #include "renderer/dx11/DX11Renderer.h"
+#include "core/PathResolver.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -87,13 +88,17 @@ namespace FaluEngine {
     }
 
 std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* device) {
-    if (!std::filesystem::exists(path)) {
+    
+    const auto fullPath = PathResolver::resolve(path);
+    if (!std::filesystem::exists(fullPath))
+    {
         LOG_ERROR("MeshLoader: file not found '{}'", path);
         return nullptr;
     }
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path,
+    const std::string fullPathUtf8 = PathResolver::toUtf8(fullPath);
+    const aiScene* scene = importer.ReadFile(fullPathUtf8,
         aiProcess_Triangulate |
         aiProcess_FlipUVs |
         aiProcess_CalcTangentSpace |

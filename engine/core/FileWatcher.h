@@ -3,8 +3,11 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
+#include <FaluEngine/EngineExport.h>
 
-class FileWatcher
+
+
+class FALU_ENGINE_API FileWatcher
 {
 public:
 	/// @brief 監視対象パスと、変更検知時のコールバックを登録
@@ -16,8 +19,9 @@ public:
 	void poll();
 
 private:
-	struct Entry 
+	struct Entry
 	{
+		std::filesystem::path path;
 		std::filesystem::file_time_type lastWriteTime;
 		std::function<void()> onChanged;
 	};

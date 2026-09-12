@@ -5,6 +5,12 @@
 
 namespace FaluEngine
 {
+	AudioEngine& AudioEngine::get()
+	{
+		static AudioEngine instance;
+		return instance;
+	}
+
 	bool AudioEngine::init()
 	{
 		if (m_initialized) return true;

@@ -3,6 +3,13 @@
 
 namespace FaluEngine {
 
+
+    AssetManager& AssetManager::get()
+    {
+        static AssetManager instance;
+        return instance;
+    }
+
 void AssetManager::unload(const std::string& path) {
 
     for (auto& [type, typeCache] : m_cache)

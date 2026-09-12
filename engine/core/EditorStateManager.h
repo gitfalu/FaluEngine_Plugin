@@ -1,25 +1,23 @@
 #pragma once
 #include <string>
 #include <functional>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
 	class Scene;
 
-	enum class PlayState
+	enum class FALU_ENGINE_API PlayState
 	{
 		Editing,
 		Playing,
 		Paused,
 	};
 
-	class EditorStateManager
+	class FALU_ENGINE_API EditorStateManager
 	{
 	public:
-		static EditorStateManager& get() {
-			static EditorStateManager instance;
-			return instance;
-		}
+		static EditorStateManager& get();
 
 		void play(Scene& scene);
 		void pause();

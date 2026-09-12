@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <FaluEngine/EngineExport.h>
 #include "asset/AssetManager.h"
 
 namespace FaluEngine
@@ -51,7 +52,7 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	std::vector<std::shared_ptr<AnimationClip>> loadAnimationFromFile(const std::string& meshPath);
+	FALU_ENGINE_API std::vector<std::shared_ptr<AnimationClip>> loadAnimationFromFile(const std::string& meshPath);
 
-	void registerAnimationLoader();
+	FALU_ENGINE_API void registerAnimationLoader();
 }

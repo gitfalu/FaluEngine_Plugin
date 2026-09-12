@@ -5,29 +5,34 @@
 #include <string>
 #include <filesystem>
 #include <functional>
-#include "Scene.h"
+#include <FaluEngine/EngineExport.h>
+#include "FaluEngine/Scene.h"
 #include "core/Logger.h"
-#include "core/EventBus.h"
+#include "FaluEngine/EventBus.h"
 #include "core/Events.h"
 
 namespace FaluEngine {
 
-struct SceneChangeEvent {
+struct FALU_ENGINE_API SceneChangeEvent {
 	std::string from;
 	std::string to;
 };
 
-class SceneManager {
+class FALU_ENGINE_API SceneManager {
 public:
-	static SceneManager& get() {
-		static SceneManager instance;
-		return instance;
-	}
+	static SceneManager& get();
 
 	template<typename T,typename... Args>
 	void registerScene(const std::string& name, Args&&... args) {
 		m_scenes[name] = std::make_shared<T>(std::forward<Args>(args)...);
 		LOG_INFO("SceneManager: registered '{}'", name);
+	}
+
+	void shutdown()
+	{
+		m_active.reset();
+		m_scenes.clear();
+		m_scenePaths.clear();
 	}
 
 	void registerEmptyScene(const std::string& name)

@@ -6,26 +6,29 @@
 #include <typeindex>
 #include "core/Logger.h"
 #include "core/FileWatcher.h"
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
 // アセットの基底クラス
-struct Asset {
+struct FALU_ENGINE_API Asset {
     virtual ~Asset() = default;
     std::string path;
     bool loaded = false;
+};
+
+struct AssetHandle
+{
+    std::string assetPath;
 };
 
 using AssetLoaderFn = std::function<std::shared_ptr<Asset>(const std::string&)>;
 
 // 型安全なアセットキャッシュ。
 // ローダーを差し替えられるよう、ロード処理は各 Loader クラスに委譲する。
-class AssetManager {
+class FALU_ENGINE_API AssetManager {
 public:
-    static AssetManager& get() {
-        static AssetManager instance;
-        return instance;
-    }
+    static AssetManager& get();
 
     template<typename T>
     void registerLoader(std::function<std::shared_ptr<T>(const std::string&)> loaderFn) {

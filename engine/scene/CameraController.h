@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Camera.h"
+#include "FaluEngine/Camera.h"
 #include <glm/glm.hpp>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
-	class CameraController {
+	class FALU_ENGINE_API CameraController {
 	public:
 		explicit CameraController(Camera& camera) : m_camera(camera){}
 

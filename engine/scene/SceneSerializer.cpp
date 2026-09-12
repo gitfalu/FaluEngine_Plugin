@@ -1,10 +1,13 @@
 #include "SceneSerializer.h"
-#include "Scene.h"
-#include "Entity.h"
-#include "Component.h"
-#include "ui/UITypes.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
+#include "FaluEngine/UITypes.h"
+#include "FaluEngine/LightTypes.h"
+#include "FaluEngine/AudioTypes.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/Logger.h"
+#include "core/PathResolver.h"
 
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -181,7 +184,7 @@ namespace FaluEngine
 				entityJson["canvas"] = {
 					{"renderMode",static_cast<int>(canvas.renderMode)},
 					{"referenceResolution",vec2ToJson(canvas.referenceResolution)},
-					{"sortOtder",canvas.sortOrder},
+					{"sortOrder",canvas.sortOrder},
 					{"enabled",canvas.enabled}
 				};
 			}
@@ -271,10 +274,11 @@ namespace FaluEngine
 			root["entities"].push_back(entityJson);
 		}
 
+		auto fullPath = PathResolver::resolve(path);
 		std::filesystem::create_directories(
-			std::filesystem::path(path).parent_path());
+			fullPath.parent_path());
 
-		std::ofstream file(path);
+		std::ofstream file(fullPath);
 		if (!file.is_open()) {
 			LOG_ERROR("SceneSerializer: failed to open '{}' for writting",path);
 			return false;
@@ -287,13 +291,14 @@ namespace FaluEngine
 	}
 	bool SceneSerializer::deserialize(const std::string& path)
 	{
-		if (!std::filesystem::exists(path))
+		auto fullPath = PathResolver::resolve(path);
+		if (!std::filesystem::exists(fullPath))
 		{
 			LOG_ERROR("SceneSerializer: file not found '{}'", path);
 			return false;
 		}
-		
-		std::ifstream file(path);
+
+		std::ifstream file(fullPath);
 		if (!file.is_open()) {
 			LOG_ERROR("SceneSerializer: failed to open '{}'", path);
 			return false;
@@ -457,7 +462,7 @@ namespace FaluEngine
 			{
 				auto& bj = entityJson["button"];
 				auto& btn = entity.addComponent<ButtonComponent>();
-				btn.interactable = bj.value("intaractable", true);
+				btn.interactable = bj.value("interactable", true);
 				btn.normalColor = vec4FromJson(bj["normalColor"]);
 				btn.hoveredColor = vec4FromJson(bj["hoveredColor"]);
 				btn.pressedColor = vec4FromJson(bj["pressedColor"]);

@@ -5,15 +5,15 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
-#include "core/Application.h"
+#include "FaluEngine/Application.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "core/EditorStateManager.h"
-#include "core/InputManager.h"
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
-#include "scene/Camera.h"
+#include "FaluEngine/InputManager.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
+#include "FaluEngine/Camera.h"
 #include "scene/CameraController.h"
 #include "scene/SceneSerializer.h"
 #include "physics/PhysicsSystem.h"
@@ -46,7 +46,7 @@ public:
         auto& gTransform = ground.getComponent<FaluEngine::TransformComponent>();
         gTransform.position = { 0.0f,-1.0f,0.0f };
         auto& gMesh = ground.addComponent<FaluEngine::MeshComponent>();
-        gMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/plane.obj");
+        gMesh.meshPath = "assets/meshes/plane.obj";
         auto& gRb = ground.addComponent<FaluEngine::RigidbodyComponent>();
         gRb.bodyType = FaluEngine::BodyType::Static;
         gRb.halfExtents = { 10.0f,0.1f,10.0f };
@@ -56,7 +56,7 @@ public:
         auto& bTransform = box.getComponent<FaluEngine::TransformComponent>();
         bTransform.position = { 0.0f,3.0f,0.0f };
         auto& bMesh = box.addComponent<FaluEngine::MeshComponent>();
-        bMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/box.obj");
+        bMesh.meshPath = "assets/meshes/box.obj";
         auto& bRb = box.addComponent<FaluEngine::RigidbodyComponent>();
         bRb.bodyType = FaluEngine::BodyType::Dynamic;
         bRb.halfExtents = { 0.5f,0.5f,0.5f };
@@ -78,7 +78,7 @@ public:
 
         auto character = createEntity("Character");
         auto& cMesh = character.addComponent<FaluEngine::MeshComponent>();
-        cMesh.meshPath = FaluEngine::PathResolver::resolveStr("assets/meshes/Laughing.fbx");
+        cMesh.meshPath = "assets/meshes/Laughing.fbx";
 
         auto& animator = character.addComponent<FaluEngine::AnimatorComponent>();
         animator.currentClipName = "mixamo.com";
@@ -109,16 +109,21 @@ public:
     EditorApp() : Application({ .title = L"FaluEngine Editor", .width = 1280, .height = 720 }) {}
     void onInit()                  override 
     {
+        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(getImGuiLayer().getContext()));
+
         getSceneManager().scanSceneFolder(
             std::filesystem::path(
-                FaluEngine::PathResolver::resolveStr("assets/scenes")));
-
-        if (getSceneManager().getSceneNames().empty()) {
-            getSceneManager().registerScene<EditorScene>("editor");
-        }
+                FaluEngine::PathResolver::getAssetRoot() / "scenes"));
 
         auto names = getSceneManager().getSceneNames();
-        if (!names.empty()) {
+        if (names.empty()) {
+            getSceneManager().registerScene<EditorScene>("EditorScene");
+            m_requestSave = true;
+            saveCurrentScene();
+            getSceneManager().switchTo("EditorScene");
+        }
+        else
+        {
             getSceneManager().switchTo(names[0]);
 
             std::string path = getSceneManager().getScenePath(names[0]);
@@ -138,7 +143,7 @@ public:
         m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(m_editorCamera);
 
         m_contentBrowser.init(
-            std::filesystem::path(FaluEngine::PathResolver::resolveStr("assets")));
+            FaluEngine::PathResolver::getAssetRoot());
 
         FaluEngine::EditorStateManager::get().setOnBeforeStop([this]() {
             m_hierarchy.clearSelected();
@@ -242,10 +247,18 @@ public:
                     }
 
                     std::string gameCodePath =
-                        FaluEngine::PathResolver::resolveStr("GameCode.dll");
+                        "GameCode.dll";
 
                     if (FaluEngine::PluginManager::get().reload(gameCodePath))
+                    {
+                        auto* plugin = FaluEngine::PluginManager::get().getPlugin(gameCodePath);
+                        if (plugin)
+                        {
+                            for (auto& [name, factory] : plugin->getScriptFactories())
+                                FaluEngine::NativeScriptRegistry::get().registerScript(name, factory);
+                        }
                         LOG_INFO("Scripts reloaded");
+                    }
                     else
                         LOG_ERROR("Failed to reload GameCode.dll");
                 }
@@ -280,9 +293,9 @@ public:
 
                 for (auto& name : getSceneManager().getSceneNames()) {
                     bool isActive = scene && scene->getName() == name;
-                    if (ImGui::MenuItem(name.c_str(), nullptr, isActive)) {
-                        getSceneManager().switchTo(name);
+                    if (ImGui::MenuItem(name.c_str(), nullptr, isActive,!isActive)) {
                         m_hierarchy.clearSelected();
+                        getSceneManager().switchTo(name);
 
                         std::string path = getSceneManager().getScenePath(name);
                         if (!path.empty())
@@ -295,79 +308,81 @@ public:
                 }
                 ImGui::EndMenu();
             }
+
+            {
+                auto& stateManager = FaluEngine::EditorStateManager::get();
+                bool isEditing = stateManager.isEditing();
+                bool isPlaying = stateManager.isPlaying();
+                bool isPaused = stateManager.isPaused();
+
+                ImGui::SameLine();
+
+                float center = ImGui::GetWindowSize().x * 0.5f;
+                ImGui::SetCursorPosX(center);
+                
+                if (isEditing)
+                {
+                    if (ImGui::Button("Play"))
+                    {
+                        auto* activeScene = getSceneManager().getActive();
+                        if (activeScene) stateManager.play(*activeScene);
+                    }
+                }
+                else
+                {
+                    ImGui::BeginDisabled(true);
+                    ImGui::Button("Play");
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::SameLine();
+
+                if (isPlaying)
+                {
+                    if (ImGui::Button("Pause")) stateManager.pause();
+                }
+                else if (isPaused)
+                {
+                    if (ImGui::Button("Resume"))stateManager.resume();
+                }
+                else
+                {
+                    ImGui::BeginDisabled(true);
+                    ImGui::Button("Pause");
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::SameLine();
+
+                if (!isEditing)
+                {
+                    if (ImGui::Button("Stop"))
+                    {
+                        auto* activeScene = getSceneManager().getActive();
+                        if (activeScene) stateManager.stop(*activeScene);
+                    }
+                }
+                else
+                {
+                    ImGui::BeginDisabled(true);
+                    ImGui::Button("Stop");
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::SameLine();
+                ImGui::TextColored(
+                    isPlaying ? ImVec4(0.4f, 1.0f, 0.4f, 1.0f) :
+                    isPaused ? ImVec4(1.0f, 1.0f, 0.4f, 1.0f) :
+                    ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                    " [%s]", isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "EDITING"
+                );
+            }
+
             ImGui::EndMainMenuBar();
         }
-        ImGui::SameLine();
+        
 
-        {
-            auto& stateManager = FaluEngine::EditorStateManager::get();
-            bool isEditing = stateManager.isEditing();
-            bool isPlaying = stateManager.isPlaying();
-            bool isPaused = stateManager.isPaused();
-
-            ImGui::Begin("##Toolbar", nullptr,
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar
-            );
-
-            if (isEditing)
-            {
-                if (ImGui::Button("Play"))
-                {
-                    auto* activeScene = getSceneManager().getActive();
-                    if (activeScene) stateManager.play(*activeScene);
-                }
-            }
-            else
-            {
-                ImGui::BeginDisabled(true);
-                ImGui::Button("Play");
-                ImGui::EndDisabled();
-            }
-
-            ImGui::SameLine();
-
-            if (isPlaying)
-            {
-                if (ImGui::Button("Pause")) stateManager.pause();
-            }
-            else if(isPaused)
-            {
-                if (ImGui::Button("Resume"))stateManager.resume();
-            }
-            else
-            {
-                ImGui::BeginDisabled(true);
-                ImGui::Button("Pause");
-                ImGui::EndDisabled();
-            }
-
-            ImGui::SameLine();
-
-            if (!isEditing)
-            {
-                if (ImGui::Button("Stop"))
-                {
-                    auto* activeScene = getSceneManager().getActive();
-                    if (activeScene) stateManager.stop(*activeScene);
-                }
-            }
-            else
-            {
-                ImGui::BeginDisabled(true);
-                ImGui::Button("Stop");
-                ImGui::EndDisabled();
-            }
-
-            ImGui::SameLine();
-            ImGui::TextColored(
-                isPlaying ? ImVec4(0.4f, 1.0f, 0.4f, 1.0f) :
-                isPaused ? ImVec4(1.0f, 1.0f, 0.4f, 1.0f) :
-                ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                " [%s]", isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "EDITING"
-            );
-            ImGui::End();
-        }
+        
 
         if (m_openNewScenePopup)
         {
@@ -516,8 +531,8 @@ private:
             std::string savePath = getSceneManager().getScenePath(scene->getName());
             if (savePath.empty())
             {
-                savePath = FaluEngine::PathResolver::resolveStr(
-                    "assets/scenes/" + scene->getName() + ".scene");
+                savePath = 
+                    "assets/scenes/" + scene->getName() + ".scene";
                 getSceneManager().setScenePath(scene->getName(), savePath);
             }
             if (serializer.serialize(savePath))

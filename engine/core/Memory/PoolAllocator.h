@@ -2,12 +2,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
 // 固定サイズブロックのプールアロケータ。
 // 同じサイズのオブジェクトを大量に生成する場面（パーティクル、コンポーネント等）で使う。
-class PoolAllocator {
+class FALU_ENGINE_API PoolAllocator {
 public:
     // blockSize: 1ブロックのバイト数, blockCount: 確保するブロック数
     PoolAllocator(std::size_t blockSize, std::size_t blockCount);

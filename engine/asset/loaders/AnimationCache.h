@@ -2,17 +2,14 @@
 #include "AnimationClip.h"
 #include <unordered_map>
 #include <mutex>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
-	class AnimationCache
+	class FALU_ENGINE_API AnimationCache
 	{
 	public:
-		static AnimationCache& get()
-		{
-			static AnimationCache instance;
-			return instance;
-		}
+		static AnimationCache& get();
 
 		const std::vector<std::shared_ptr<AnimationClip>>& getAnimations(const std::string& meshPath)
 		{

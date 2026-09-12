@@ -1,4 +1,4 @@
-#include "plugin/IPlugin.h"
+#include "FaluEngine/IPlugin.h"
 #include <cstdio>
 
 // ── 物理プラグインの実装例 ─────────────────────────────────────────────────

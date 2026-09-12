@@ -1,12 +1,13 @@
 #pragma once
 #include <functional>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
 // コールバックが false を返すとループを抜ける
 using LoopCallback = std::function<bool(float deltaTime)>;
 
-class GameLoop {
+class FALU_ENGINE_API GameLoop {
 public:
     // 固定ステップ (fixedDt 秒) + 可変レンダーステップのハイブリッド方式
     void run(LoopCallback callback, double fixedDt = 1.0 / 60.0);

@@ -1,5 +1,6 @@
 #include "AudioClip.h"
 #include "core/Logger.h"
+#include "core/PathResolver.h"
 #include <fstream>
 #include <cstring>
 
@@ -13,7 +14,9 @@ namespace FaluEngine
 
 	std::shared_ptr<AudioClip> AudioClip::load(const std::string& path)
 	{
-		std::ifstream file(path, std::ios::binary);
+
+		const auto fullPath = PathResolver::resolve(path);
+		std::ifstream file(fullPath, std::ios::binary);
 		if (!file)
 		{
 			LOG_ERROR("AudioClip: failed to open '{}'", path);

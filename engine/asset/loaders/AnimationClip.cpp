@@ -1,5 +1,6 @@
 #include "AnimationClip.h"
 #include "core/Logger.h"
+#include "core/PathResolver.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -34,7 +35,7 @@ namespace FaluEngine
 			{
 				float t0 = positionKeys[i].time;
 				float t1 = positionKeys[i + 1].time;
-				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
+				float factor = (time - t0) / (std::max)(t1 - t0, 0.0001f);
 				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::mix(positionKeys[i].value, positionKeys[i + 1].value, factor);
 			}
@@ -53,7 +54,7 @@ namespace FaluEngine
 			{
 				float t0 = rotationKeys[i].time;
 				float t1 = rotationKeys[i + 1].time;
-				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
+				float factor = (time - t0) / (std::max)(t1 - t0, 0.0001f);
 				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::slerp(rotationKeys[i].value, rotationKeys[i + 1].value, factor);
 			}
@@ -72,7 +73,7 @@ namespace FaluEngine
 			{
 				float t0 = scaleKeys[i].time;
 				float t1 = scaleKeys[i + 1].time;
-				float factor = (time - t0) / std::max(t1 - t0, 0.0001f);
+				float factor = (time - t0) / (std::max)(t1 - t0, 0.0001f);
 				factor = glm::clamp(factor, 0.0f, 1.0f);
 				return glm::mix(scaleKeys[i].value, scaleKeys[i + 1].value, factor);
 			}
@@ -85,18 +86,20 @@ namespace FaluEngine
 	{
 		std::vector<std::shared_ptr<AnimationClip>> clips;
 
-		if (!std::filesystem::exists(meshPath))
+		const auto resolvePath = FaluEngine::PathResolver::resolve(meshPath);
+		if (!std::filesystem::exists(resolvePath))
 		{
-			LOG_ERROR("AnimationClip: file not found '{}'", meshPath);
+			LOG_ERROR("AnimationClip: file not found '{}'", resolvePath.string().c_str());
 			return clips;
 		}
 
+		std::string fullPathUtf8 = PathResolver::toUtf8(resolvePath);
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(meshPath,
+		const aiScene* scene = importer.ReadFile(fullPathUtf8,
 			aiProcess_Triangulate | aiProcess_LimitBoneWeights);
 
 		if (!scene || !scene->HasAnimations()) {
-			LOG_WARN("AnimationClip: no animation found in '{}'", meshPath);
+			LOG_WARN("AnimationClip: no animation found in '{}'", resolvePath.string().c_str());
 			return clips;
 		}
 

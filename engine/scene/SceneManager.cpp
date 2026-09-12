@@ -1,22 +1,42 @@
 #include "SceneManager.h"
 #include "SceneSerializer.h"
+#include "core/PathResolver.h"
 #include <algorithm>
 
 namespace FaluEngine
 {
+	SceneManager& SceneManager::get()
+	{
+		static SceneManager instance;
+		return instance;
+	}
+
+
 	void SceneManager::loadSceneFromFile(const std::string& path)
 	{
-		std::string name = std::filesystem::path(path).stem().string();
+		const std::string assetPath =
+			PathResolver::normalizeAssetPath(path);
+
+		const auto fsPath =
+			PathResolver::resolve(assetPath);
+
+		std::string name =
+			PathResolver::toUtf8(fsPath.stem());
 
 		registerEmptyScene(name);
-		setScenePath(name, path);
+		setScenePath(name, assetPath);
 
 		switchTo(name);
 
 		if (m_active)
 		{
 			SceneSerializer serializer(*m_active);
-			serializer.deserialize(path);
+
+			if (!serializer.deserialize(assetPath))
+			{
+				LOG_ERROR("SceneManager: failed to load scene '{}'",
+					assetPath);
+			}
 		}
 	}
 
@@ -30,15 +50,17 @@ namespace FaluEngine
 
 		for (const auto& entry : std::filesystem::directory_iterator(scenesDir))
 		{
-			if (entry.path().extension() != ".scene") continue;
+			const auto absolutePath = std::filesystem::absolute(entry.path()).lexically_normal();
+			std::string name = PathResolver::toUtf8(absolutePath.stem());
 
-			std::string name = entry.path().stem().string();
-			std::string path = entry.path().string();
+			std::string assetPath = PathResolver::toAssetPath(absolutePath);
+
+			if (assetPath.empty()) continue;
 
 			registerEmptyScene(name);
-			setScenePath(name, path);
+			setScenePath(name, assetPath);
 
-			LOG_INFO("SceneManager: found scene file '{}' -> '{}'", name, path);
+			LOG_INFO("SceneManager: found scene file '{}' -> '{}'", name, assetPath);
 		}
 	}
 

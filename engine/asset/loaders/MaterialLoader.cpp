@@ -1,5 +1,6 @@
 #include "MaterialLoader.h"
 #include "core/Logger.h"
+#include "core/PathResolver.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
@@ -39,13 +40,14 @@ namespace FaluEngine
 	{
 		auto mat = std::make_shared<MaterialAsset>();
 
-		if (!std::filesystem::exists(path))
+		const auto fullPath = FaluEngine::PathResolver::resolve(path);
+		if (!std::filesystem::exists(fullPath))
 		{
 			LOG_ERROR("MaterialLoader: file not found '{}'", path);
 			return mat;
 		}
 
-		std::ifstream file(path);
+		std::ifstream file(fullPath);
 		if (!file.is_open()) {
 			LOG_ERROR("MaterialLoader: failed to open '{}'", path);
 			return mat;
@@ -100,7 +102,8 @@ namespace FaluEngine
 		root["vertexShaderPath"] = material.vertexShaderPath;
 		root["pixelShaderPath"] = material.pixelShaderPath;
 
-		std::ofstream file(path);
+		const auto fullPath = PathResolver::resolve(path);
+		std::ofstream file(fullPath);
 		if (!file.is_open()) {
 			LOG_ERROR("MaterialLoader: failed to open '{}' for writing", path);
 			return false;

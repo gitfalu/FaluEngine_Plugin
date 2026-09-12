@@ -1,13 +1,16 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <functional>
+#include <FaluEngine/EngineExport.h>
+#include "FaluEngine/NativeScript.h"
 
 namespace FaluEngine {
 
 // ── プラグインインターフェース ────────────────────────────────────────────
 // 全てのプラグインはこの純粋仮想クラスを実装する。
 // DLL エクスポート関数 createPlugin() / destroyPlugin() を必ず定義すること。
-class IPlugin {
+class FALU_ENGINE_API IPlugin {
 public:
     virtual ~IPlugin() = default;
 
@@ -19,6 +22,12 @@ public:
     virtual bool onLoad()   = 0;   // DLLロード後に呼ばれる
     virtual void onUnload() = 0;   // DLLアンロード前に呼ばれる
     virtual void onUpdate(float deltaTime) = 0;
+
+    virtual std::vector<std::pair<std::string,
+        std::function<std::unique_ptr<NativeScript>()>>> getScriptFactories()
+    {
+        return {};
+    }
 };
 
 // ── DLL エクスポート規約 ──────────────────────────────────────────────────

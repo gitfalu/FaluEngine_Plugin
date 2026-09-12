@@ -1,6 +1,6 @@
 #pragma once
-#include "script/NativeScript.h"
-#include "scene/Entity.h"
+#include "FaluEngine/NativeScript.h"
+#include "FaluEngine/Entity.h"
 
 
 class PlayerController : public FaluEngine::NativeScript

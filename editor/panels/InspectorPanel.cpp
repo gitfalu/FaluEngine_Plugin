@@ -1,13 +1,14 @@
 #include "InspectorPanel.h"
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
 #include "scene/SceneManager.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/AnimationCache.h"
+#include "asset/loaders/MeshLoader.h"
 #include "physics/RigidbodyComponent.h"
 #include "core/PathResolver.h"
-#include "ui/UITypes.h"
+#include "FaluEngine/UITypes.h"
 #include "audio/AudioClip.h"
 #include "audio/AudioEngine.h"
 #include <imgui.h>
@@ -112,7 +113,8 @@ namespace Editor
 			ImGui::SameLine();
 
 			// ファイルの存在を確認
-			bool meshExists = std::filesystem::exists(m.meshPath);
+			bool meshExists = std::filesystem::exists(
+				FaluEngine::PathResolver::resolve(m.meshPath));
 			bool showError = !meshExists && !m.meshPath.empty();
 			if (showError)
 			{
@@ -125,8 +127,7 @@ namespace Editor
 			if (ImGui::InputText("##MeshPath", meshBuf, sizeof(meshBuf),
 				ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				auto fullpath = FaluEngine::PathResolver::resolveStr(meshBuf);
-				m.meshPath = fullpath;
+				m.meshPath = meshBuf;
 				m.cachedMesh = nullptr;// キャッシュをリセット
 			}
 
@@ -142,7 +143,15 @@ namespace Editor
 				if (const ImGuiPayload* payload =
 					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
 					
-						m.meshPath = static_cast<const char*>(payload->Data);
+					const char* payloadPath = static_cast<const char*>(payload->Data);
+					
+					const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+
+					const auto fsPath = FaluEngine::PathResolver::resolve(assetPath);
+
+					if (std::filesystem::exists(fsPath))
+					{
+						m.meshPath = assetPath;
 						m.cachedMesh = nullptr;
 
 						// Animation付きのモデルの場合Animatorを自動追加
@@ -158,6 +167,7 @@ namespace Editor
 								animator.loop = true;
 							}
 						}
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -180,8 +190,17 @@ namespace Editor
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
 				{
-					m.materialPath = static_cast<const char*>(payload->Data);
-					m.cachedMaterial = nullptr;
+					const char* payloadPath = static_cast<const char*>(payload->Data);
+
+					const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+
+					const auto fsPath = FaluEngine::PathResolver::resolve(assetPath);
+
+					if (std::filesystem::exists(fsPath))
+					{
+						m.materialPath = assetPath;
+						m.cachedMaterial = nullptr;
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -353,9 +372,15 @@ namespace Editor
 			{
 				if (const ImGuiPayload* payload =
 					ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string droppedPath = static_cast<const char*>(payload->Data);
-					sky.texturePath = droppedPath;
-					sky.cachedTexture = nullptr;
+
+					const char* payloadPath = static_cast<const char*>(payload->Data);
+					const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+					const auto fsPath = FaluEngine::PathResolver::resolve(assetPath);
+					if (std::filesystem::exists(fsPath))
+					{
+						sky.texturePath = assetPath;
+						sky.cachedTexture = nullptr;
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -387,7 +412,16 @@ namespace Editor
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
 				{
-					src.clipPath = std::string(static_cast<const char*>(payload->Data), payload->DataSize);
+					const char* payloadPath = static_cast<const char*>(payload->Data);
+
+					const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+
+					const auto fsPath = FaluEngine::PathResolver::resolve(assetPath);
+
+					if (std::filesystem::exists(fsPath))
+					{
+						src.clipPath = assetPath;
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}
@@ -399,14 +433,14 @@ namespace Editor
 			if (ImGui::Button("Play (Preview)"))
 			{
 				FaluEngine::AudioEngine::get().play(
-					FaluEngine::PathResolver::resolveStr(src.clipPath), src.volume, false
+					src.clipPath, src.volume, false
 				);
 			}
 
-			bool meshExists = !src.clipPath.empty() && std::filesystem::exists(
-				FaluEngine::PathResolver::resolveStr(src.clipPath)
+			bool audioExists = !src.clipPath.empty() && std::filesystem::exists(
+				FaluEngine::PathResolver::resolve(src.clipPath)
 			);
-			if (!src.clipPath.empty() && !meshExists)
+			if (!src.clipPath.empty() && !audioExists)
 				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not Found");
 		}
 
@@ -478,14 +512,24 @@ namespace Editor
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
 				{
-					img.texturePath = std::string(static_cast<const char*>(payload->Data));
-					img.cachedTexture = nullptr;
+					const char* payloadPath = static_cast<const char*>(payload->Data);
+
+					const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+
+					const auto fsPath = FaluEngine::PathResolver::resolve(assetPath);
+
+					if (std::filesystem::exists(fsPath))
+					{
+						img.texturePath = assetPath;
+						img.cachedTexture = nullptr;
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 
 			bool fileExists = !img.texturePath.empty() &&
-				std::filesystem::exists(img.texturePath);
+				std::filesystem::exists(
+					FaluEngine::PathResolver::resolve(img.texturePath));
 			if (!img.texturePath.empty() && !fileExists)
 			{
 				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not found");

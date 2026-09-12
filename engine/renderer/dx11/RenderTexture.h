@@ -5,13 +5,14 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <cstdint>
+#include <FaluEngine/EngineExport.h>
 
 using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine
 {
 
-	class RenderTexture
+	class FALU_ENGINE_API RenderTexture
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t width, uint32_t height);

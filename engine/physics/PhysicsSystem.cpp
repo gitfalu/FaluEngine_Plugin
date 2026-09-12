@@ -1,8 +1,8 @@
 #include "PhysicsSystem.h"
 #include "RigidbodyComponent.h"
 #include "core/Logger.h"
-#include "scene/Scene.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Component.h"
 
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
@@ -22,7 +22,11 @@ namespace FaluEngine
 	static glm::vec3 toGLM(const JPH::Vec3& v) { return { v.GetX(),v.GetY(),v.GetZ()}; }
 	static glm::quat toGLM(const JPH::Quat& q) { return { q.GetW(),q.GetX(),q.GetY(),q.GetZ() }; }
 
-	
+	PhysicsSystem& PhysicsSystem::get()
+	{
+		static PhysicsSystem instance;
+		return instance;
+	}
 
 	bool PhysicsSystem::init(uint32_t maxBodies, uint32_t maxBodyPairs, uint32_t maxContactConstraints)
 	{
@@ -128,6 +132,9 @@ namespace FaluEngine
 			settings.mFriction = rb.friction;
 			if (!rb.useGravity)
 				settings.mGravityFactor = 0.0f;
+			settings.mUserData =
+				static_cast<uint64_t>(
+					static_cast<uint32_t>(entity));
 
 			rb.bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::Activate);
 			rb.registered = true;
@@ -152,6 +159,18 @@ namespace FaluEngine
 			bodyInterface.DestroyBody(rb.bodyID);
 			rb.registered = false;
 		}
+	}
+
+	void PhysicsSystem::unregisterEntity(Entity& entity)
+	{
+		auto& bodyInterface = m_physicsSystem->GetBodyInterface();
+		
+		auto& rb = entity.getComponent<RigidbodyComponent>();
+		if (!rb.registered) return;
+
+		bodyInterface.RemoveBody(rb.bodyID);
+		bodyInterface.DestroyBody(rb.bodyID);
+		rb.registered = false;
 	}
 
 	void PhysicsSystem::step(float deltaTime, int subSteps)

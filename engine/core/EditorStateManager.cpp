@@ -1,5 +1,5 @@
 #include "EditorStateManager.h"
-#include "scene/Scene.h"
+#include "FaluEngine/Scene.h"
 #include "scene/SceneSerializer.h"
 #include "physics/PhysicsSystem.h"
 #include "core/Logger.h"
@@ -9,6 +9,13 @@
 
 namespace FaluEngine
 {
+
+	EditorStateManager& EditorStateManager::get()
+	{
+		static EditorStateManager instance;
+		return instance;
+	}
+
 	void EditorStateManager::play(Scene& scene)
 	{
 		if (m_state != PlayState::Editing) return;

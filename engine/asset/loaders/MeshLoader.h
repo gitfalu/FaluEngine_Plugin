@@ -2,6 +2,7 @@
 #include "asset/AssetManager.h"
 #include "SkeletonType.h"
 #include "renderer/dx11/DX11Renderer.h"
+#include <FaluEngine/EngineExport.h>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -28,8 +29,8 @@ struct MeshAsset : Asset {
     glm::mat4 globalInverseTransform = glm::mat4(1.0f);
 };
 
-std::shared_ptr<MeshAsset> loadMesh(const std::string& path,ID3D11Device* device);
+FALU_ENGINE_API std::shared_ptr<MeshAsset> loadMesh(const std::string& path,ID3D11Device* device);
 
-void registerMeshLoader(ID3D11Device* device);
+FALU_ENGINE_API void registerMeshLoader(ID3D11Device* device);
 
 } // namespace FaluEngine

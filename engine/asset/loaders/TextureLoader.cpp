@@ -1,5 +1,6 @@
 #include "TextureLoader.h"
 #include "core/Logger.h"
+#include "core/PathResolver.h"
 
 #include <DirectXTex.h>
 #include <filesystem>
@@ -7,16 +8,18 @@ namespace FaluEngine {
 
 std::shared_ptr<TextureAsset> loadTexture(const std::string& path, ID3D11Device* device,
     ID3D11DeviceContext* context) {
-    if (!std::filesystem::exists(path)) {
+    const auto fullPath = FaluEngine::PathResolver::resolve(path);
+    if (!std::filesystem::exists(fullPath))
+    {
         LOG_ERROR("TextureLoader: file not found '{}'", path);
         return nullptr;
     }
 
-    std::wstring wpath(path.begin(), path.end());
+    std::wstring wpath = fullPath.wstring();
     DirectX::ScratchImage image;
     HRESULT hr;
 
-    std::string ext = std::filesystem::path(path).extension().string();
+    std::string ext = PathResolver::toUtf8(std::filesystem::path(path).extension());
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
     if (ext == ".dds") {

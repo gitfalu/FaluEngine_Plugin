@@ -10,7 +10,7 @@ add_executable(engine_tests
 )
 
 target_link_libraries(engine_tests PRIVATE
-    FaluEngine::Engine
+    FaluEngine::Internal
     GTest::gtest_main
 )
 

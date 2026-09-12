@@ -1,5 +1,5 @@
-#include "plugin/IPlugin.h"
-#include "script/NativeScriptRegistry.h"
+#include "FaluEngine/IPlugin.h"
+#include "FaluEngine/NativeScriptRegistry.h"
 
 class GameModule : public FaluEngine::IPlugin
 {
@@ -17,6 +17,13 @@ public:
 	void onUnload() override
 	{
 		FaluEngine::NativeScriptRegistry::get().clear();
+	}
+
+	std::vector<std::pair<std::string,
+		std::function<std::unique_ptr<FaluEngine::NativeScript>()>>> 
+		getScriptFactories() override
+	{
+		return FaluEngine::NativeScriptRegistry::get().exportAll();
 	}
 };
 

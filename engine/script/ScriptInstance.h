@@ -2,12 +2,13 @@
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 #include <string>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 	class Entity;
 
 
-	class ScriptInstance {
+	class FALU_ENGINE_API ScriptInstance {
 	public:
 		ScriptInstance(sol::state& lua, const std::string& scriptPath);
 		~ScriptInstance();

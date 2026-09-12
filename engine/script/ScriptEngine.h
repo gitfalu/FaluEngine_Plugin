@@ -2,6 +2,7 @@
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 #include <string>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
 
@@ -9,13 +10,10 @@ class Scene;
 
 // Lua スクリプトエンジン。
 // エンジン API を Lua に公開し、ScriptComponent の .lua ファイルを実行する。
-class ScriptEngine {
+class FALU_ENGINE_API ScriptEngine {
 public:
-    static ScriptEngine& get()
-    {
-        static ScriptEngine instance;
-        return instance;
-    }
+    static ScriptEngine& get();
+    
     void shutdown();
 
     // エンジン API を Lua 空間に登録する（起動時に一度だけ呼ぶ）

@@ -1,9 +1,16 @@
-#include "InputManager.h"
+#include "FaluEngine/InputManager.h"
 
-#include "EventBus.h"
+#include "FaluEngine/EventBus.h"
 #include "Logger.h"
 
 namespace FaluEngine {
+
+	InputManager& InputManager::get()
+	{
+		static InputManager instance;
+		return instance;
+	}
+
 	void InputManager::update()
 	{
 		m_prevKeyState = m_keyState;

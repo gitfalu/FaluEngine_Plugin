@@ -1,7 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
-
-find_package(imgui CONFIG REQUIRED)
-find_package(imguizmo CONFIG REQUIRED)
+include(EngineHelpers)
 
 add_executable(FaluEngineEditor
     main.cpp
@@ -11,22 +8,14 @@ add_executable(FaluEngineEditor
     panels/GameViewPanel.cpp
     panels/ContentBrowserPanel.cpp
 )
-add_executable(FaluEngine::Editor ALIAS FaluEngineEditor)
 
-target_include_directories(FaluEngineEditor PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${joltphysics_SOURCE_DIR}
+target_link_libraries(FaluEngineEditor 
+    PRIVATE
+        FaluEngine::Internal
 )
 
-target_link_libraries(FaluEngineEditor PRIVATE
-    FaluEngine::Engine
-    imgui::imgui
-    imguizmo::imguizmo
-)
-
-set_target_properties(FaluEngineEditor PROPERTIES
-    OUTPUT_NAME "FaluEngineEditor"
-    FOLDER "Editor"
-)
+if(TARGET GameCode)
+    add_dependencies(FaluEngineEditor GameCode)
+endif()
 
 engine_copy_assets(FaluEngineEditor assets)

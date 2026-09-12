@@ -2,22 +2,23 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <glm/glm.hpp>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
-	enum class BodyType {
+	enum class FALU_ENGINE_API BodyType {
 		Static,
 		Dynamic,
 		Kinematic,
 	};
 
-	enum class ColliderShape {
+	enum class FALU_ENGINE_API ColliderShape {
 		Box,
 		Sphere,
 		Capsule,
 	};
 
-	struct RigidbodyComponent {
+	struct FALU_ENGINE_API RigidbodyComponent {
 		BodyType bodyType = BodyType::Dynamic;
 		ColliderShape shape = ColliderShape::Box;
 

@@ -1,8 +1,8 @@
 #include "ContentBrowserPanel.h"
 #include "asset/loaders/AnimationCache.h"
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
 #include "scene/SceneManager.h"
 #include "core/PathResolver.h"
 #include <imgui.h>
@@ -12,8 +12,10 @@
 namespace Editor{
 	void ContentBrowserPanel::init(const std::filesystem::path& rootPath)
 	{
-		m_rootPath = rootPath;
-		m_currentPath = rootPath;
+		const std::string pathUtf8 = FaluEngine::PathResolver::toUtf8(rootPath);
+		const auto fullPath = FaluEngine::PathResolver::resolve(pathUtf8);
+		m_rootPath = fullPath;
+		m_currentPath = m_rootPath;
 		refresh();
 	}
 
@@ -37,7 +39,7 @@ namespace Editor{
 			for (size_t i = 0; i < crumbs.size(); ++i) {
 				std::string label = (crumbs[i] == m_rootPath)
 					? "assets"
-					: crumbs[i].filename().string();
+					: FaluEngine::PathResolver::toUtf8(crumbs[i].filename());
 
 				if (crumbs[i] == m_currentPath) {
 					ImGui::TextColored({ 1.0f,1.0f,1.0f,1.0f }, "%s", label.c_str());
@@ -126,6 +128,7 @@ namespace Editor{
 	void ContentBrowserPanel::refresh()
 	{
 		m_entries.clear();
+
 		if (!std::filesystem::exists(m_currentPath)) return;
 
 		//-フォルダを先に、ファイルを後に並べる
@@ -135,7 +138,7 @@ namespace Editor{
 		auto it = std::filesystem::directory_iterator(m_currentPath,ec);
 		if (ec) {
 			LOG_ERROR("ContentBrowser: failed to open directory '{}': {}",
-				m_currentPath.string(), ec.message());
+				FaluEngine::PathResolver::toUtf8(m_currentPath), ec.message());
 			return;
 		}
 
@@ -148,13 +151,13 @@ namespace Editor{
 			if (entryEc)
 			{
 				LOG_WARN("ContentBrowser: skipping inaccessible entry '{}': {}",
-					it->path().string(), entryEc.message());
+					FaluEngine::PathResolver::toUtf8(it->path()), entryEc.message());
 			}
 			else
 			{
 				ContentEntry ce;
 				ce.path = it->path();
-				ce.name = it->path().filename().string();
+				ce.name = FaluEngine::PathResolver::toUtf8(it->path().filename());
 				ce.isDirectory = isDir;
 				ce.type = detectType(it->path());
 				(ce.isDirectory ? dirs : files).push_back(ce);
@@ -164,7 +167,7 @@ namespace Editor{
 			if (ec)
 			{
 				LOG_WARN("ContentBrowser: stopped enumerationg '{}': '{}'",
-					m_currentPath.string(), ec.message());
+					FaluEngine::PathResolver::toUtf8(m_currentPath), ec.message());
 				break;
 			}
 		}
@@ -183,10 +186,12 @@ namespace Editor{
 
 	void ContentBrowserPanel::drawFolderTree(const std::filesystem::path& path)
 	{
+		
 		if (!std::filesystem::exists(path)) return;
 
 		std::string name = (path == m_rootPath)
-			? "assets" : path.filename().string();
+			? "assets" 
+			: FaluEngine::PathResolver::toUtf8(path.filename());
 
 		bool hasSubDirs = false;
 		const std::filesystem::directory_iterator end;
@@ -280,7 +285,8 @@ namespace Editor{
 	{
 		bool sceneChanged = false;
 
-		const std::string pathStr = entry.path.string();
+		const std::string pathStr = 
+			FaluEngine::PathResolver::toUtf8(entry.path);
 		const char* icon = getTypeIcon(entry.type);
 		ImVec4 color = getTypeColor(entry.type);
 
@@ -311,7 +317,9 @@ namespace Editor{
 					navigateTo(entry.path);
 				else if (entry.type == AssetType::Scene)
 				{
-					FaluEngine::SceneManager::get().loadSceneFromFile(entry.path.string());
+					const std::string assetPath =
+						FaluEngine::PathResolver::toAssetPath(entry.path);
+					FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 					sceneChanged = true;
 				}
 				else
@@ -319,9 +327,12 @@ namespace Editor{
 			}
 
 			//-ドラック操作
+			const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
+
 			if (!entry.isDirectory && ImGui::BeginDragDropSource()) {
-				ImGui::SetDragDropPayload("ASSET_PATH", pathStr.c_str(),
-					pathStr.size() + 1);
+				ImGui::SetDragDropPayload("ASSET_PATH", 
+					assetPath.c_str(),
+					assetPath.size() + 1);
 				m_draggedPath = pathStr;
 				m_draggedType = entry.type;
 				ImGui::TextColored(color, "%s %s", icon, entry.name.c_str());
@@ -351,7 +362,8 @@ namespace Editor{
 						navigateTo(entry.path);
 					else if (entry.type == AssetType::Scene)
 					{
-						FaluEngine::SceneManager::get().loadSceneFromFile(entry.path.string());
+						const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
+						FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 						sceneChanged = true;
 					}
 					else
@@ -361,9 +373,13 @@ namespace Editor{
 				}
 			}
 
+			const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
+
 			if (!entry.isDirectory && ImGui::BeginDragDropSource()) {
-				ImGui::SetDragDropPayload("ASSET_PATH", pathStr.c_str(),
-					pathStr.size() + 1);
+				ImGui::SetDragDropPayload(
+					"ASSET_PATH", 
+					assetPath.c_str(),
+					assetPath.size() + 1);
 				m_draggedPath = pathStr;
 				m_draggedType = entry.type;
 				ImGui::TextColored(color, "%s %s", icon, entry.name.c_str());
@@ -453,16 +469,16 @@ namespace Editor{
 
 		auto& m = scene->registry().get<FaluEngine::MeshComponent>(selected);
 
-		const std::string pathStr = entry.path.string();
+		const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 		switch (entry.type)
 		{
 		case AssetType::Mesh:
 		{
-			m.meshPath = pathStr;
+			m.meshPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 			m.cachedMesh = nullptr;
 
 			// Animation付きのモデルの場合Animatorを自動追加
-			auto& clips = FaluEngine::AnimationCache::get().getAnimations(pathStr);
+			auto& clips = FaluEngine::AnimationCache::get().getAnimations(assetPath);
 			if (!clips.empty())
 			{
 				FaluEngine::Entity e(selected, scene);
@@ -481,7 +497,7 @@ namespace Editor{
 		case AssetType::NormalMap:
 			break;
 		case AssetType::Material:
-			m.materialPath = pathStr;
+			m.materialPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 			m.cachedMaterial = nullptr;
 			break;
 		default: break;

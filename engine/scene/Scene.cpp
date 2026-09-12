@@ -1,11 +1,10 @@
-#include "Scene.h"
-#include "Entity.h"
-#include "Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
+#include "FaluEngine/Application.h"
+#include "FaluEngine/InputManager.h"
 #include "core/Logger.h"
-#include "core/Application.h"
-#include "core/InputManager.h"
 #include "core/PathResolver.h"
-#include "core/EditorStateManager.h"
 #include "asset/AssetManager.h"
 #include "asset/loaders/MeshLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -13,6 +12,7 @@
 #include "script/ScriptEngine.h"
 #include "script/ScriptInstance.h"
 #include "physics/PhysicsSystem.h"
+#include "physics/RigidbodyComponent.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioClip.h"
 
@@ -39,6 +39,12 @@ Entity Scene::createEntity(const std::string& name) {
 
 void Scene::destroyEntity(Entity entity) {
     if (!entity.isValid()) return;
+
+    if (m_registry.all_of<RigidbodyComponent>(entity))
+    {
+        PhysicsSystem::get().unregisterEntity(entity);
+    }
+
     if (m_registry.all_of<ScriptComponent>(entity))
     {
         auto& sc = m_registry.get<ScriptComponent>(entity);
@@ -94,11 +100,9 @@ void Scene::destroyEntity(Entity entity) {
 }
 
 void Scene::onUpdate(float deltaTime) {
-    if (FaluEngine::EditorStateManager::get().isPlaying())
-    {
-        PhysicsSystem::get().step(deltaTime);
-        PhysicsSystem::get().syncTransforms(*this);
-    }
+    
+    PhysicsSystem::get().step(deltaTime);
+    PhysicsSystem::get().syncTransforms(*this);
 
     //==== Audio update =====
     AudioEngine::get().update();
@@ -109,8 +113,9 @@ void Scene::onUpdate(float deltaTime) {
         auto& src = audioView.get<AudioSourceComponent>(entity);
         if (src.playOnAwake && !src.hasStarted)
         {
+
             src.handle = AudioEngine::get().play(
-                PathResolver::resolveStr(src.clipPath),src.volume,src.loop
+                PathResolver::toUtf8(PathResolver::resolve(src.clipPath)), src.volume, src.loop
             );
             src.hasStarted = true;
         }
@@ -184,10 +189,6 @@ void Scene::onUpdate(float deltaTime) {
             animator.boneMatrices[i] = mesh.cachedMesh->globalInverseTransform *
                 globalTransforms[i] * skeleton.bones[i].offsetMatrix;
         }
-
-        // アニメーション更新の最後に追加
-        LOG_INFO("Skeleton bones: {}, computed matrices: {}",
-            skeleton.bones.size(), animator.boneMatrices.size());
     }
 
     // luaスクリプトによる更新処理

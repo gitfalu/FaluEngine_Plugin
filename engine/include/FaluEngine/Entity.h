@@ -1,11 +1,13 @@
 #pragma once
+#include <FaluEngine/Scene.h>
+#include <FaluEngine/EngineExport.h>
 #include <entt/entt.hpp>
 
 namespace FaluEngine {
 
 class Scene;
 
-class Entity {
+class FALU_ENGINE_API Entity {
 public:
     Entity() = default;
     Entity(entt::entity handle, Scene* scene)
@@ -50,7 +52,7 @@ public:
     [[nodiscard]] Scene* getScene() const noexcept { return m_scene; }
 
     [[nodiscard]] bool isValid() const noexcept {
-        return m_handle != entt::null && m_scene != nullptr;
+        return m_handle != entt::null && m_scene != nullptr && m_scene->registry().valid(m_handle);
     }
 
     operator entt::entity() const noexcept { return m_handle; }

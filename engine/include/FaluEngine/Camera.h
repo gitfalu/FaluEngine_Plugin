@@ -1,9 +1,10 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
-	class Camera {
+	class FALU_ENGINE_API Camera {
 	public:
 		Camera() { recalculate(); }
 

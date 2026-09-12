@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 #include <string>
 #include <memory>
+#include <FaluEngine/EngineExport.h>
 #include "asset/AssetManager.h"
 
 using Microsoft::WRL::ComPtr;
@@ -20,8 +21,8 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	std::shared_ptr<ShaderAsset> loadeShader(
+	FALU_ENGINE_API std::shared_ptr<ShaderAsset> loadeShader(
 		const std::string& vsPath, const std::string& psPath, ID3D11Device* device);
 
-	void registerShaderLoader(ID3D11Device* device);
+	FALU_ENGINE_API void registerShaderLoader(ID3D11Device* device);
 }

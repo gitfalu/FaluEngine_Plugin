@@ -1,16 +1,14 @@
 #include "SceneViewPanel.h"
 #include "renderer/dx11/DX11Renderer.h"
-#include "scene/Scene.h"
-#include "scene/Entity.h"
-#include "scene/Component.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Component.h"
 #include "scene/SceneManager.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <entt/entt.hpp>
-
-#include <imgui.h>
 
 namespace Editor
 {
@@ -56,35 +54,38 @@ namespace Editor
 		{
 			if (auto* srv = renderer->getSceneSRV())
 			{
+				m_imagePos = ImGui::GetCursorScreenPos();
 				ImVec2 size = { m_width,m_height };
 				ImGui::Image(
 					reinterpret_cast<ImTextureID>(srv),
 					size,
 					{ 0.0f,0.0f }, { 1.0f,1.0f }
 				);
+				m_imageSize = size;
 			}
 		}
 	}
 	void SceneViewPanel::drawGizmo(FaluEngine::Scene* scene, entt::entity selected,FaluEngine::DX11Renderer* renderer)
 	{
+		ImGuizmo::BeginFrame();
+
 		if (!scene || selected == entt::null) return;
 		if (!scene->registry().all_of<FaluEngine::TransformComponent,
 			FaluEngine::CameraComponent>(entt::null))
 		{
 			// Find the has CameraComponent
 		}
-	
-		glm::mat4 view = renderer->getView();
-		glm::mat4 projection = renderer->getProjection();
-
-
 		ImGuizmo::SetOrthographic(false);
 
 		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 		ImGuizmo::SetRect(
-			m_windowPos.x, m_windowPos.y, 
-			m_width, m_height
+			m_imagePos.x,m_imagePos.y,
+			m_imageSize.x,m_imageSize.y
 		);
+		
+		// ImGuizmoを使用したグリッドの表示
+		glm::mat4 view = renderer->getView();
+		glm::mat4 projection = renderer->getProjection();
 
 		if (!scene->registry().all_of<FaluEngine::TransformComponent>(selected))return;
 		auto& transform = scene->registry().get<FaluEngine::TransformComponent>(selected);
@@ -134,6 +135,9 @@ namespace Editor
 
 			FaluEngine::SceneManager::get().markDirty();
 		}
+
+		
+
 	}
 
 	void SceneViewPanel::endFrame()

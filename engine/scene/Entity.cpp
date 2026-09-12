@@ -1,6 +1,6 @@
-#include "Entity.h"
-#include "Scene.h"
-#include "Component.h"
+#include "FaluEngine/Entity.h"
+#include "FaluEngine/Scene.h"
+#include "FaluEngine/Component.h"
 #include <algorithm>
 
 namespace FaluEngine {

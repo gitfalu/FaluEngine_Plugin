@@ -1,8 +1,9 @@
 #pragma once
-#include "IPlugin.h"
+#include "FaluEngine/IPlugin.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <FaluEngine/EngineExport.h>
 
 #ifdef _WIN32
     #ifndef WIN32_LEAN_AND_MEAN
@@ -20,13 +21,9 @@
 
 namespace FaluEngine {
 
-class PluginManager {
+class FALU_ENGINE_API PluginManager {
 public:
-    static PluginManager& get()
-    {
-        static PluginManager instance;
-        return instance;
-    }
+    static PluginManager& get();
 
     ~PluginManager() { unloadAll(); }
 
