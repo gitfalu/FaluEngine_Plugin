@@ -73,6 +73,8 @@ target_sources(FaluEngine
         script/NativeScriptRegistry.cpp
 
         plugin/PluginManager.cpp
+
+        replay/ReplayRecorder.cpp
 )
 
 get_target_property(FALU_ENGINE_SOURCES FaluEngine SOURCES)
