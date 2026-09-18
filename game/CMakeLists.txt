@@ -4,6 +4,9 @@ add_library(GameCode SHARED
     scripts/HitEffectScript.cpp
     scripts/BillboardScript.cpp
     scripts/GameManager.cpp
+    scripts/TitleButton.cpp
+    scripts/Block.cpp
+    scripts/ResultButton.cpp
     GameModule.cpp
 )
 

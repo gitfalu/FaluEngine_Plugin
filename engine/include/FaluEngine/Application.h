@@ -13,6 +13,7 @@ namespace FaluEngine {
 class Window;
 class IRenderer;
 class SceneManager;
+class ReplayRecorder;
 
 struct AppConfig {
     const std::wstring title  = L"FaluEngine";
@@ -61,6 +62,10 @@ protected:
 
     std::unique_ptr<Window> m_window;
     std::unique_ptr<IRenderer> m_renderer;
+    std::unique_ptr<ReplayRecorder> m_replayRecorder;
+    uint64_t m_replayFrameNo = 0;
+    bool m_scrubbing = false;
+    uint64_t m_scrubTargetFrame = 0;
     FaluEngine::ImGuiLayer m_imguiLayer;
 
 private:

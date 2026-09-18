@@ -11,7 +11,6 @@
 #include "FaluEngine/UI.h"
 
 #include <imgui.h>
-
 #include <cstdint>
 
 
@@ -26,9 +25,9 @@ void GameManager::onInit(FaluEngine::Entity& entity)
 	if (player.isValid())
 		m_player = player;
 
-	spawnCollectibles(entity, 10);
+	spawnCollectibles(entity, 3);
 
-	FaluEngine::playSound("assets/audio/bgm.wav", 0.6f, true);
+	//FaluEngine::playSound("assets/audio/bgm.wav", 0.6f, true);
 }
 
 void GameManager::onUpdate(FaluEngine::Entity& entity, float deltaTime)
@@ -38,6 +37,18 @@ void GameManager::onUpdate(FaluEngine::Entity& entity, float deltaTime)
 	if (m_finished) return;
 
 	m_timeLeft -= deltaTime;
+	m_collectibleInterval -= deltaTime;
+	if (m_collectibleInterval <= 0.0f)
+	{
+		spawnCollectibles(entity, 1);
+		m_collectibleInterval = CollectibleInterval;
+	}
+	m_blockInterval -= deltaTime;
+	if (m_blockInterval <= 0.0f)
+	{
+		spawnBlocks(entity, 3);
+		m_blockInterval = BlockInterval;
+	}
 	if (m_timeLeft <= 0.0f)
 	{
 		m_finished = true;
@@ -71,16 +82,38 @@ void GameManager::spawnCollectibles(FaluEngine::Entity& self, int count)
 		auto& t = e.getComponent<FaluEngine::TransformComponent>();
 		t.position = {
 			(float)(rand() % 20 - 10),
-			1.0f,
-			(float)(rand() % 20 - 10)
+			5.0f,
+			0.0f
 		};
 
 		// MeshŠ„‚è“–‚Ä
-		// auto& mesh = e.addComponent<FaluEngine::MeshComponent>();
-		// mesh.meshPath = "assets/meshes/coin.fbx";
+		auto& mesh = e.addComponent<FaluEngine::MeshComponent>();
+		mesh.meshPath = "assets/meshes/coin.glb";
 
 		auto& nsc = e.addComponent<FaluEngine::NativeScriptComponent>();
 		nsc.bindByName("CollectiblesScript");
+	}
+}
+
+void GameManager::spawnBlocks(FaluEngine::Entity& self, int count)
+{
+	auto* scene = self.getScene();
+	for (int i = 0; i < count; ++i)
+	{
+		auto e = scene->createEntity("Block");
+		auto& t = e.getComponent<FaluEngine::TransformComponent>();
+		t.position = {
+			(float)(rand() % 20 - 10),
+			5.0f,
+			0.0f
+		};
+
+		// MeshŠ„‚è“–‚Ä
+		auto& mesh = e.addComponent<FaluEngine::MeshComponent>();
+		mesh.meshPath = "assets/meshes/box.obj";
+
+		auto& nsc = e.addComponent<FaluEngine::NativeScriptComponent>();
+		nsc.bindByName("Block");
 	}
 }
 
