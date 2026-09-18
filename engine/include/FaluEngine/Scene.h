@@ -46,6 +46,8 @@ namespace FaluEngine {
         void removeFromRootOrder(entt::entity e);
         void clearRootOrder() { m_rootOrder.clear(); }
 
+        void sampleAnimationPoses();
+
     private:
         void updateWorldMatrices();
         void renderShadowPass(class DX11Renderer* renderer);

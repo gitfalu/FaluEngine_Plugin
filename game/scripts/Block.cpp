@@ -1,4 +1,4 @@
-#include "CollectiblesScript.h"
+#include "Block.h"
 #include "GameManager.h"
 #include "FaluEngine/Component.h"
 #include "FaluEngine/NativeScriptRegistry.h"
@@ -6,14 +6,14 @@
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Audio.h"
 
-void CollectiblesScript::onInit(FaluEngine::Entity& entity)
+void Block::onInit(FaluEngine::Entity& entity)
 {
 	m_baseY = entity.getComponent<FaluEngine::TransformComponent>().position.y;
 }
 
-void CollectiblesScript::onUpdate(FaluEngine::Entity& entity, float deltaTime)
+void Block::onUpdate(FaluEngine::Entity& entity, float deltaTime)
 {
-	if (m_collected) return;
+	if (m_hit) return;
 	m_time += deltaTime;
 
 	auto& t = entity.getComponent<FaluEngine::TransformComponent>();
@@ -31,13 +31,13 @@ void CollectiblesScript::onUpdate(FaluEngine::Entity& entity, float deltaTime)
 	float dist = glm::length(player.position - t.position);
 	if (dist < 1.0f)
 	{
-		m_collected = true;
-		GameManager::get().addScore(value);
-		// FaluEngine::playSound("assets/audio/collect.wav", 0.6f, true);
+		m_hit = true;
+		GameManager::get().addScore(-value);
+		// FaluEngine::playSound("assets/audio/hit.wav", 0.6f, true);
 		GameManager::get().spawnHitEffect(entity.getScene(),t.position);
 		entity.getScene()->destroyEntity(entity);
 	}
 }
 
-REGISTER_NATIVE_SCRIPT(CollectiblesScript)
+REGISTER_NATIVE_SCRIPT(Block)
 

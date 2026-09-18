@@ -1,8 +1,10 @@
 #include "FaluEngine/Application.h"
 #include "FaluEngine/InputManager.h"
+#include "FaluEngine/ReplayRecorder.h"
 #include "Logger.h"
 #include "PathResolver.h"
 #include "core/Events.h"
+#include "core/EditorStateManager.h"
 #include "platform/Window.h"
 #include "renderer/IRenderer.h"
 #include "scene/SceneManager.h"
@@ -134,7 +136,29 @@ int Application::run() {
         
         AssetManager::get().poll();// Asset更新
         onUpdate(dt);//　フレーム更新
-        SceneManager::get().onUpdate(dt); // シーン更新
+
+        auto& stateManager = FaluEngine::EditorStateManager::get();
+        if (!stateManager.isPaused())
+        {
+            SceneManager::get().onUpdate(dt); // シーン更新
+        }
+        if(stateManager.isPaused())
+        {
+            if (m_scrubbing)
+            {
+                if (m_replayRecorder != nullptr)
+                {
+                    auto* activeScene = SceneManager::get().getActive();
+                    m_replayRecorder->seekTo(*SceneManager::get().getActive(), m_scrubTargetFrame);
+                    activeScene->sampleAnimationPoses();
+                }
+            }
+        }
+        else if (stateManager.isPlaying())
+        {
+            if(m_replayRecorder)
+                m_replayRecorder->captureFrame(*SceneManager::get().getActive(), m_replayFrameNo++);
+        }
 
         m_renderer->beginFrame(); // 描画更新
         m_imguiLayer.begin();

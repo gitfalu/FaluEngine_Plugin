@@ -144,51 +144,7 @@ void Scene::onUpdate(float deltaTime) {
                 fmod(animator.playbackTime, clip->duration) : clip->duration;
         }
 
-        auto& skeleton = mesh.cachedMesh->skeleton;
-        std::vector<glm::mat4> globalTransforms(skeleton.bones.size(), glm::mat4(1.0f));
-
-        std::function<void(int, const glm::mat4&)> computeBone =
-            [&](int boneIndex, const glm::mat4& parentGlobal) {
-            const Bone& bone = skeleton.bones[boneIndex];
-
-            glm::mat4 localTransform = glm::mat4(1.0f);
-            for (const auto& link : bone.chain)
-            {
-                if (auto* channel = clip->findChannel(link.nodeName))
-                {
-                    localTransform = localTransform * channel->sample(animator.playbackTime);
-                }
-                else
-                {
-                    localTransform = localTransform * link.staticTransform;
-                }
-            }
-
-            glm::mat4 globalTransform = parentGlobal * localTransform;
-            globalTransforms[boneIndex] = globalTransform;
-
-            for (size_t i = 0; i < skeleton.bones.size(); ++i)
-            {
-                if (skeleton.bones[i].parentIndex == boneIndex)
-                    computeBone(static_cast<int>(i), globalTransform);
-            }
-        };
-
-
-        for (size_t i = 0; i < skeleton.bones.size(); ++i)
-        {
-            if (skeleton.bones[i].parentIndex == -1)
-            {
-                computeBone(static_cast<int>(i), glm::mat4(1.0f));
-            }
-        }
-
-        animator.boneMatrices.resize(skeleton.bones.size());
-        for (size_t i = 0; i < skeleton.bones.size(); ++i)
-        {
-            animator.boneMatrices[i] = mesh.cachedMesh->globalInverseTransform *
-                globalTransforms[i] * skeleton.bones[i].offsetMatrix;
-        }
+        sampleAnimationPoses();
     }
 
     // luaスクリプトによる更新処理
@@ -752,6 +708,65 @@ void Scene::computeRectTransform(entt::entity entity, const glm::vec2& parentPos
         auto& rel = m_registry.get<RelationshipComponent>(entity);
         for (auto child : rel.children)
             computeRectTransform(child, rt.computedPosition, rt.computedSize);
+    }
+}
+
+void Scene::sampleAnimationPoses()
+{
+    auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
+    for (auto entity : animView)
+    {
+        auto& animator = animView.get<AnimatorComponent>(entity);
+        auto& mesh = animView.get<MeshComponent>(entity);
+        if (!mesh.cachedMesh || !mesh.cachedMesh->hasSkeleton) continue;
+
+        auto clip = AnimationCache::get().getClip(mesh.meshPath, animator.currentClipName);
+        if (!clip) continue;
+
+        auto& skeleton = mesh.cachedMesh->skeleton;
+        std::vector<glm::mat4> globalTransforms(skeleton.bones.size(), glm::mat4(1.0f));
+
+        std::function<void(int, const glm::mat4&)> computeBone =
+        [&](int boneIndex, const glm::mat4& parentGlobal)
+        {
+            const Bone& bone = skeleton.bones[boneIndex];
+            glm::mat4 localTransform = glm::mat4(1.0f);
+            for (const auto& link : bone.chain)
+            {
+                if (auto* channel = clip->findChannel(link.nodeName))
+                {
+                    localTransform = localTransform * channel->sample(animator.playbackTime);
+                }
+                else
+                {
+                    localTransform = localTransform * link.staticTransform;
+                }
+            }
+            glm::mat4 globalTransform = parentGlobal * localTransform;
+            globalTransforms[boneIndex] = globalTransform;
+            for (size_t i = 0; i < skeleton.bones.size(); ++i)
+            {
+                if (skeleton.bones[i].parentIndex == boneIndex)
+                {
+                    computeBone(static_cast<int>(i), globalTransform);
+                }
+            }
+        };
+
+        for (size_t i = 0; i < skeleton.bones.size(); ++i)
+        {
+            if (skeleton.bones[i].parentIndex == -1)
+            {
+                computeBone(static_cast<int>(i), glm::mat4(1.0f));
+            }
+        }
+
+        animator.boneMatrices.resize(skeleton.bones.size());
+        for (size_t i = 0; i < skeleton.bones.size(); ++i)
+        {
+            animator.boneMatrices[i] = mesh.cachedMesh->globalInverseTransform *
+                globalTransforms[i] * skeleton.bones[i].offsetMatrix;
+        }
     }
 }
 

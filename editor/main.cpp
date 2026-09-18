@@ -6,14 +6,15 @@
 #endif
 #include <Windows.h>
 #include "FaluEngine/Application.h"
-#include "core/Logger.h"
-#include "core/PathResolver.h"
-#include "core/EditorStateManager.h"
+#include "FaluEngine/ReplayRecorder.h"
 #include "FaluEngine/InputManager.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
 #include "FaluEngine/Camera.h"
+#include "core/Logger.h"
+#include "core/PathResolver.h"
+#include "core/EditorStateManager.h"
 #include "scene/CameraController.h"
 #include "scene/SceneSerializer.h"
 #include "physics/PhysicsSystem.h"
@@ -141,6 +142,7 @@ public:
         m_editorCamera.setPerspective(60.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
         m_editorCamera.setPosition({ 0.0f,3.0f,-5.0f });
         m_cameraCtrl = std::make_unique<FaluEngine::CameraController>(m_editorCamera);
+        m_replayRecorder = std::make_unique<FaluEngine::ReplayRecorder>();
 
         m_contentBrowser.init(
             FaluEngine::PathResolver::getAssetRoot());
@@ -221,6 +223,7 @@ public:
     {
         auto* renderer = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
         auto* scene = getSceneManager().getActive();
+
 
         std::wstring title = L"FaluEngine Editor";
         if (scene)
@@ -315,6 +318,13 @@ public:
                 bool isPlaying = stateManager.isPlaying();
                 bool isPaused = stateManager.isPaused();
 
+                if (m_frameForward)
+                {
+                    stateManager.pause();
+                    m_frameForward = false;
+                    m_scrubbing = false;
+                }
+
                 ImGui::SameLine();
 
                 float center = ImGui::GetWindowSize().x * 0.5f;
@@ -325,7 +335,16 @@ public:
                     if (ImGui::Button("Play"))
                     {
                         auto* activeScene = getSceneManager().getActive();
-                        if (activeScene) stateManager.play(*activeScene);
+                        if (activeScene)
+                        {
+                            stateManager.play(*activeScene);
+                            if (m_replayRecorder)
+                            {
+                                m_replayRecorder->reset();
+                            }
+                            m_replayFrameNo = 0;
+                            m_scrubbing = false;
+                        }
                     }
                 }
                 else
@@ -339,11 +358,29 @@ public:
 
                 if (isPlaying)
                 {
-                    if (ImGui::Button("Pause")) stateManager.pause();
+                    if (ImGui::Button("Pause"))
+                    {
+                        stateManager.pause();
+                        if (m_replayRecorder)
+                        {
+                            m_scrubbing = true;
+                            m_scrubTargetFrame = m_replayRecorder->latestFrame();
+                        }
+                    }
                 }
                 else if (isPaused)
                 {
-                    if (ImGui::Button("Resume"))stateManager.resume();
+                    if (ImGui::Button("Resume"))
+                    {
+                        auto* activeScene = getSceneManager().getActive();
+                        if (m_replayRecorder && activeScene)
+                        {
+                            m_replayRecorder->commitSeek(*activeScene, m_scrubTargetFrame);
+                            m_replayFrameNo = m_scrubTargetFrame + 1;
+                        }
+                        stateManager.resume();
+                        m_scrubbing = false;
+                    }
                 }
                 else
                 {
@@ -358,6 +395,7 @@ public:
                 {
                     if (ImGui::Button("Stop"))
                     {
+                        m_scrubbing = false;
                         auto* activeScene = getSceneManager().getActive();
                         if (activeScene) stateManager.stop(*activeScene);
                     }
@@ -376,12 +414,71 @@ public:
                     ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
                     " [%s]", isPlaying ? "PLAYING" : isPaused ? "PAUSED" : "EDITING"
                 );
+
+                if (isPaused && m_replayRecorder && !m_replayRecorder->empty())
+                {
+                    uint64_t lo = m_replayRecorder->oldestFrame();
+                    uint64_t hi = m_replayRecorder->latestFrame();
+
+
+                    ImGui::SameLine();
+                    if (m_scrubTargetFrame > lo)
+                    {
+                        if (ImGui::Button("<"))
+                        {
+                            auto* activeScene = getSceneManager().getActive();
+                            if (m_replayRecorder && activeScene)
+                            {
+                                m_scrubbing = true;
+                                m_scrubTargetFrame = m_scrubTargetFrame - 1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ImGui::BeginDisabled(true);
+                        ImGui::Button("<");
+                        ImGui::EndDisabled();
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(240.0f);
+                    int frame = static_cast<int>(m_scrubTargetFrame);
+                    if (ImGui::SliderInt("Replay", &frame, static_cast<int>(lo), static_cast<int>(hi)))
+                    {
+                        m_scrubbing = true;
+                        m_scrubTargetFrame = static_cast<uint64_t>(frame);
+                    }
+
+                    ImGui::SameLine();
+                    if (ImGui::Button(">"))
+                    {
+                        auto* activeScene = getSceneManager().getActive();
+                        if (m_replayRecorder && activeScene && m_scrubTargetFrame < m_replayRecorder->latestFrame())
+                        {
+                            m_scrubbing = true;
+                            m_scrubTargetFrame++;
+                        }
+                    }
+
+                    ImGui::SameLine();
+                    if (ImGui::Button(">|"))
+                    {
+                        auto* activeScene = getSceneManager().getActive();
+                        if (m_replayRecorder && activeScene)
+                        {
+                            stateManager.resume();
+                            m_frameForward = true;
+                            m_scrubbing = true;
+                            m_scrubTargetFrame = m_replayRecorder->latestFrame() + 1;
+                        }
+                    }
+
+                }
             }
 
             ImGui::EndMainMenuBar();
         }
-        
-
         
 
         if (m_openNewScenePopup)
@@ -559,6 +656,7 @@ private:
     bool m_openNewScenePopup = false;
     bool m_openUnsavedWarningPopup = false;
     bool m_requestSave = false;
+    bool m_frameForward = false;
 
 };
 

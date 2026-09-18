@@ -21,6 +21,7 @@ public:
 
 private:
 	void spawnCollectibles(FaluEngine::Entity& self, int count);
+	void spawnBlocks(FaluEngine::Entity& self, int count);
 	void drawHud();
 
 
@@ -29,6 +30,11 @@ private:
 	float m_score = 0.0f;
 	float m_timeLimit = 60.0f;
 	float m_timeLeft = 60.0f;
+	const float CollectibleInterval = 2.0f;
+	const float BlockInterval = 1.0f;
+	float m_collectibleInterval = 2.0f;
+	float m_blockInterval = 1.0f;
+
 	bool m_finished = false;
 
 	FaluEngine::Entity m_player;

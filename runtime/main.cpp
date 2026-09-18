@@ -57,7 +57,7 @@ public:
 
         FaluEngine::PhysicsSystem::get().registerScene(*this);
 
-        FALU_ENGINE_LOG_INFO("GameScne entered ('{}') - {} entities", loaded ? scenePath : "fallback", entityCount());
+        FALU_ENGINE_LOG_INFO("GameScne entered ('{}') - {} entities", loaded ? scenePath.string() : "fallback", entityCount());
     }
 
 };

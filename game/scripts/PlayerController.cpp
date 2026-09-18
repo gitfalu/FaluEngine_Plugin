@@ -12,39 +12,16 @@ void PlayerController::onUpdate(FaluEngine::Entity& entity, float deltaTime)
 
 	glm::vec3 forward = glm::normalize(glm::vec3(matrix[2]));
 
-	if (input.isKeyDown(FaluEngine::Key::W))
+	if (input.isKeyDown(FaluEngine::Key::A))
 	{
-		t.position += forward * deltaTime * 10.0f;
+		if(t.position.x < 5.0f)
+			t.position.x += deltaTime * 10.0f;
 	}
-	if (input.isKeyDown(FaluEngine::Key::S))
+	if (input.isKeyDown(FaluEngine::Key::D))
 	{
-		t.position -= forward * deltaTime * 10.0f;
+		if(t.position.x > -5.0f)
+			t.position.x -= deltaTime * 10.0f;
 	}
-
-
-	glm::vec3 newEuler = t.rotationEulerHint;
-
-	if (input.isKeyDown(FaluEngine::Key::Up))
-	{
-		newEuler.x += deltaTime * 10.0f;
-	}
-
-	if (input.isKeyDown(FaluEngine::Key::Down))
-	{
-		newEuler.x -= deltaTime * 10.0f;
-	}
-
-	if (input.isKeyDown(FaluEngine::Key::Left))
-	{
-		newEuler.y += deltaTime * 10.0f;
-	}
-
-	if (input.isKeyDown(FaluEngine::Key::Right))
-	{
-		newEuler.y -= deltaTime * 10.0f;
-	}
-
-	t.setRotationEuler(newEuler);
 }
 
 REGISTER_NATIVE_SCRIPT(PlayerController)
