@@ -407,9 +407,10 @@ void Scene::renderMeshes(DX11Renderer* renderer)
     {
         auto& mesh = meshView.get<MeshComponent>(entity);
         auto& transform = meshView.get<TransformComponent>(entity);
-        if (!mesh.visible || mesh.meshPath.empty()) continue;
+        if (!mesh.visible)continue;
+        if(!mesh.cachedMesh && mesh.meshPath.empty()) continue;
 
-        if (!mesh.cachedMesh)
+        if (!mesh.cachedMesh && !mesh.meshPath.empty())
             mesh.cachedMesh = AssetManager::get().load<MeshAsset>(mesh.meshPath);
         if (!mesh.cachedMesh || !mesh.cachedMesh->vertexBuffer || !mesh.cachedMesh->indexBuffer) continue;
 

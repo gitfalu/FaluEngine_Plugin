@@ -16,6 +16,7 @@ namespace FaluEngine
 		Box,
 		Sphere,
 		Capsule,
+		HeightField,
 	};
 
 	struct FALU_ENGINE_API RigidbodyComponent {
@@ -30,6 +31,14 @@ namespace FaluEngine
 		float restitution = 0.3f;
 		float friction = 0.5f;
 		bool useGravity = true;
+
+		const float* heightFieldData = nullptr;
+
+		uint32_t heightFieldSamples = 0;
+
+		glm::vec3 heightFieldScale = { 1.0f,1.0f,1.0f };
+
+		glm::vec3 heightFieldOffset = { 0.0f,0.0f,0.0f };
 
 		JPH::BodyID bodyID = JPH::BodyID();
 		bool registered = false;

@@ -7,6 +7,8 @@ add_executable(FaluEngineEditor
     panels/SceneViewPanel.cpp
     panels/GameViewPanel.cpp
     panels/ContentBrowserPanel.cpp
+    panels/LLMDebugPanel.cpp
+    EditorSettings.cpp
 )
 
 target_link_libraries(FaluEngineEditor 

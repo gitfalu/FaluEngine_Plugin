@@ -9,6 +9,7 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
@@ -100,6 +101,35 @@ namespace FaluEngine
 			case ColliderShape::Capsule:
 				shape = new JPH::CapsuleShape(rb.height * 0.5f, rb.radius);
 				break;
+
+			case ColliderShape::HeightField:
+				if (!rb.heightFieldData || rb.heightFieldSamples < 2)
+				{
+					LOG_WARN("PhysicsSystem: HeightField collider is missing sample data. Skipping entity.");
+					continue;
+				}
+
+				JPH::HeightFieldShapeSettings hfSettings(
+					rb.heightFieldData,
+					toJPH(rb.heightFieldOffset),
+					toJPH(rb.heightFieldScale),
+					rb.heightFieldSamples
+				);
+
+				JPH::Shape::ShapeResult result = hfSettings.Create();
+				if (!result.IsValid())
+				{
+					LOG_WARN("PhysicsSystem: failed to create HeightFieldShape ({})",
+						result.GetError().c_str());
+					continue;
+				}
+				shape = result.Get();
+				break;
+			}
+
+			if (rb.shape == ColliderShape::HeightField)
+			{
+				rb.bodyType = BodyType::Static;
 			}
 
 			JPH::EMotionType motionType;

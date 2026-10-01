@@ -25,8 +25,11 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/ContentBrowserPanel.h"
 #include "panels/GameViewPanel.h"
+#include "panels/LLMDebugPanel.h"
+#include "EditorSettings.h"
 #include "platform/Window.h"
 #include "plugin/PluginManager.h"
+#include "tools/TerrainSculptTool.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
 
@@ -542,7 +545,7 @@ public:
         // Hierarchy Render
         m_hierarchy.draw(scene);
         // Inspector Render
-        m_inspector.draw(scene, m_hierarchy.getSelected());
+        m_inspector.draw(scene, m_hierarchy.getSelected(),renderer->getDevice());
 
         m_sceneView.beginFrame();
 
@@ -578,6 +581,23 @@ public:
         m_sceneView.drawImage(renderer);
         m_sceneView.drawGizmo(
             scene, m_hierarchy.getSelected(),renderer);
+        // sculpt
+        if (m_sceneView.isFocused() && !ImGuizmo::IsUsing())
+        {
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float localX = mousePos.x - m_sceneView.getImagePosX();
+            float localY = mousePos.y - m_sceneView.getImagePosY();
+
+            Editor::TerrainSculptTool::get().update(
+                renderer, renderer->getDevice(),
+                localX, localY,
+                m_sceneView.getWidth(), m_sceneView.getHeight(),
+                ImGui::IsMouseDown(ImGuiMouseButton_Left),
+                ImGui::GetIO().KeyShift,
+                ImGui::GetIO().DeltaTime
+            );
+        }
+        m_sceneView.drawTerrainBrush(renderer);
         m_sceneView.endFrame();
 
         // GameView
@@ -600,6 +620,16 @@ public:
         
         if (m_contentBrowser.draw(scene, m_hierarchy.getSelected()))
             m_hierarchy.clearSelected();
+
+        m_llmDebugPanel.draw(
+            m_replayRecorder.get(),
+            scene,
+            FaluEngine::EditorStateManager::get().isPaused(),
+            m_scrubTargetFrame,
+            renderer ? renderer->getDevice() : nullptr,
+            renderer ? renderer->getContext() : nullptr,
+            renderer ? renderer->getGameRenderTexture() : nullptr
+        );
 
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
@@ -651,6 +681,7 @@ private:
     Editor::SceneViewPanel m_sceneView;
     Editor::ContentBrowserPanel m_contentBrowser;
     Editor::GameViewPanel m_gameView;
+    Editor::LLMDebugPanel m_llmDebugPanel;
     FaluEngine::Camera m_editorCamera;
 
     bool m_openNewScenePopup = false;

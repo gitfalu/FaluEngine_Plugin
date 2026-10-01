@@ -28,141 +28,171 @@ using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine {
 
+/// @brief 頂点情報
 struct FALU_ENGINE_API Vertex {
-    glm::vec3 position;
-    glm::vec4 color;
-    glm::vec2 uv;
-    glm::vec3 normal;
-    glm::vec3 tangent;
-    glm::vec3 bitangent;
+    glm::vec3 position;     // 位置
+    glm::vec4 color;        // 色
+    glm::vec2 uv;           // UV座標
+    glm::vec3 normal;       // 法線
+    glm::vec3 tangent;      // 接線
+    glm::vec3 bitangent;    // 従接線ベクトル
 };
 
+/// @brief スキンメッシュの頂点
 struct FALU_ENGINE_API SkinnedVertex
 {
-    glm::vec3 position;
-    glm::vec4 color;
-    glm::vec2 uv;
-    glm::vec3 normal;
-    glm::vec3 tangent;
-    glm::vec3 bitangent;
-    glm::ivec4 boneIndices = { -1,-1,-1,-1 };
-    glm::vec4 boneWeights = { 0.0f,0.0f,0.0f,0.0f };
+    glm::vec3 position;     // 位置
+    glm::vec4 color;        // 色
+    glm::vec2 uv;           // UV座標
+    glm::vec3 normal;       // 法線
+    glm::vec3 tangent;      // 接線
+    glm::vec3 bitangent;    // 従接線ベクトル
+    glm::ivec4 boneIndices = { -1,-1,-1,-1 };           // 骨のインデックス(接続する物も保持)
+    glm::vec4 boneWeights = { 0.0f,0.0f,0.0f,0.0f };    // 骨の重さ
 };
-#define MAX_BONES (128)
+#define MAX_BONES (128) // 最大の骨の数
+/// @brief スキンメッシュの定数バッファ
 struct FALU_ENGINE_API SkinningCB
 {
-    glm::mat4 boneMatrices[MAX_BONES];
+    glm::mat4 boneMatrices[MAX_BONES]; // 骨の行列
 };
 
+/// @brief ライトのデータ
 struct FALU_ENGINE_API LightData {
-    glm::vec4 position;
-    glm::vec4 direction;
-    glm::vec4 color;
-    int type;
-    float range;
-    float spotInner;
-    float spotOuter;
+    glm::vec4 position;     // 位置
+    glm::vec4 direction;    // 方向
+    glm::vec4 color;        // 色
+    int type;               //-ライトの種類
+    float range;            //-効果範囲
+    float spotInner;        //-光がまっすぐどく円の範囲
+    float spotOuter;        //-光がなくなる円の半径位置
 };
-
+/// @brief ライトの定数バッファ
 struct FALU_ENGINE_API LightCB {
-    LightData lights[16];
-    int lightCount = 0;
-    float _pad0[3];
-    glm::vec3 cameraPos = {};
+    LightData lights[16];       // ライトのデータ(最大16個まで)
+    int lightCount = 0;         // ライトの個数
+    float _pad0[3];             // 
+    glm::vec3 cameraPos = {};   // カメラの位置
     float _pad1;
-    glm::vec4 ambientColor = { 0.2f,0.2f,0.2f,1.0f };
+    glm::vec4 ambientColor = { 0.2f,0.2f,0.2f,1.0f }; // 環境色
 };
 
+/// @brief トランスフォーム定数バッファ
 struct FALU_ENGINE_API TransformCB {
-    glm::mat4 mvp;
-    glm::mat4 world;
-    glm::mat4 normalMatrix;
+    glm::mat4 mvp;          // ビュープロジェクション行列
+    glm::mat4 world;        // ワールド行列
+    glm::mat4 normalMatrix; // 法線行列
 };
 
+/// @brief マテリアル定数バッファ
 struct FALU_ENGINE_API MaterialCB {
-    glm::vec4 albedoColor = { 1.0f,1.0f,1.0f,1.0f };
-    float metallic = 0.0f;
-    float roughness = 0.5f;
-    int useAlbedoMap = 0;
-    int useMetallicMap = 0;
-    int useNormalMap = 0;
-    int useAOMap = 0;
-    int useEmissiveMap = 0;
-    float emissiveStrength = 1.0f;
-    glm::vec3 emissiveColor = { 0.0f,0.0f,0.0f };
-    float _matPad = 0.0f;
+    glm::vec4 albedoColor = { 1.0f,1.0f,1.0f,1.0f }; // ベースカラー
+    float metallic = 0.0f;          // 金属
+    float roughness = 0.5f;         //-粗さ
+    int useAlbedoMap = 0;           //-アルベドマップ使用フラグ
+    int useMetallicMap = 0;         //-メタリックマップ使用フラグ
+    int useNormalMap = 0;           //-法線マップ使用フラグ
+    int useAOMap = 0;               //-AOマップ(環境影マップ)の使用フラグ
+    int useEmissiveMap = 0;         //-自己発光マップの使用フラグ
+    float emissiveStrength = 1.0f;  //-発光強度
+    glm::vec3 emissiveColor = { 0.0f,0.0f,0.0f };   //-発光色
+    float _matPad = 0.0f;           //-
 };
 
+/// @brief 影定数バッファ
 struct FALU_ENGINE_API ShadowCB
 {
-    glm::mat4 lightMVP;
+    glm::mat4 lightMVP; //-ライトの行列
 };
 
+/// @brief 影設定の定数バッファ
 struct FALU_ENGINE_API ShadowSettingsCB
 {
-    glm::mat4 lightSpaceMatrix;
-    int useShadow = 0;
-    int useSoftShadow = 0;
-    float shadowBias = 0.005f;
-    float pcfRadius = 1.5f;
+    glm::mat4 lightSpaceMatrix; //-ライト行列
+    int useShadow = 0;          //-影の使用フラグ
+    int useSoftShadow = 0;      //-ソフトシャドウの使用フラグ
+    float shadowBias = 0.005f;  //-影の強度
+    float pcfRadius = 1.5f;     //-ソフトシャドウの半径
 };
 
+/// @brief スカイボックス定数バッファ
 struct FALU_ENGINE_API SkyCB
 {
-    glm::mat4 viewProj;
+    glm::mat4 viewProj; //-ビュープロジェクション行列
 };
 
+/// @brief スカイボックス設定定数バッファ
 struct FALU_ENGINE_API SkySettingsCB
 {
-    glm::vec4 topColor;
-    glm::vec4 bottomColor;
-    glm::vec4 horizonColor;
-    int useTexture = 0;
-    float exposure = 1.0f;
-    float _pad[2] = {};
+    glm::vec4 topColor;     //-頂点色
+    glm::vec4 bottomColor;  //-底辺色
+    glm::vec4 horizonColor; //-並行色
+    int useTexture = 0;     //-テクスチャの使用フラグ
+    float exposure = 1.0f;  //-空の明るさ
+    float _pad[2] = {};     //-
 };
 
+/// @brief 
 struct FALU_ENGINE_API PrefilterCB
 {
     float roughness = 0.0f;
     glm::vec3 _pad = {};
 };
 
+/// @brief UITransform定数バッファ
 struct FALU_ENGINE_API UITransformCB
 {
-    glm::mat4 orthoProjection;
-    glm::vec2 position;
-    glm::vec2 size;
-    float rotation;
-    glm::vec3 _pad;
+    glm::mat4 orthoProjection;  //-平行投影行列
+    glm::vec2 position;         //-位置
+    glm::vec2 size;             //-大きさ
+    float rotation;             //-回転
+    glm::vec3 _pad;             //-
 };
 
+/// @brief UIマテリアル定数バッファ
 struct FALU_ENGINE_API UIMaterialCB
 {
-    glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
-    int useTexture = 0;
+    glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };  //-色
+    int useTexture = 0; //-テクスチャ使用フラグ
     glm::vec3 _pad;
 };
 
 class FALU_ENGINE_API DX11Renderer final : public IRenderer {
 public:
+    /// @brief コピー防止コンストラクタ
+    /// @param  
     DX11Renderer(const DX11Renderer&) = delete;
     DX11Renderer& operator=(const DX11Renderer&) = delete;
 
     DX11Renderer()  = default;
     ~DX11Renderer() override { shutdown(); }
-
+    /// @brief 初期化
+    /// @param windowHandle 
+    /// @param width 横幅
+    /// @param height 縦幅
+    /// @return 初期化成功フラグ
     bool init(void* windowHandle, uint32_t width, uint32_t height) override;
+    /// @brief 終了処理
     void shutdown() override;
-
+    /// @brief 現在のフレームを開始
     void beginFrame() override;
+    /// @brief 現在のフレームを終了
     void endFrame()   override;
 
+    /// @brief ライトの更新
+    /// @param lightData 全てのライトデータ
     void updateLights(const LightCB& lightData);
 
+    /// @brief 現在のシーンを描画
+    /// @param scene 現在のシーン
     void renderScene(const Scene& scene) override;
+    /// @brief ウィンドウの大きさを変更する
+    /// @param width 新しい横幅
+    /// @param height 新しい縦幅
     void onResize(uint32_t width, uint32_t height) override;
 
+    /// @brief アクティブのカメラ位置を取得する
+    /// @return 現在アクティブのカメラの位置
     glm::vec3 getCameraPosition() const override;
 
     [[nodiscard]] uint32_t getWidth()  const noexcept override { return m_width; }
@@ -173,6 +203,14 @@ public:
     // DirectX オブジェクトへの直接アクセス（他サブシステムから使う場合）
     [[nodiscard]] ID3D11Device*        getDevice()  const noexcept { return m_device.Get(); }
     [[nodiscard]] ID3D11DeviceContext* getContext() const noexcept { return m_context.Get(); }
+
+    /// @brief 使用しているGPUの名前を取得
+    /// @return 使用しているGPUの名称
+    [[nodiscard]] const std::string& geetAdapterName() const noexcept { return m_adapterName; }
+
+    /// @brief PBR描画パスの開始時に一度だけ呼ぶ。
+    void bindPBRFrameResources();
+
     [[nodiscard]] const glm::mat4& getView() const noexcept { return m_view; }
     [[nodiscard]] const glm::mat4& getProjection() const noexcept { return m_projection; }
 
@@ -183,17 +221,36 @@ public:
     [[nodiscard]] ID3D11VertexShader* getBoundVS() const noexcept { return m_boundVS; }
     [[nodiscard]] ID3D11PixelShader* getBoundPS() const noexcept { return m_boundPS; }
 
+    //======== draw ==============
+
+    /// @brief メッシュ描画
+    /// @param vertices 頂点
+    /// @param vertexCount 頂点数
+    /// @param indices 頂点番号
+    /// @param indexCount 頂点番号数
+    /// @param transform 
     void drawMesh(const Vertex* vertices, uint32_t vertexCount,
         const uint32_t* indices, uint32_t indexCount,
         const glm::mat4& transform
     );
+    /// @brief サブメッシュ描画
+    /// @param indexOffset 頂点番号開始位置調整
+    /// @param indexCount 頂点番号数
+    /// @param transform 
+    /// @param material 
     void drawSubMeshPBR(uint32_t indexOffset, uint32_t indexCount,
         const glm::mat4& transform,
         struct MaterialAsset* material);
 
+    /// @brief 空描画
+    /// @param view ビュー行列
+    /// @param proj プロジェクション行列
+    /// @param settings スカイ設定
+    /// @param srv シェーダーリソースビュー
     void drawSkySphere(const glm::mat4& view, const glm::mat4& proj,
         const SkySettingsCB& settings,
         ID3D11ShaderResourceView* srv = nullptr);
+
 
     void setClearColor(float r, float g, float b, float a = 1.0f) {
         m_clearColor[0] = r; m_clearColor[1] = g;
@@ -215,6 +272,10 @@ public:
 
     [[nodiscard]] ID3D11ShaderResourceView* getGameSceneSRV() const noexcept {
         return m_gameRT ? m_gameRT->getSRV() : nullptr;
+    }
+    [[nodiscard]] const RenderTexture* getGameRenderTexture() const noexcept
+    {
+        return m_gameRT.get();
     }
 
     void setViewProjection(const glm::mat4& view, const glm::mat4& projection) {
@@ -271,6 +332,10 @@ public:
 
 private:
     bool createDeviceAndSwapChain(HWND hwnd);
+    void uploadMaterialCB(const MaterialCB& mat);
+    void uploadTransformCB(const glm::mat4& world);
+    void unbindPBRFrameResources();
+
     bool createRenderTargetView();
     bool createDepthStencilView();
     bool createShaders(const std::filesystem::path& vsPath,const std::filesystem::path& psPath);
@@ -375,6 +440,16 @@ private:
     ID3D11Buffer* m_boundIB = nullptr;
     ID3D11VertexShader* m_boundVS = nullptr;
     ID3D11PixelShader* m_boundPS = nullptr;
+    ID3D11InputLayout* m_boundLayout = nullptr;
+
+    //====== PBR描画の定数バッファ更新キャッシュ(内容が同じならMap/Unmapを省く) 
+    struct TransformKey { glm::mat4 world; glm::mat4 view; glm::mat4 proj; }; // Transformのキャッシュに含む情報
+    TransformKey m_lastTransformKey = {};   //-前回のキャッシュ(Transform)
+    bool m_transformCBValid = false;       //-
+    MaterialCB m_lastMaterialCB = {};       //-一前回のキャッシュ(Material)
+    bool m_materialCBValid = false;
+    glm::mat4 m_lightVP = glm::mat4(1.0f);
+    std::string m_adapterName;
     std::unique_ptr<RenderTexture> m_sceneRT;
     std::unique_ptr<RenderTexture> m_gameRT;
     bool m_offscreen = false;

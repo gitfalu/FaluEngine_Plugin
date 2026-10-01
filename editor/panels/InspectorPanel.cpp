@@ -7,6 +7,9 @@
 #include "asset/loaders/AnimationCache.h"
 #include "asset/loaders/MeshLoader.h"
 #include "physics/RigidbodyComponent.h"
+#include "terrain/TerrainComponent.h"
+#include "terrain/TerrainFactory.h"
+#include "tools/TerrainSculptTool.h"
 #include "core/PathResolver.h"
 #include "FaluEngine/UITypes.h"
 #include "audio/AudioClip.h"
@@ -18,7 +21,7 @@
 
 namespace Editor
 {
-	void InspectorPanel::draw(FaluEngine::Scene* scene, entt::entity selected)
+	void InspectorPanel::draw(FaluEngine::Scene* scene, entt::entity selected,ID3D11Device* device)
 	{
 		ImGui::Begin("Inspector");
 
@@ -27,6 +30,12 @@ namespace Editor
 			ImGui::TextDisabled("no entity selected");
 			ImGui::End();
 			return;
+		}
+
+		if (Editor::TerrainSculptTool::get().enabled &&
+			Editor::TerrainSculptTool::get().getTargetEntity() != selected)
+		{
+			Editor::TerrainSculptTool::get().clearTarget();
 		}
 
 		auto& tag = scene->registry().get<FaluEngine::TagComponent>(selected);
@@ -50,6 +59,7 @@ namespace Editor
 		drawMeshComponent(scene, selected);
 		drawCameraComponent(scene, selected);
 		drawRigidbodyComponent(scene, selected);
+		drawTerrainComponent(scene, selected, device);
 
 		//==== Script ====
 		drawScriptComponent(scene, selected);
@@ -71,7 +81,7 @@ namespace Editor
 		if (ImGui::Button("Add Component", { buttonWidth ,0 }))
 			ImGui::OpenPopup("AddComponent");
 
-		drawAddComponentMenu(scene, selected);
+		drawAddComponentMenu(scene, selected,device);
 
 		if (ImGui::IsAnyItemActive())
 			FaluEngine::SceneManager::get().markDirty();
@@ -276,6 +286,117 @@ namespace Editor
 			ImGui::Checkbox("Use Gravity", &rb.useGravity);
 
 			ImGui::TextDisabled("Registered: %s", rb.registered ? "Yes" : "No");
+		}
+	}
+
+	void InspectorPanel::drawTerrainComponent(FaluEngine::Scene* scene, entt::entity entity, ID3D11Device* device)
+	{
+		if (!drawComponentHeader<FaluEngine::TerrainComponent>("Terrain", scene, entity)) return;
+		{
+			FaluEngine::Entity e(entity, scene);
+			auto& terrain = scene->registry().get<FaluEngine::TerrainComponent>(entity);
+
+			bool changed = false;
+
+			int resX = static_cast<int>(terrain.resolutionX);
+			if (ImGui::DragInt("Resolution X", &resX, 1.0f, 2, 512))
+			{
+				terrain.resolutionX = static_cast<uint32_t>(resX);
+				changed = true;
+			}
+
+			int resZ = static_cast<int>(terrain.resolutionZ);
+			if (ImGui::DragInt("Resolution Z", &resZ, 1.0f, 2, 512))
+			{
+				terrain.resolutionZ = static_cast<uint32_t>(resZ);
+				changed = true;
+			}
+
+			if (terrain.resolutionX != terrain.resolutionZ)
+			{
+				ImGui::TextColored({ 1.0f,0.6f,0.2f,1.0f },
+					"HeightField requires a square grid. Will be clamped to %u on regenerate.",
+					(std::min)(terrain.resolutionX,terrain.resolutionZ)
+				);
+			}
+
+			changed |= ImGui::DragFloat("Size X", &terrain.sizeX, 0.5f, 1.0f, 10000.0f);
+			changed |= ImGui::DragFloat("Size Z", &terrain.sizeZ, 0.5f, 1.0f, 10000.0f);
+			changed |= ImGui::DragFloat("Height Scale", &terrain.heightScale, 0.1f, 0.0f, 1000.0f);
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Noise");
+
+			changed |= ImGui::DragFloat("Frequency", &terrain.noiseFrequency, 0.001f, 0.0001f, 1.0f, "%.4f");
+			changed |= ImGui::DragInt("Octaves", &terrain.octaves, 1.0f, 1, 8);
+			changed |= ImGui::DragFloat("Lacunarity", &terrain.lacunarity, 0.05f, 1.0f, 4.0f);
+			changed |= ImGui::DragFloat("Persistence", &terrain.persistence, 0.01f, 0.0f, 1.0f);
+
+			int seed = static_cast<int>(terrain.seed);
+			if (ImGui::DragInt("Seed", &seed, 1.0f, 0, INT32_MAX))
+			{
+				terrain.seed = static_cast<uint32_t>(seed);
+				changed = true;
+			}
+
+			ImGui::Separator();
+
+			ImGui::TextDisabled("Sculpt (SceneView)");
+
+			bool sculptEnabled = Editor::TerrainSculptTool::get().enabled &&
+				Editor::TerrainSculptTool::get().getTargetEntity() == entity;
+
+			if (ImGui::Checkbox("Sculpt Mode", &sculptEnabled))
+			{
+				if (sculptEnabled)
+				{
+					Editor::TerrainSculptTool::get().setTarget(scene, entity);
+					Editor::TerrainSculptTool::get().enabled = true;
+				}
+				else
+				{
+					Editor::TerrainSculptTool::get().clearTarget();
+				}
+			}
+
+			if (sculptEnabled)
+			{
+				auto& tool = Editor::TerrainSculptTool::get();
+
+				const char* brushModes[] = { "Raise","Lower","Flatten","Smooth" };
+				int brushMode = static_cast<int>(tool.mode);
+				if (ImGui::Combo("Brush Mode", &brushMode, brushModes, 4))
+				{
+					tool.mode = static_cast<Editor::BrushMode>(brushMode);
+				}
+
+				ImGui::DragFloat("Brush Radius", &tool.radius, 0.1f, 0.1f, 500.0f);
+				ImGui::DragFloat("Brush Strength", &tool.strength, 0.05f, 0.01f, 100.0f);
+
+				ImGui::TextDisabled("SceneView上でLMBドラッグで編集 / Shiftで反転(Raise/Lowerのみ)");
+
+				glm::vec3 hitPos;
+				if (tool.getLastHit(hitPos))
+				{
+					ImGui::TextDisabled("Cursor: (%.1f,%.1f,%.1f)", hitPos.x, hitPos.y, hitPos.z);
+				}
+			}
+
+			ImGui::Separator();
+
+			if (terrain.dirty)
+			{
+				ImGui::TextColored({ 1.0f,0.8f,0.2f,1.0f }, "Parameters changed - not regenated yet.");
+			}
+
+			float buttonWidth = ImGui::GetContentRegionAvail().x;
+			if (ImGui::Button("Regenerate", { buttonWidth,0 }))
+			{
+				FaluEngine::regenerateTerrain(*scene, e, device);
+				FaluEngine::SceneManager::get().markDirty();
+			}
+
+			ImGui::TextDisabled("Vertices: %u x %u", terrain.vertexCountX(), terrain.vertexCountZ());
 		}
 	}
 
@@ -771,7 +892,7 @@ namespace Editor
 
 	}
 
-	void InspectorPanel::drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity)
+	void InspectorPanel::drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity, ID3D11Device* device)
 	{
 		if (!ImGui::BeginPopup("AddComponent")) return;
 
@@ -898,6 +1019,22 @@ namespace Editor
 				}
 			}
 
+
+			ImGui::EndMenu();
+		}
+
+		//===== Terrain =====
+		if (ImGui::BeginMenu("Terrain"))
+		{
+			if (!scene->registry().all_of<FaluEngine::TerrainComponent>(entity))
+			{
+				if (ImGui::MenuItem("Terrain Field Component"))
+				{
+					FaluEngine::addTerrainComponents(*scene, e, FaluEngine::TerrainComponent{}, device);
+					FaluEngine::SceneManager::get().markDirty();
+				}
+
+			}
 			ImGui::EndMenu();
 		}
 
