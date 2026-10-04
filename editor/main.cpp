@@ -1,4 +1,4 @@
-#ifndef WIN32_LEAN_AND_MEAN
+Ôªø#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #ifndef NOMINMAX
@@ -8,6 +8,7 @@
 #include "FaluEngine/Application.h"
 #include "FaluEngine/ReplayRecorder.h"
 #include "FaluEngine/InputManager.h"
+#include "FaluEngine/Localization.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
@@ -26,7 +27,9 @@
 #include "panels/ContentBrowserPanel.h"
 #include "panels/GameViewPanel.h"
 #include "panels/LLMDebugPanel.h"
+#include "panels/AnimationEventPanel.h"
 #include "EditorSettings.h"
+#include "EditorLocalization.h"
 #include "platform/Window.h"
 #include "plugin/PluginManager.h"
 #include "tools/TerrainSculptTool.h"
@@ -114,6 +117,9 @@ public:
     void onInit()                  override 
     {
         ImGui::SetCurrentContext(static_cast<ImGuiContext*>(getImGuiLayer().getContext()));
+
+        Editor::EditorSettings::get().load();
+        Editor::initLocalization();
 
         getSceneManager().scanSceneFolder(
             std::filesystem::path(
@@ -231,18 +237,21 @@ public:
         std::wstring title = L"FaluEngine Editor";
         if (scene)
         {
-            std::string sceneName = scene->getName();
-            title += L" - " + std::wstring(sceneName.begin(), sceneName.end());
+            title += L" - " + FaluEngine::PathResolver::fromUtf8(scene->getName()).wstring();
             if (getSceneManager().isDirty()) title += L" *";
         }
-        m_window->setTitle(title);
+        if (title != m_lastWindowTitle)
+        {
+            m_window->setTitle(title);
+            m_lastWindowTitle = std::move(title);
+        }
 
         if (ImGui::BeginMainMenuBar())
         {
-            if (ImGui::BeginMenu("File"))
+            if (ImGui::BeginMenu(TR("File")))
             {
                 //====== Script Reload ======
-                if (ImGui::MenuItem("Reload Scripts"))
+                if (ImGui::MenuItem(TR("Reload Scripts")))
                 {
                     auto view = scene->registry().view<FaluEngine::NativeScriptComponent>();
                     for (auto entity : view)
@@ -269,7 +278,7 @@ public:
                         LOG_ERROR("Failed to reload GameCode.dll");
                 }
 
-                if (ImGui::MenuItem("New"))
+                if (ImGui::MenuItem(TR("New")))
                 {
                     if (getSceneManager().isDirty())
                         m_openUnsavedWarningPopup = true;
@@ -279,23 +288,23 @@ public:
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Save Scene", "Ctrl + S",false,
+                if (ImGui::MenuItem(TR("Save Scene"), "Ctrl + S",false,
                     FaluEngine::EditorStateManager::get().isEditing()))
                 {
                     m_requestSave = true;
                 }
 
                 ImGui::Separator();
-                if (ImGui::MenuItem("Exit")) quit();
+                if (ImGui::MenuItem(TR("Exit"))) quit();
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Scene")) {
-                if (ImGui::MenuItem("Create Entity") && scene)
+            if (ImGui::BeginMenu(TR("Scene"))) {
+                if (ImGui::MenuItem(TR("Create Entity")) && scene)
                     scene->createEntity("New Entity");
 
                 ImGui::Separator();
-                ImGui::TextDisabled("Switch Scene");
+                ImGui::TextDisabled(TR("Switch Scene"));
 
                 for (auto& name : getSceneManager().getSceneNames()) {
                     bool isActive = scene && scene->getName() == name;
@@ -312,6 +321,17 @@ public:
                         }
                     }
                 }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu(TR("Language")))
+            {
+                using FaluEngine::Loc::Language;
+                const Language current = FaluEngine::Loc::getLanguage();
+                if (ImGui::MenuItem("English", nullptr, current == Language::English) && current != Language::English)
+                    Editor::setLanguage(Language::English);
+                if (ImGui::MenuItem("Êó•Êú¨Ë™û", nullptr, current == Language::Japanese) && current != Language::Japanese)
+                    Editor::setLanguage(Language::Japanese);
                 ImGui::EndMenu();
             }
 
@@ -335,7 +355,7 @@ public:
                 
                 if (isEditing)
                 {
-                    if (ImGui::Button("Play"))
+                    if (ImGui::Button(TR("Play")))
                     {
                         auto* activeScene = getSceneManager().getActive();
                         if (activeScene)
@@ -353,7 +373,7 @@ public:
                 else
                 {
                     ImGui::BeginDisabled(true);
-                    ImGui::Button("Play");
+                    ImGui::Button(TR("Play"));
                     ImGui::EndDisabled();
                 }
 
@@ -361,7 +381,7 @@ public:
 
                 if (isPlaying)
                 {
-                    if (ImGui::Button("Pause"))
+                    if (ImGui::Button(TR("Pause")))
                     {
                         stateManager.pause();
                         if (m_replayRecorder)
@@ -373,7 +393,7 @@ public:
                 }
                 else if (isPaused)
                 {
-                    if (ImGui::Button("Resume"))
+                    if (ImGui::Button(TR("Resume")))
                     {
                         auto* activeScene = getSceneManager().getActive();
                         if (m_replayRecorder && activeScene)
@@ -388,7 +408,7 @@ public:
                 else
                 {
                     ImGui::BeginDisabled(true);
-                    ImGui::Button("Pause");
+                    ImGui::Button(TR("Pause"));
                     ImGui::EndDisabled();
                 }
 
@@ -396,7 +416,7 @@ public:
 
                 if (!isEditing)
                 {
-                    if (ImGui::Button("Stop"))
+                    if (ImGui::Button(TR("Stop")))
                     {
                         m_scrubbing = false;
                         auto* activeScene = getSceneManager().getActive();
@@ -406,7 +426,7 @@ public:
                 else
                 {
                     ImGui::BeginDisabled(true);
-                    ImGui::Button("Stop");
+                    ImGui::Button(TR("Stop"));
                     ImGui::EndDisabled();
                 }
 
@@ -447,7 +467,7 @@ public:
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(240.0f);
                     int frame = static_cast<int>(m_scrubTargetFrame);
-                    if (ImGui::SliderInt("Replay", &frame, static_cast<int>(lo), static_cast<int>(hi)))
+                    if (ImGui::SliderInt(TR("Replay"), &frame, static_cast<int>(lo), static_cast<int>(hi)))
                     {
                         m_scrubbing = true;
                         m_scrubTargetFrame = static_cast<uint64_t>(frame);
@@ -495,28 +515,28 @@ public:
         if (ImGui::BeginPopup("NewSceneName"))
         {
             static char nameBuf[128] = "NewScene";
-            ImGui::InputText("Scene Name", nameBuf, sizeof(nameBuf));
-            if (ImGui::Button("Create"))
+            ImGui::InputText(TR("Scene Name"), nameBuf, sizeof(nameBuf));
+            if (ImGui::Button(TR("Create")))
             {
                 m_hierarchy.clearSelected();
                 getSceneManager().createNewScene(nameBuf);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Cancel"))
+            if (ImGui::Button(TR("Cancel")))
                 ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
         }
 
-        if (m_openUnsavedWarningPopup) { ImGui::OpenPopup("Unsaved Changes"); m_openUnsavedWarningPopup = false; }
-        if (ImGui::BeginPopupModal("Unsaved Changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        if (m_openUnsavedWarningPopup) { ImGui::OpenPopup(TR("Unsaved Changes")); m_openUnsavedWarningPopup = false; }
+        if (ImGui::BeginPopupModal(TR("Unsaved Changes"), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text("You have unsaved changes. Continue without saving?");
-            if (ImGui::Button("Save & Continue")) { saveCurrentScene(); m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
+            ImGui::Text(TR("You have unsaved changes. Continue without saving?"));
+            if (ImGui::Button(TR("Save & Continue"))) { saveCurrentScene(); m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
             ImGui::SameLine();
-            if (ImGui::Button("Discard")) { m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
+            if (ImGui::Button(TR("Discard"))) { m_openNewScenePopup = true; ImGui::CloseCurrentPopup(); }
             ImGui::SameLine();
-            if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
+            if (ImGui::Button(TR("Cancel"))) { ImGui::CloseCurrentPopup(); }
             ImGui::EndPopup();
         }
 
@@ -631,13 +651,16 @@ public:
             renderer ? renderer->getGameRenderTexture() : nullptr
         );
 
+        m_animEventPanel.draw(scene, m_hierarchy.getSelected());
+
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
         if (scene)
         {
-            ImGui::Text("Entities: %u", scene->entityCount());
-            ImGui::Text("Scene: %s", scene->getName().c_str());
+            ImGui::Text(TR("Entities: %u"), scene->entityCount());
+            ImGui::Text(TR("Scene: %s"), scene->getName().c_str());
         }
+        ImGui::Text("GPU: '{}'", renderer->getAdapterName());
         ImGui::End();
 
         saveCurrentScene();
@@ -648,6 +671,8 @@ public:
     }
 
 private:
+    std::wstring m_lastWindowTitle;
+
     void saveCurrentScene()
     {
         if (!m_requestSave) return;
@@ -682,6 +707,7 @@ private:
     Editor::ContentBrowserPanel m_contentBrowser;
     Editor::GameViewPanel m_gameView;
     Editor::LLMDebugPanel m_llmDebugPanel;
+    Editor::AnimationEventPanel m_animEventPanel;
     FaluEngine::Camera m_editorCamera;
 
     bool m_openNewScenePopup = false;
@@ -693,7 +719,7 @@ private:
 
 int main()
 {
-    // ÉäÅ[ÉNÉ`ÉFÉbÉN
+    // „É™„Éº„ÇØ„ÉÅ„Çß„ÉÉ„ÇØ
 #if defined(_DEBUG)
 #include <crtdbg.h>
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);

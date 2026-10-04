@@ -1,7 +1,8 @@
-#include "InspectorPanel.h"
+Ôªø#include "InspectorPanel.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
+#include "FaluEngine/Localization.h"
 #include "scene/SceneManager.h"
 #include "asset/loaders/MaterialLoader.h"
 #include "asset/loaders/AnimationCache.h"
@@ -27,7 +28,7 @@ namespace Editor
 
 		if (!scene || selected == entt::null)
 		{
-			ImGui::TextDisabled("no entity selected");
+			ImGui::TextDisabled(TR("no entity selected"));
 			ImGui::End();
 			return;
 		}
@@ -50,7 +51,7 @@ namespace Editor
 		char catbuf[128];
 		strncpy_s(catbuf, tag.category.c_str(), sizeof(catbuf));
 		ImGui::SetNextItemWidth(150.0f);
-		if (ImGui::InputText("Category (Tag)", catbuf, sizeof(catbuf)))
+		if (ImGui::InputText(TR("Category (Tag)"), catbuf, sizeof(catbuf)))
 			tag.category = catbuf;
 
 		ImGui::Separator();
@@ -78,7 +79,7 @@ namespace Editor
 		ImGui::Spacing();
 
 		float buttonWidth = ImGui::GetContentRegionAvail().x;
-		if (ImGui::Button("Add Component", { buttonWidth ,0 }))
+		if (ImGui::Button(TR("Add Component"), { buttonWidth ,0 }))
 			ImGui::OpenPopup("AddComponent");
 
 		drawAddComponentMenu(scene, selected,device);
@@ -98,16 +99,16 @@ namespace Editor
 
 			auto& t = scene->registry().get<FaluEngine::TransformComponent>(entity);
 
-			ImGui::DragFloat3("Position", glm::value_ptr(t.position), 0.1f);
+			ImGui::DragFloat3(TR("Position"), glm::value_ptr(t.position), 0.1f);
 
 			
 			glm::vec3 eular = t.rotationEulerHint;
-			if (ImGui::DragFloat3("Rotation", glm::value_ptr(eular), 0.5f))
+			if (ImGui::DragFloat3(TR("Rotation"), glm::value_ptr(eular), 0.5f))
 			{
 				t.setRotationEuler(eular);
 			}
 
-			ImGui::DragFloat3("Scale", glm::value_ptr(t.scale), 0.01f, 0.001f, 100.0f);
+			ImGui::DragFloat3(TR("Scale"), glm::value_ptr(t.scale), 0.01f, 0.001f, 100.0f);
 		}
 	}
 
@@ -119,10 +120,10 @@ namespace Editor
 
 			//==== Mesh Path ====
 
-			ImGui::Text("Mesh Path");
+			ImGui::Text(TR("Mesh Path"));
 			ImGui::SameLine();
 
-			// ÉtÉ@ÉCÉãÇÃë∂ç›ÇämîF
+			// „Éï„Ç°„Ç§„É´„ÅÆÂ≠òÂú®„ÇíÁ¢∫Ë™ç
 			bool meshExists = std::filesystem::exists(
 				FaluEngine::PathResolver::resolve(m.meshPath));
 			bool showError = !meshExists && !m.meshPath.empty();
@@ -138,7 +139,7 @@ namespace Editor
 				ImGuiInputTextFlags_EnterReturnsTrue))
 			{
 				m.meshPath = meshBuf;
-				m.cachedMesh = nullptr;// ÉLÉÉÉbÉVÉÖÇÉäÉZÉbÉg
+				m.cachedMesh = nullptr;// „Ç≠„É£„ÉÉ„Ç∑„É•„Çí„É™„Çª„ÉÉ„Éà
 			}
 
 			if (showError)
@@ -164,7 +165,7 @@ namespace Editor
 						m.meshPath = assetPath;
 						m.cachedMesh = nullptr;
 
-						// AnimationïtÇ´ÇÃÉÇÉfÉãÇÃèÍçáAnimatorÇé©ìÆí«â¡
+						// Animation‰ªò„Åç„ÅÆ„É¢„Éá„É´„ÅÆÂ†¥ÂêàAnimator„ÇíËá™ÂãïËøΩÂä†
 						auto& clips = FaluEngine::AnimationCache::get().getAnimations(m.meshPath);
 						if (!clips.empty())
 						{
@@ -183,7 +184,7 @@ namespace Editor
 			}
 
 			//====== Material Path =======
-			ImGui::Text("Material Path");
+			ImGui::Text(TR("Material Path"));
 			ImGui::SameLine();
 			char matBuf[512];
 			strncpy_s(matBuf, m.materialPath.c_str(), sizeof(matBuf));
@@ -225,7 +226,7 @@ namespace Editor
 					m.cachedMesh->subMeshes.size());
 			}
 
-			ImGui::Checkbox("Visible", &m.visible);
+			ImGui::Checkbox(TR("Visible"), &m.visible);
 
 			if (m.cachedMaterial && m.cachedMaterial->valid)
 			{
@@ -241,15 +242,15 @@ namespace Editor
 			auto& cam = scene->registry().get<FaluEngine::CameraComponent>(entity);
 
 			float fov = cam.camera.getFovDeg();
-			if (ImGui::DragFloat("FOV", &fov, 0.5f, 10.0f, 170.0f))
+			if (ImGui::DragFloat(TR("FOV"), &fov, 0.5f, 10.0f, 170.0f))
 				cam.camera.setPerspective(fov, cam.camera.getAspectRatio(),
 					cam.camera.getNearClip(), cam.camera.getFarClip());
 
 			float nearClip = cam.camera.getNearClip();
 			float farClip = cam.camera.getFarClip();
-			if (ImGui::DragFloat("Near Clip", &nearClip, 0.01f, 0.001f, 10.0f))
+			if (ImGui::DragFloat(TR("Near Clip"), &nearClip, 0.01f, 0.001f, 10.0f))
 				cam.camera.setPerspective(fov, cam.camera.getAspectRatio(), nearClip, farClip);
-			if (ImGui::DragFloat("Far Clip", &farClip, 1.0f, 10.0f, 10000.0f))
+			if (ImGui::DragFloat(TR("Far Clip"), &farClip, 1.0f, 10.0f, 10000.0f))
 				cam.camera.setPerspective(fov, cam.camera.getAspectRatio(), nearClip, farClip);
 
 			ImGui::Checkbox("Primary", &cam.isPrimary);
@@ -269,23 +270,23 @@ namespace Editor
 
 			const char* shapes[] = { "Box","Sphere","Capsule" };
 			int shape = static_cast<int>(rb.shape);
-			if (ImGui::Combo("Shape", &shape, shapes, 3))
+			if (ImGui::Combo(TR("Shape"), &shape, shapes, 3))
 				rb.shape = static_cast<FaluEngine::ColliderShape>(shape);
 
 			if (rb.shape == FaluEngine::ColliderShape::Box)
-				ImGui::DragFloat3("half Extents", glm::value_ptr(rb.halfExtents),0.01f,0.01f,100.0f);
+				ImGui::DragFloat3(TR("half Extents"), glm::value_ptr(rb.halfExtents),0.01f,0.01f,100.0f);
 			if (rb.shape == FaluEngine::ColliderShape::Sphere || 
 				rb.shape == FaluEngine::ColliderShape::Capsule)
-				ImGui::DragFloat("Radius", &rb.radius, 0.01f, 0.01f, 100.0f);
+				ImGui::DragFloat(TR("Radius"), &rb.radius, 0.01f, 0.01f, 100.0f);
 			if (rb.shape == FaluEngine::ColliderShape::Capsule)
-				ImGui::DragFloat("Height", &rb.height, 0.01f, 0.01f, 100.0f);
+				ImGui::DragFloat(TR("Height"), &rb.height, 0.01f, 0.01f, 100.0f);
 
-			ImGui::DragFloat("Mass", &rb.mass, 0.1f, 0.01f, 1000.0f);
-			ImGui::DragFloat("Restitution", &rb.restitution, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Friction", &rb.friction, 0.01f, 0.0f, 1.0f);
-			ImGui::Checkbox("Use Gravity", &rb.useGravity);
+			ImGui::DragFloat(TR("Mass"), &rb.mass, 0.1f, 0.01f, 1000.0f);
+			ImGui::DragFloat(TR("Restitution"), &rb.restitution, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat(TR("Friction"), &rb.friction, 0.01f, 0.0f, 1.0f);
+			ImGui::Checkbox(TR("Use Gravity"), &rb.useGravity);
 
-			ImGui::TextDisabled("Registered: %s", rb.registered ? "Yes" : "No");
+			ImGui::TextDisabled(TR("Registered: %s"), rb.registered ? "Yes" : "No");
 		}
 	}
 
@@ -299,14 +300,14 @@ namespace Editor
 			bool changed = false;
 
 			int resX = static_cast<int>(terrain.resolutionX);
-			if (ImGui::DragInt("Resolution X", &resX, 1.0f, 2, 512))
+			if (ImGui::DragInt(TR("Resolution X"), &resX, 1.0f, 2, 512))
 			{
 				terrain.resolutionX = static_cast<uint32_t>(resX);
 				changed = true;
 			}
 
 			int resZ = static_cast<int>(terrain.resolutionZ);
-			if (ImGui::DragInt("Resolution Z", &resZ, 1.0f, 2, 512))
+			if (ImGui::DragInt(TR("Resolution Z"), &resZ, 1.0f, 2, 512))
 			{
 				terrain.resolutionZ = static_cast<uint32_t>(resZ);
 				changed = true;
@@ -320,17 +321,17 @@ namespace Editor
 				);
 			}
 
-			changed |= ImGui::DragFloat("Size X", &terrain.sizeX, 0.5f, 1.0f, 10000.0f);
-			changed |= ImGui::DragFloat("Size Z", &terrain.sizeZ, 0.5f, 1.0f, 10000.0f);
-			changed |= ImGui::DragFloat("Height Scale", &terrain.heightScale, 0.1f, 0.0f, 1000.0f);
+			changed |= ImGui::DragFloat(TR("Size X"), &terrain.sizeX, 0.5f, 1.0f, 10000.0f);
+			changed |= ImGui::DragFloat(TR("Size Z"), &terrain.sizeZ, 0.5f, 1.0f, 10000.0f);
+			changed |= ImGui::DragFloat(TR("Height Scale"), &terrain.heightScale, 0.1f, 0.0f, 1000.0f);
 
 			ImGui::Separator();
-			ImGui::TextDisabled("Noise");
+			ImGui::TextDisabled(TR("Noise"));
 
-			changed |= ImGui::DragFloat("Frequency", &terrain.noiseFrequency, 0.001f, 0.0001f, 1.0f, "%.4f");
-			changed |= ImGui::DragInt("Octaves", &terrain.octaves, 1.0f, 1, 8);
-			changed |= ImGui::DragFloat("Lacunarity", &terrain.lacunarity, 0.05f, 1.0f, 4.0f);
-			changed |= ImGui::DragFloat("Persistence", &terrain.persistence, 0.01f, 0.0f, 1.0f);
+			changed |= ImGui::DragFloat(TR("Frequency"), &terrain.noiseFrequency, 0.001f, 0.0001f, 1.0f, "%.4f");
+			changed |= ImGui::DragInt(TR("Octaves"), &terrain.octaves, 1.0f, 1, 8);
+			changed |= ImGui::DragFloat(TR("Lacunarity"), &terrain.lacunarity, 0.05f, 1.0f, 4.0f);
+			changed |= ImGui::DragFloat(TR("Persistence"), &terrain.persistence, 0.01f, 0.0f, 1.0f);
 
 			int seed = static_cast<int>(terrain.seed);
 			if (ImGui::DragInt("Seed", &seed, 1.0f, 0, INT32_MAX))
@@ -341,12 +342,12 @@ namespace Editor
 
 			ImGui::Separator();
 
-			ImGui::TextDisabled("Sculpt (SceneView)");
+			ImGui::TextDisabled(TR("Sculpt (SceneView)"));
 
 			bool sculptEnabled = Editor::TerrainSculptTool::get().enabled &&
 				Editor::TerrainSculptTool::get().getTargetEntity() == entity;
 
-			if (ImGui::Checkbox("Sculpt Mode", &sculptEnabled))
+			if (ImGui::Checkbox(TR("Sculpt Mode"), &sculptEnabled))
 			{
 				if (sculptEnabled)
 				{
@@ -365,20 +366,20 @@ namespace Editor
 
 				const char* brushModes[] = { "Raise","Lower","Flatten","Smooth" };
 				int brushMode = static_cast<int>(tool.mode);
-				if (ImGui::Combo("Brush Mode", &brushMode, brushModes, 4))
+				if (ImGui::Combo(TR("Brush Mode"), &brushMode, brushModes, 4))
 				{
 					tool.mode = static_cast<Editor::BrushMode>(brushMode);
 				}
 
-				ImGui::DragFloat("Brush Radius", &tool.radius, 0.1f, 0.1f, 500.0f);
-				ImGui::DragFloat("Brush Strength", &tool.strength, 0.05f, 0.01f, 100.0f);
+				ImGui::DragFloat(TR("Brush Radius"), &tool.radius, 0.1f, 0.1f, 500.0f);
+				ImGui::DragFloat(TR("Brush Strength"), &tool.strength, 0.05f, 0.01f, 100.0f);
 
-				ImGui::TextDisabled("SceneViewè„Ç≈LMBÉhÉâÉbÉOÇ≈ï“èW / ShiftÇ≈îΩì](Raise/LowerÇÃÇ›)");
+				ImGui::TextDisabled(TR("SceneView‰∏ä„ÅßLMB„Éâ„É©„ÉÉ„Ç∞„ÅßÁ∑®ÈõÜ / Shift„ÅßÂèçËª¢(Raise/Lower„ÅÆ„Åø)"));
 
 				glm::vec3 hitPos;
 				if (tool.getLastHit(hitPos))
 				{
-					ImGui::TextDisabled("Cursor: (%.1f,%.1f,%.1f)", hitPos.x, hitPos.y, hitPos.z);
+					ImGui::TextDisabled(TR("Cursor: (%.1f,%.1f,%.1f)"), hitPos.x, hitPos.y, hitPos.z);
 				}
 			}
 
@@ -390,13 +391,13 @@ namespace Editor
 			}
 
 			float buttonWidth = ImGui::GetContentRegionAvail().x;
-			if (ImGui::Button("Regenerate", { buttonWidth,0 }))
+			if (ImGui::Button(TR("Regenerate"), { buttonWidth,0 }))
 			{
 				FaluEngine::regenerateTerrain(*scene, e, device);
 				FaluEngine::SceneManager::get().markDirty();
 			}
 
-			ImGui::TextDisabled("Vertices: %u x %u", terrain.vertexCountX(), terrain.vertexCountZ());
+			ImGui::TextDisabled(TR("Vertices: %u x %u"), terrain.vertexCountX(), terrain.vertexCountZ());
 		}
 	}
 
@@ -405,8 +406,8 @@ namespace Editor
 		if (!drawComponentHeader<FaluEngine::ScriptComponent>("Script", scene, entity)) return;
 		{
 			auto& sc = scene->registry().get<FaluEngine::ScriptComponent>(entity);
-			ImGui::Text("Script: %s", sc.scriptPath.empty() ? "(none)" : sc.scriptPath.c_str());
-			ImGui::TextDisabled("Initialized: %s", sc.scriptPath.empty() ? "No" : (sc.instance ? "Yes" : "No"));
+			ImGui::Text(TR("Script: %s"), sc.scriptPath.empty() ? "(none)" : sc.scriptPath.c_str());
+			ImGui::TextDisabled(TR("Initialized: %s"), sc.scriptPath.empty() ? "No" : (sc.instance ? "Yes" : "No"));
 		}
 	}
 
@@ -418,7 +419,7 @@ namespace Editor
 		auto names = FaluEngine::NativeScriptRegistry::get().getRegisteredNames();
 		std::string current = nsc.scriptName.empty() ? "(None)" : nsc.scriptName;
 
-		if (ImGui::BeginCombo("Script", current.c_str()))
+		if (ImGui::BeginCombo(TR("Script"), current.c_str()))
 		{
 			for (auto& name : names)
 			{
@@ -443,31 +444,31 @@ namespace Editor
 
 			const char* types[] = { "Directional","Point","Spot" };
 			int type = static_cast<int>(lc.type);
-			if (ImGui::Combo("Type", &type, types, 3))
+			if (ImGui::Combo(TR("Type"), &type, types, 3))
 				lc.type = static_cast<FaluEngine::LightType>(type);
 
-			ImGui::ColorEdit3("Color", glm::value_ptr(lc.color));
-			ImGui::DragFloat("Intensity", &lc.intensity, 0.01f, 0.0f, 100.0f);
+			ImGui::ColorEdit3(TR("Color"), glm::value_ptr(lc.color));
+			ImGui::DragFloat(TR("Intensity"), &lc.intensity, 0.01f, 0.0f, 100.0f);
 
 			if (lc.type != FaluEngine::LightType::Directional)
-				ImGui::DragFloat("Range", &lc.range, 0.1f, 0.0f, 1000.0f);
+				ImGui::DragFloat(TR("Range"), &lc.range, 0.1f, 0.0f, 1000.0f);
 
 			if (lc.type == FaluEngine::LightType::Spot)
 			{
-				ImGui::DragFloat("Inner Angle", &lc.spotInner, 0.5f, 0.0f, 90.0f);
-				ImGui::DragFloat("Outer Angle", &lc.spotOuter, 0.5f, 0.0f, 90.0f);
+				ImGui::DragFloat(TR("Inner Angle"), &lc.spotInner, 0.5f, 0.0f, 90.0f);
+				ImGui::DragFloat(TR("Outer Angle"), &lc.spotOuter, 0.5f, 0.0f, 90.0f);
 			}
 
 			ImGui::Checkbox("Enabled", &lc.enable);
 
 			ImGui::Separator();
-			ImGui::Text("Shadow");
-			ImGui::Checkbox("Cast Shadow", &lc.castShadow);
+			ImGui::Text(TR("Shadow"));
+			ImGui::Checkbox(TR("Cast Shadow"), &lc.castShadow);
 			if (lc.castShadow)
 			{
-				ImGui::Checkbox("Soft Shadow", &lc.softShadow);
-				ImGui::DragFloat("Bias", &lc.shadowBias, 0.0001f, 0.0f, 0.1f, "%.4f");
-				ImGui::DragFloat("PCF Radius", &lc.pcfRadius, 0.1f, 0.0f, 5.0f);
+				ImGui::Checkbox(TR("Soft Shadow"), &lc.softShadow);
+				ImGui::DragFloat(TR("Bias"), &lc.shadowBias, 0.0001f, 0.0f, 0.1f, "%.4f");
+				ImGui::DragFloat(TR("PCF Radius"), &lc.pcfRadius, 0.1f, 0.0f, 5.0f);
 			}
 		}
 	}
@@ -478,7 +479,7 @@ namespace Editor
 		{
 			auto& sky = scene->registry().get<FaluEngine::SkySphereComponent>(entity);
 
-			ImGui::Text("Texture");
+			ImGui::Text(TR("Texture"));
 			ImGui::SameLine();
 			char buf[512];
 			strncpy_s(buf, sky.texturePath.c_str(), sizeof(buf));
@@ -507,12 +508,12 @@ namespace Editor
 			}
 
 			ImGui::Separator();
-			ImGui::Text("Gradient (used when no texture)");
-			ImGui::ColorEdit4("Top", glm::value_ptr(sky.topColor));
-			ImGui::ColorEdit4("Horizon", glm::value_ptr(sky.horizonColor));
-			ImGui::ColorEdit4("Bottom", glm::value_ptr(sky.bottomColor));
-			ImGui::DragFloat("Exposure", &sky.exposure, 0.01f, 0.0f, 10.0f);
-			ImGui::Checkbox("Enabled", &sky.enabled);
+			ImGui::Text(TR("Gradient (used when no texture)"));
+			ImGui::ColorEdit4(TR("Top"), glm::value_ptr(sky.topColor));
+			ImGui::ColorEdit4(TR("Horizon"), glm::value_ptr(sky.horizonColor));
+			ImGui::ColorEdit4(TR("Bottom"), glm::value_ptr(sky.bottomColor));
+			ImGui::DragFloat(TR("Exposure"), &sky.exposure, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox(TR("Enabled"), &sky.enabled);
 		}
 	}
 
@@ -524,7 +525,7 @@ namespace Editor
 		{
 			char buf[512];
 			strncpy_s(buf, src.clipPath.c_str(), sizeof(buf));
-			if (ImGui::InputText("Clip Path", buf, sizeof(buf)))
+			if (ImGui::InputText(TR("Clip Path"), buf, sizeof(buf)))
 			{
 				src.clipPath = buf;
 			}
@@ -547,11 +548,11 @@ namespace Editor
 				ImGui::EndDragDropTarget();
 			}
 
-			ImGui::SliderFloat("Volume", &src.volume, 0.0f, 1.0f);
-			ImGui::Checkbox("Loop", &src.loop);
-			ImGui::Checkbox("Play On Awake", &src.playOnAwake);
+			ImGui::SliderFloat(TR("Volume"), &src.volume, 0.0f, 1.0f);
+			ImGui::Checkbox(TR("Loop"), &src.loop);
+			ImGui::Checkbox(TR("Play On Awake"), &src.playOnAwake);
 
-			if (ImGui::Button("Play (Preview)"))
+			if (ImGui::Button(TR("Play (Preview)")))
 			{
 				FaluEngine::AudioEngine::get().play(
 					src.clipPath, src.volume, false
@@ -576,18 +577,18 @@ namespace Editor
 		auto& rt = scene->registry().get<FaluEngine::RectTransformComponent>(entity);
 		if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::DragFloat2("Anchor Min", &rt.anchorMin.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat2("Anchor Max", &rt.anchorMax.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat2("Anchored Position", &rt.anchoredPos.x, 1.0f);
-			ImGui::DragFloat2("Size Delta", &rt.sizeDelta.x, 1.0f, 0.0f, 8192.0f);
-			ImGui::DragFloat2("Pivot", &rt.pivot.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Rotation", &rt.rotation, 0.5f);
-			ImGui::DragFloat2("Scale", &rt.scale.x, 0.01f);
+			ImGui::DragFloat2(TR("Anchor Min"), &rt.anchorMin.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat2(TR("Anchor Max"), &rt.anchorMax.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat2(TR("Anchored Position"), &rt.anchoredPos.x, 1.0f);
+			ImGui::DragFloat2(TR("Size Delta"), &rt.sizeDelta.x, 1.0f, 0.0f, 8192.0f);
+			ImGui::DragFloat2(TR("Pivot"), &rt.pivot.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat(TR("Rotation"), &rt.rotation, 0.5f);
+			ImGui::DragFloat2(TR("Scale"), &rt.scale.x, 0.01f);
 
 			ImGui::Separator();
-			ImGui::TextDisabled("Computed Position: (%.1f, %.1f)",
+			ImGui::TextDisabled(TR("Computed Position: (%.1f, %.1f)"),
 				rt.computedPosition.x, rt.computedPosition.y);
-			ImGui::TextDisabled("Computed Size: (%.1f, %.1f)",
+			ImGui::TextDisabled(TR("Computed Size: (%.1f, %.1f)"),
 				rt.computedSize.x, rt.computedSize.y);
 		}
 	}
@@ -599,19 +600,19 @@ namespace Editor
 		{
 			const char* modes[] = { "Screen Space - Overlay","World Space" };
 			int currentMode = static_cast<int>(canvas.renderMode);
-			if (ImGui::Combo("Render Mode", &currentMode, modes,2))
+			if (ImGui::Combo(TR("Render Mode"), &currentMode, modes, 2))
 			{
 				canvas.renderMode = static_cast<FaluEngine::CanvasRenderMode>(currentMode);
 			}
 
 			if (canvas.renderMode == FaluEngine::CanvasRenderMode::WorldSpace)
 			{
-				ImGui::TextColored({ 1.0f,0.7f,0.2f,1.0f }, "World Space is not implemented yet.");// <--ñ¢é¿ëïÉÅÉbÉZÅ[ÉW
+				ImGui::TextColored({ 1.0f,0.7f,0.2f,1.0f }, "World Space is not implemented yet.");// <--Êú™ÂÆüË£Ö„É°„ÉÉ„Çª„Éº„Ç∏
 			}
 
-			ImGui::DragFloat2("Reference Resolution", &canvas.referenceResolution.x, 1.0f, 1.0f, 8192.0f);
-			ImGui::DragInt("Sort Order", &canvas.sortOrder);
-			ImGui::Checkbox("Enabled", &canvas.enabled);
+			ImGui::DragFloat2(TR("Reference Resolution"), &canvas.referenceResolution.x, 1.0f, 1.0f, 8192.0f);
+			ImGui::DragInt(TR("Sort Order"), &canvas.sortOrder);
+			ImGui::Checkbox(TR("Enabled"), &canvas.enabled);
 		}
 	}
 
@@ -623,7 +624,7 @@ namespace Editor
 		{
 			char buf[512];
 			strncpy_s(buf, img.texturePath.c_str(), sizeof(buf));
-			if (ImGui::InputText("Texture Path", buf, sizeof(buf)))
+			if (ImGui::InputText(TR("Texture Path"), buf, sizeof(buf)))
 			{
 				img.texturePath = buf;
 				img.cachedTexture = nullptr;
@@ -656,8 +657,8 @@ namespace Editor
 				ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not found");
 			}
 
-			ImGui::ColorEdit4("Color", &img.color.x);
-			ImGui::Checkbox("Visible", &img.visible);
+			ImGui::ColorEdit4(TR("Color"), &img.color.x);
+			ImGui::Checkbox(TR("Visible"), &img.visible);
 		}
 	}
 
@@ -667,14 +668,14 @@ namespace Editor
 
 		auto& btn = scene->registry().get<FaluEngine::ButtonComponent>(entity);
 		{
-			ImGui::Checkbox("Interactable", &btn.interactable);
-			ImGui::ColorEdit4("Normal Color", &btn.normalColor.x);
-			ImGui::ColorEdit4("Hovered Color", &btn.hoveredColor.x);
-			ImGui::ColorEdit4("Pressed Color", &btn.pressedColor.x);
+			ImGui::Checkbox(TR("Interactable"), &btn.interactable);
+			ImGui::ColorEdit4(TR("Normal Color"), &btn.normalColor.x);
+			ImGui::ColorEdit4(TR("Hovered Color"), &btn.hoveredColor.x);
+			ImGui::ColorEdit4(TR("Pressed Color"), &btn.pressedColor.x);
 
 			ImGui::Separator();
-			ImGui::TextDisabled("Hovered: %s", btn.isHovered ? "true" : "false");
-			ImGui::TextDisabled("Pressed: %s", btn.isPressed ? "true" : "false");
+			ImGui::TextDisabled(TR("Hovered: %s"), btn.isHovered ? "true" : "false");
+			ImGui::TextDisabled(TR("Pressed: %s"), btn.isPressed ? "true" : "false");
 		}
 	}
 
@@ -688,11 +689,11 @@ namespace Editor
 			bool changed = false;
 
 			//=== Albedo ====
-			ImGui::Text("Albedo Color");
+			ImGui::Text(TR("Albedo Color"));
 			if (ImGui::ColorEdit4("##Albedo", glm::value_ptr(material->albedoColor)))
 				changed = true;
 
-			ImGui::Text("Albedo Map");
+			ImGui::Text(TR("Albedo Map"));
 			ImGui::SameLine();
 			char albedoBuf[512];
 			strncpy_s(albedoBuf, material->albedoMapPath.c_str(), sizeof(albedoBuf));
@@ -718,10 +719,10 @@ namespace Editor
 			ImGui::Separator();
 
 			//=== Metallic / Roughness ====
-			if (ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f)) changed = true;
-			if (ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f)) changed = true;
+			if (ImGui::SliderFloat(TR("Metallic"), &material->metallic, 0.0f, 1.0f)) changed = true;
+			if (ImGui::SliderFloat(TR("Roughness"), &material->roughness, 0.0f, 1.0f)) changed = true;
 
-			ImGui::Text("Metallic/Roughness Map (R=Metal,G=Rough)");
+			ImGui::Text(TR("Metallic/Roughness Map (R=Metal,G=Rough)"));
 			ImGui::SameLine();
 			char metalBuf[512];
 			strncpy_s(metalBuf, material->metallicMapPath.c_str(), sizeof(metalBuf));
@@ -746,7 +747,7 @@ namespace Editor
 			ImGui::Separator();
 
 			//==== Normal Map =====
-			ImGui::Text("Normal Map");
+			ImGui::Text(TR("Normal Map"));
 			ImGui::SameLine();
 			char normalBuf[512];
 			strncpy_s(normalBuf, material->normalMapPath.c_str(), sizeof(normalBuf));
@@ -770,7 +771,7 @@ namespace Editor
 			}
 
 			//==== AO Map =====
-			ImGui::Text("AO Map");
+			ImGui::Text(TR("AO Map"));
 			ImGui::SameLine();
 			char aoBuf[512];
 			strncpy_s(aoBuf, material->aoMapPath.c_str(), sizeof(aoBuf));
@@ -796,12 +797,12 @@ namespace Editor
 			ImGui::Separator();
 
 			//==== Emissive =====
-			if (ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material->emissiveColor)))
+			if (ImGui::ColorEdit3(TR("Emissive Color"), glm::value_ptr(material->emissiveColor)))
 				changed = true;
-			if (ImGui::DragFloat("Emissive Strength", &material->emissiveStrength, 0.01f, 0.0f, 50.0f))
+			if (ImGui::DragFloat(TR("Emissive Strength"), &material->emissiveStrength, 0.01f, 0.0f, 50.0f))
 				changed = true;
 
-			ImGui::Text("Emissive Map");
+			ImGui::Text(TR("Emissive Map"));
 			ImGui::SameLine();
 			char emissiveBuf[512];
 			strncpy_s(emissiveBuf, material->emissiveMapPath.c_str(), sizeof(emissiveBuf));
@@ -826,7 +827,7 @@ namespace Editor
 			ImGui::Separator();
 
 			//=== Custom Shader ====
-			ImGui::Text("Vertex Shader (optional)");
+			ImGui::Text(TR("Vertex Shader (optional)"));
 			ImGui::SameLine();
 			char vsBuf[512];
 			strncpy_s(vsBuf, material->vertexShaderPath.c_str(), sizeof(vsBuf));
@@ -849,7 +850,7 @@ namespace Editor
 				ImGui::EndDragDropTarget();
 			}
 
-			ImGui::Text("Pixel Shader (optional)");
+			ImGui::Text(TR("Pixel Shader (optional)"));
 			ImGui::SameLine();
 			char psBuf[512];
 			strncpy_s(psBuf, material->pixelShaderPath.c_str(), sizeof(psBuf));
@@ -874,7 +875,7 @@ namespace Editor
 
 			//=== Save Button =====
 			ImGui::Spacing();
-			if (ImGui::Button("Save Material", { -1,0 }))
+			if (ImGui::Button(TR("Save Material"), { -1,0 }))
 			{
 				if (!materialPath.empty())
 				{
@@ -900,11 +901,11 @@ namespace Editor
 
 
 		//====== Rendering ======
-		if (ImGui::BeginMenu("Rendering"))
+		if (ImGui::BeginMenu(TR("Rendering")))
 		{
 			if(!scene->registry().all_of<FaluEngine::MeshComponent>(entity))
 			{ 
-				if (ImGui::MenuItem("Mesh Component"))
+				if (ImGui::MenuItem(TR("Mesh Component")))
 				{
 					if (e.hasComponent<FaluEngine::CanvasComponent>() ||
 						e.hasComponent<FaluEngine::RectTransformComponent>())
@@ -921,7 +922,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::CameraComponent>(entity))
 			{
-				if (ImGui::MenuItem("Camera Component"))
+				if (ImGui::MenuItem(TR("Camera Component")))
 				{
 					e.addComponent<FaluEngine::CameraComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -930,7 +931,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::LightComponent>(entity))
 			{
-				if (ImGui::MenuItem("Light Component"))
+				if (ImGui::MenuItem(TR("Light Component")))
 				{
 					e.addComponent<FaluEngine::LightComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -939,7 +940,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::SkySphereComponent>(entity))
 			{
-				if (ImGui::MenuItem("SkySphere Component"))
+				if (ImGui::MenuItem(TR("SkySphere Component")))
 				{
 					e.addComponent<FaluEngine::SkySphereComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -948,7 +949,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::AnimatorComponent>(entity))
 			{
-				if (ImGui::MenuItem("Animator Component"))
+				if (ImGui::MenuItem(TR("Animator Component")))
 				{
 					e.addComponent<FaluEngine::AnimatorComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -964,7 +965,7 @@ namespace Editor
 		{
 			if (!scene->registry().all_of<FaluEngine::CanvasComponent>(entity))
 			{
-				if (ImGui::MenuItem("Canvas Component"))
+				if (ImGui::MenuItem(TR("Canvas Component")))
 				{
 					e.addComponent<FaluEngine::CanvasComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
@@ -977,7 +978,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
 			{
-				if (ImGui::MenuItem("Image Component"))
+				if (ImGui::MenuItem(TR("Image Component")))
 				{
 					e.addComponent<FaluEngine::ImageComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
@@ -991,7 +992,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::ButtonComponent>(entity))
 			{
-				if (ImGui::MenuItem("Button Component"))
+				if (ImGui::MenuItem(TR("Button Component")))
 				{
 					e.addComponent<FaluEngine::ButtonComponent>();
 					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
@@ -1008,11 +1009,11 @@ namespace Editor
 
 
 		//====== Physics =====
-		if (ImGui::BeginMenu("Physics"))
+		if (ImGui::BeginMenu(TR("Physics")))
 		{
 			if (!scene->registry().all_of<FaluEngine::RigidbodyComponent>(entity))
 			{
-				if (ImGui::MenuItem("Rigidbody Component"))
+				if (ImGui::MenuItem(TR("Rigidbody Component")))
 				{
 					e.addComponent<FaluEngine::RigidbodyComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -1024,11 +1025,11 @@ namespace Editor
 		}
 
 		//===== Terrain =====
-		if (ImGui::BeginMenu("Terrain"))
+		if (ImGui::BeginMenu(TR("Terrain")))
 		{
 			if (!scene->registry().all_of<FaluEngine::TerrainComponent>(entity))
 			{
-				if (ImGui::MenuItem("Terrain Field Component"))
+				if (ImGui::MenuItem(TR("Terrain Field Component")))
 				{
 					FaluEngine::addTerrainComponents(*scene, e, FaluEngine::TerrainComponent{}, device);
 					FaluEngine::SceneManager::get().markDirty();
@@ -1038,11 +1039,11 @@ namespace Editor
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Scripting"))
+		if (ImGui::BeginMenu(TR("Scripting")))
 		{
 			if (!scene->registry().all_of<FaluEngine::ScriptComponent>(entity))
 			{
-				if (ImGui::MenuItem("Script(lua) Component"))
+				if (ImGui::MenuItem(TR("Script(lua) Component")))
 				{
 					e.addComponent<FaluEngine::ScriptComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -1051,7 +1052,7 @@ namespace Editor
 
 			if (!scene->registry().all_of<FaluEngine::NativeScriptComponent>(entity))
 			{
-				if (ImGui::MenuItem("Script(C++) Component"))
+				if (ImGui::MenuItem(TR("Script(C++) Component")))
 				{
 					e.addComponent<FaluEngine::NativeScriptComponent>();
 					FaluEngine::SceneManager::get().markDirty();
@@ -1063,11 +1064,11 @@ namespace Editor
 
 
 		//====== Audio =======
-		if (ImGui::BeginMenu("Audio"))
+		if (ImGui::BeginMenu(TR("Audio")))
 		{
 			if (!scene->registry().all_of<FaluEngine::AudioSourceComponent>(entity))
 			{
-				if (ImGui::MenuItem("AudioSource Component"))
+				if (ImGui::MenuItem(TR("AudioSource Component")))
 				{
 					e.addComponent<FaluEngine::AudioSourceComponent>();
 					FaluEngine::SceneManager::get().markDirty();

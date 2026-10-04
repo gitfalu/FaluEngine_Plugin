@@ -3,6 +3,7 @@
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
+#include "FaluEngine/Localization.h"
 #include "scene/SceneManager.h"
 #include "tools/TerrainSculptTool.h"
 #include <imgui.h>

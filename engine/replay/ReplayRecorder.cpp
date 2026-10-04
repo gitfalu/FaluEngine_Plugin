@@ -1,4 +1,4 @@
-#include "FaluEngine/ReplayRecorder.h"
+ï»¿#include "FaluEngine/ReplayRecorder.h"
 
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
@@ -42,7 +42,7 @@ namespace FaluEngine
 
 		auto resolveName = [&](uint64_t uuid) -> std::string {
 			auto it = nameOf.find(uuid);
-			return it != nameOf.end() ? it->second : ("uuid:" + std::to_string(uuid) + "(Œ»İ‚Í”jŠüÏ‚İ)");
+			return it != nameOf.end() ? it->second : ("uuid:" + std::to_string(uuid) + "(ç¾åœ¨ã¯ç ´æ£„æ¸ˆã¿)");
 			};
 
 		std::string out;
@@ -88,7 +88,7 @@ namespace FaluEngine
 
 		if(!any)
 		{
-			out += "(‚±‚Ì‹æŠÔ‚É‹L˜^Ï‚İƒtƒŒ[ƒ€‚ª‚ ‚è‚Ü‚¹‚ñBƒoƒbƒtƒ@”ÍˆÍŠO‚Ì‰Â”\«‚ª‚ ‚è‚Ü‚·)\n";
+			out += "(ã“ã®åŒºé–“ã«è¨˜éŒ²æ¸ˆã¿ãƒ•ãƒ¬ãƒ¼ãƒ ãŒã‚ã‚Šã¾ã›ã‚“ã€‚ãƒãƒƒãƒ•ã‚¡ç¯„å›²å¤–ã®å¯èƒ½æ€§ãŒã‚ã‚Šã¾ã™)\n";
 		}
 
 		return out;
@@ -228,7 +228,7 @@ namespace FaluEngine
 				}
 			});
 
-		// ‘OƒtƒŒ[ƒ€‚Æ”äŠr‚µŒ©‚Â‚©‚ç‚È‚­‚È‚Á‚½uuid‚ğ”jŠü‚·‚é
+		// å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¯”è¼ƒã—è¦‹ã¤ã‹ã‚‰ãªããªã£ãŸuuidã‚’ç ´æ£„ã™ã‚‹
 		for (auto& [uuid, state] : m_lastValues)
 		{
 			if (seen.find(uuid) == seen.end())
@@ -236,7 +236,7 @@ namespace FaluEngine
 				record.destroyedUuids.push_back(uuid);
 			}
 		}
-		// “o˜^‚µ‚½íœƒŠƒXƒg‚ğ‚à‚Æ‚É•ÛƒŠƒXƒg‚©‚çíœ
+		// ç™»éŒ²ã—ãŸå‰Šé™¤ãƒªã‚¹ãƒˆã‚’ã‚‚ã¨ã«ä¿æŒãƒªã‚¹ãƒˆã‹ã‚‰å‰Šé™¤
 		for (auto uuid : record.destroyedUuids)
 		{
 			m_lastValues.erase(uuid);

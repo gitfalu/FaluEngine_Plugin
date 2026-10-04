@@ -118,7 +118,7 @@ namespace
         //-環境変数にあったGPUを選出
         char env[128] = {};
         const DWORD envLen = GetEnvironmentVariableA("FALU_GPU", env, static_cast<DWORD>(sizeof(env)));
-        if (envLen > 0 && envLen < sizeof(env));
+        if (envLen > 0 && envLen < sizeof(env))
         {
             const std::string want = toLowerAscii(env);
             for (const auto& c : list)
@@ -642,7 +642,7 @@ bool DX11Renderer::createShaders(const std::filesystem::path& vsPath, const std:
         LOG_INFO("SkySphere shaders initialized");
     }
 
-    // EquirectToCubemap
+    // EquirectToCubemap(スカイボックスで用いられる６面に分割した画像を用いたキューブマップ)
     {
         //-キューブマップシェーダーのパス変換
         std::filesystem::path cubeVSPath = PathResolver::resolve("assets/shaders/EquirectToCubemap.vert.hlsl");

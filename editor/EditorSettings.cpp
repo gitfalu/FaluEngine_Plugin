@@ -30,8 +30,9 @@ namespace Editor
 			nlohmann::json j;
 			in >> j;
 
-			m_claudeApiKey = j.value("caludeApiKey", m_claudeApiKey);
+			m_claudeApiKey = j.value("claudeApiKey", m_claudeApiKey);
 			m_claudeModel = j.value("claudeModel", m_claudeModel);
+			m_language = j.value("language", m_language);
 		}
 		catch (const std::exception& e)
 		{
@@ -44,6 +45,7 @@ namespace Editor
 		nlohmann::json j;
 		j["claudeApiKey"] = m_claudeApiKey;
 		j["claudeModel"] = m_claudeModel;
+		j["language"] = m_language;
 
 		std::ofstream out(kSettingsPath);
 		if (!out.is_open())

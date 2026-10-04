@@ -34,6 +34,7 @@ target_sources(FaluEngine
         core/GameLoop.cpp
         core/Memory/PoolAllocator.cpp
         core/PathResolver.cpp
+        core/Localization.cpp
 
         scene/Scene.cpp
         scene/Entity.cpp
@@ -115,6 +116,7 @@ target_link_libraries(FaluEngine
         Jolt
         nlohmann_json::nlohmann_json
         d3dcompiler.lib
+        dxgi.lib
         xaudio2.lib
         winhttp.lib
 )

@@ -7,6 +7,9 @@
 
 #include "core/PathResolver.h"
 
+#include <filesystem>
+#include <vector>
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -531,6 +534,47 @@ namespace FaluEngine{
 		0xFF0E, 0xFF3B, 0xFF3D, 0xFF5D, 0xFF61, 0xFF9F, 0xFFE3, 0xFFE3, 0xFFE5, 0xFFE5, 0xFFFF, 0xFFFF, 0,
 	};
 
+	static bool loadJapaneseFont(ImGuiIO& io, float sizePixels)
+	{
+		namespace fs = std::filesystem;
+
+		std::vector<fs::path> candidates;
+		candidates.push_back(PathResolver::resolve("assets/fonts/meiryo.ttc"));
+
+		wchar_t winDir[MAX_PATH] = {};
+		if (GetWindowsDirectoryW(winDir, MAX_PATH) > 0)
+		{
+			const fs::path fontDir = fs::path(winDir) / L"Fonts";
+			const wchar_t* names[] = { L"meiryo.ttc",L"YuGothM.ttc",L"msgothic.ttc" };
+			for (const wchar_t* name : names)
+			{
+				candidates.push_back(fontDir / name);
+			}
+		}
+
+		ImFontConfig cfg;
+		cfg.OversampleH = 2;
+		cfg.OversampleV = 1;
+		cfg.PixelSnapH = true;
+
+		for (const auto& path : candidates)
+		{
+			std::error_code ec;
+			if (!fs::exists(path, ec)) continue;
+
+			const std::string utf8 = PathResolver::toUtf8(path);
+			if (io.Fonts->AddFontFromFileTTF(utf8.c_str(), sizePixels, &cfg, io.Fonts->GetGlyphRangesJapanese()))
+			{
+				LOG_INFO("Imgui fon: {}", utf8);
+				return true;
+			}
+		}
+
+		LOG_WARN("Japanese font not found. Failing back to ImGui default font (Japanese text will not render).");
+		io.Fonts->AddFontDefault();
+		return false;
+	}
+
 	bool ImGuiLayer::init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context)
 	{
 		IMGUI_CHECKVERSION();
@@ -553,15 +597,7 @@ namespace FaluEngine{
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
-		std::string fullPath = PathResolver::toUtf8(PathResolver::resolve("assets/fonts/meiryo.ttc"));
-		auto font = io.Fonts->AddFontFromFileTTF(
-			fullPath.c_str(),
-			15.0f,
-			nullptr,
-			io.Fonts->GetGlyphRangesJapanese());
-
-		IM_ASSERT(font != nullptr);
-		
+		loadJapaneseFont(io,15.0f);
 
 		if (!ImGui_ImplWin32_Init(hwnd)) {
 			LOG_ERROR("ImGui_ImplWin32_Init failed");

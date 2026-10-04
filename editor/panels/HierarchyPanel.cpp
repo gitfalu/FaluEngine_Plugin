@@ -2,6 +2,7 @@
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
+#include <FaluEngine/Localization.h>
 #include "scene/SceneManager.h"
 #include <imgui.h>
 
@@ -28,7 +29,7 @@ namespace Editor
 
 		if (ImGui::BeginPopupContextWindow("HierarchyContext"))
 		{
-			if (ImGui::MenuItem("Create Empty Entity"))
+			if (ImGui::MenuItem(TR("Create Empty Entity")))
 			{
 				scene->createEntity("New Entity");
 				FaluEngine::SceneManager::get().markDirty();
@@ -134,7 +135,7 @@ namespace Editor
 		// 右クリックメニュー
 		if (ImGui::BeginPopupContextItem())
 		{
-			if (ImGui::MenuItem("Create Child Entity"))
+			if (ImGui::MenuItem(TR("Create Child Entity")))
 			{
 				auto child = scene->createEntity("New Entity");
 				child.setParent(FaluEngine::Entity(entity, scene));
@@ -143,7 +144,7 @@ namespace Editor
 			FaluEngine::Entity e(entity, scene);
 			if (e.hasParent())
 			{
-				if (ImGui::MenuItem("Unparent"))
+				if (ImGui::MenuItem(TR("Unparent")))
 				{
 					e.removeParent();
 					FaluEngine::SceneManager::get().markDirty();
@@ -151,7 +152,7 @@ namespace Editor
 			}
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("Delete Entity"))
+			if (ImGui::MenuItem(TR("Delete Entity")))
 			{
 				FaluEngine::Entity e(entity, scene);
 				scene->destroyEntity(e);

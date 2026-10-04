@@ -206,7 +206,7 @@ public:
 
     /// @brief 使用しているGPUの名前を取得
     /// @return 使用しているGPUの名称
-    [[nodiscard]] const std::string& geetAdapterName() const noexcept { return m_adapterName; }
+    [[nodiscard]] const std::string& getAdapterName() const noexcept { return m_adapterName; }
 
     /// @brief PBR描画パスの開始時に一度だけ呼ぶ。
     void bindPBRFrameResources();

@@ -1,4 +1,4 @@
-#include "FrameContextBuilder.h"
+ï»¿#include "FrameContextBuilder.h"
 #include "core/Logger.h"
 #include "FaluEngine/ReplayRecorder.h"
 #include "renderer/dx11/ScreenshotCapture.h"
@@ -13,7 +13,7 @@ namespace FaluEngine
 		std::string promt;
 		if (!question.empty())
 		{
-			promt += "¿–â: " + question + "\n\n";
+			promt += "è³ªå•: " + question + "\n\n";
 		}
 		promt += recorder.describeFrameRange(scene, fromFrame, toFrame);
 		request.prompt = std::move(promt);
@@ -22,8 +22,8 @@ namespace FaluEngine
 		{
 			if (!device || !context || !currentRenderTarget)
 			{
-				// ƒrƒ‹ƒhƒGƒ‰[‚Ì‚½‚ßˆê“xƒRƒƒ“ƒgƒAƒEƒg‚Å‘Î‰
-				// LOG_WARN("FrameContextBuilder: includeCurrentScreenshot=true device/context/RenderTarget‚ª•s‘«‚µ‚Ä‚¢‚é‚½‚ßAƒXƒNƒŠ[ƒ“ƒVƒ‡ƒbƒg‚Í“Y•t‚³‚ê‚Ü‚¹‚ñB");
+				// ãƒ“ãƒ«ãƒ‰ã‚¨ãƒ©ãƒ¼ã®ãŸã‚ä¸€åº¦ã‚³ãƒ¡ãƒ³ãƒˆã‚¢ã‚¦ãƒˆã§å¯¾å¿œ
+				// LOG_WARN("FrameContextBuilder: includeCurrentScreenshot=true device/context/RenderTargetãŒä¸è¶³ã—ã¦ã„ã‚‹ãŸã‚ã€ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã‚·ãƒ§ãƒƒãƒˆã¯æ·»ä»˜ã•ã‚Œã¾ã›ã‚“ã€‚");
 			}
 			else
 			{
@@ -38,14 +38,14 @@ namespace FaluEngine
 				}
 				else
 				{
-					LOG_WARN("FrameContextBuilder: ƒXƒNƒŠ[ƒ“ƒVƒ‡ƒbƒg‚ÌƒLƒƒƒvƒ`ƒƒ‚É¸”s‚µ‚Ü‚µ‚½BƒeƒLƒXƒg‚Ì‚İ‚Å‘±s‚µ‚Ü‚·");
+					LOG_WARN("FrameContextBuilder: ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã‚·ãƒ§ãƒƒãƒˆã®ã‚­ãƒ£ãƒ—ãƒãƒ£ã«å¤±æ•—ã—ã¾ã—ãŸã€‚ãƒ†ã‚­ã‚¹ãƒˆã®ã¿ã§ç¶šè¡Œã—ã¾ã™");
 				}
 			}
 		}
 
 		if (m_periodicSnapshotEnabled)
 		{
-			LOG_WARN("FrameContextBuilder: ’èŠúƒXƒiƒbƒvƒVƒ‡ƒbƒg•Û‘¶‚Í‚Ü‚¾À‘•‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBŒ»İ‰æ–Ê‚Ì‚İ‚ªg—p‚³‚ê‚Ü‚·B");
+			LOG_WARN("FrameContextBuilder: å®šæœŸã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆä¿å­˜ã¯ã¾ã å®Ÿè£…ã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚ç¾åœ¨ç”»é¢ã®ã¿ãŒä½¿ç”¨ã•ã‚Œã¾ã™ã€‚");
 		}
 
 		return request;
