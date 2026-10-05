@@ -78,6 +78,10 @@ target_sources(FaluEngine
 
         replay/ReplayRecorder.cpp
 
+        animation/ActionEventTrack.cpp
+        animation/ActionEventLibrary.cpp
+        animation/ActionEventSystem.cpp
+
         terrain/TerrainGenerator.cpp
         terrain/TerrainFactory.cpp
         
