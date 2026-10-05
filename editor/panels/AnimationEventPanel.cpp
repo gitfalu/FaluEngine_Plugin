@@ -437,7 +437,45 @@ namespace Editor
 				ImGui::TextColored(Imvec4(1.0f, 0.55f, 0.3f, 1.0f), "! %s", issue.c_str());
 		}
 
-		//======== 
+		//======== ÉâÉCÉuèÛë‘ ==========
+		if (auto* s = reg.try_get<ActionStateComponent>(selected))
+		{
+			ImGui::Separator();
+			ImGui::TextUnformatted(TR("Live state:"));
+			for (uint32_t i = 0; i < kActionWindowTypeCount; ++i)
+			{
+				const auto type = static_cast<ActionWindowType>(i);
+				if (!s->isActive(type)) continue;
+				ImGui::SameLine();
+				ImGui::PushStyleColor(ImGuiCol_Button, colorOf(type, 0.8f));
+				ImGui::SmallButton(toString(type));
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::Text("%s: %s", TR("If hit now"), toString(DefenseJudge::resolve(*s)));
+		}
+
+		//============= ï€ë∂ =====================
+		ImGui::Separator();
+		const bool dirty = lib.isDirty(meshPath);
+		if (ImGui::Button(dirty ? TR("Save * ") : TR("Save")))
+		{
+			std::string err;
+			if (lib.save(meshPath, &err)) m_lastSaveError.clear();
+			else m_lastSaveError = err;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(TR("Revert")))
+		{
+			lib.reload(meshPath);
+			m_selectedWindow = m_selectedPoint = -1;
+		}
+		ImGui::SameLine();
+		ImGui::TextDisabled("%s", ActionEventLibrary::sidecarAssetPath(meshPath).c_str());
+		if (!m_lastSaveError.empty())
+			ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Save failed: %s", m_lastSaveError.c_str());
+
+		ImGui::End();
 	}
 }
 
