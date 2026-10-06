@@ -21,9 +21,9 @@ namespace Editor
 	namespace
 	{
 		constexpr float kRowHeight = 22.0f; // 一行の高さ
-		consteval float kRulerHeight = 22.0f; // 
+		constexpr float kRulerHeight = 22.0f; // 
 		constexpr float kLabelWidth = 96.0f; // ラベルの幅
-		consteval float kHandleWidth = 6.0f; // 
+		constexpr float kHandleWidth = 6.0f; // 
 
 		/// @brief 登録するイベントによって表示する色を変える
 		/// @param t 
@@ -43,7 +43,7 @@ namespace Editor
 				{0.60f, 0.60f, 0.60f, 1}, // Custom
 			};
 
-			ImVec4 v = c{ static_cast<int>(t) };
+			ImVec4 v = c[static_cast<int>(t)];
 			v.w = alpha;
 			return ImGui::ColorConvertFloat4ToU32(v);
 		}
@@ -125,7 +125,7 @@ namespace Editor
 		}
 
 		const bool trackExists = lib.find(meshPath, clip->name) != nullptr;
-		std::shared_ptr<ActionEventTrack> track = trackExists ? lib.edit(meshPath, clip->name) : nullptr;
+		std::shared_ptr<FaluEngine::ActionEventTrack> track = trackExists ? lib.edit(meshPath, clip->name) : nullptr;
 		const float fps = track ? track->fps : 60.0f;
 		const float totalFrames = std::max(1.0f, clip->duration * fps);
 		const float curFrame = animator->playbackTime * fps;
@@ -133,7 +133,7 @@ namespace Editor
 		//============ Transport ===================
 		auto scrubTo = [&](float frame)
 			{
-				frame = std::clamp(frame, 0.0f, clip->duration);
+				frame = std::clamp(frame, 0.0f, totalFrames);
 				animator->playing = false;
 				animator->playbackTime = std::min(frame / fps, clip->duration);
 				ActionEventSystem::resync(reg, selected, *animator, meshPath, clip->duration);
@@ -161,12 +161,12 @@ namespace Editor
 		const float timelineHeight = kRulerHeight + rows * kRowHeight + 24.0f;
 		const float contentWidth = totalFrames * m_pixelPerFrame + 40.0f;
 
-		ImGui::BeginChild("##timeline", ImVec2(0, timelineHeight + ImGui::GetStyle().ScrollberSize),
+		ImGui::BeginChild("##timeline", ImVec2(0, timelineHeight + ImGui::GetStyle().ScrollbarSize),
 			true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
 		{// 編集する箇所を作成、
 			ImDrawList* dl = ImGui::GetWindowDrawList();
 			const ImVec2 origin = ImGui::GetCursorScreenPos();
-			const float x0 = origin.x + kHandleWidth;
+			const float x0 = origin.x + kLabelWidth;
 			const float yRuler = origin.y;
 			const float yRows = origin.y + kRulerHeight;
 			auto frameToX = [&](float f) {return x0 + f * m_pixelPerFrame; };
@@ -189,7 +189,7 @@ namespace Editor
 
 			// ルーラー（クリック/ドラッグでスクラブ）
 			ImGui::SetCursorScreenPos({ x0,yRuler });
-			ImGui::InvisibleButton("##ruler", ImVec2(totalFrames * m_pixelPerFrame + 1.0f, kRulerHeight);
+			ImGui::InvisibleButton("##ruler", ImVec2(totalFrames * m_pixelPerFrame + 1.0f, kRulerHeight));
 			if (ImGui::IsItemActive())
 				scrubTo(std::round(xToFrame(ImGui::GetIO().MousePos.x)));
 
@@ -212,7 +212,7 @@ namespace Editor
 			{
 				for (int wi = 0; wi < static_cast<int>(track->windows.size()); ++wi)
 				{
-					ActionWindow& w = track->windows[wi];
+					FaluEngine::ActionWindow& w = track->windows[wi];
 					const float y = yRows + static_cast<float>(static_cast<int>(w.type)) * kRowHeight + 2.0f;
 					const float xs = frameToX(w.startFrame);
 					const float xe = frameToX(w.endFrame);
@@ -283,7 +283,7 @@ namespace Editor
 
 				for (int pi = 0; pi < static_cast<int>(track->points.size()); ++pi)
 				{
-					ActionPointEvent& p = track->points[pi];
+					FaluEngine::ActionPointEvent& p = track->points[pi];
 					const float cx = frameToX(p.frame);
 					const bool selectedPt = (pi == m_selectedPoint);
 					const ImU32 col = selectedPt ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 210, 90, 255);
@@ -333,7 +333,7 @@ namespace Editor
 			{
 				auto t = lib.edit(meshPath, clip->name);
 				t->fps = t->fps > 0 ? t->fps : 60.0f;
-				ActionWindow w;
+				FaluEngine::ActionWindow w;
 				w.type = type;
 				w.startFrame = std::clamp(std::round(curFrame), 0.0f, totalFrames - 1.0f);
 				w.endFrame = std::min(w.startFrame + defaultLengthFor(type, m_defaultLengthFrames), totalFrames);
@@ -356,7 +356,7 @@ namespace Editor
 			auto t = lib.edit(meshPath, clip->name);
 			t->points.push_back({ std::clamp(std::round(curFrame),0.0f,totalFrames),m_newPointName,"" });
 			m_selectedPoint = static_cast<int>(t->points.size()) - 1;
-			m_selectedWindow = 1;
+			m_selectedWindow = -1;
 			lib.markEdited(meshPath);
 		}
 
@@ -366,7 +366,7 @@ namespace Editor
 			ImGui::Separator();
 			if (m_selectedWindow >= 0 && m_selectedWindow < static_cast<int>(track->windows.size()))
 			{
-				ActionWindow& w = track->windows[m_selectedWindow];
+				FaluEngine::ActionWindow& w = track->windows[m_selectedWindow];
 				bool edited = false;
 
 				int typeIdx = static_cast<int>(w.type);
@@ -400,7 +400,7 @@ namespace Editor
 
 				if (ImGui::Button(TR("Delete window")))
 				{
-					track->windows.erase(track->windows.begin()* m_selectedWindow);
+					track->windows.erase(track->windows.begin() + m_selectedWindow);
 					m_selectedWindow = -1;
 					edited = true;
 				}
@@ -408,7 +408,7 @@ namespace Editor
 			}
 			else if (m_selectedPoint >= 0 && m_selectedPoint < static_cast<int>(track->points.size()))
 			{
-				ActionPointEvent& p = track->points[m_selectedPoint];
+				FaluEngine::ActionPointEvent& p = track->points[m_selectedPoint];
 				bool edited = false;
 				char name[64], payload[128];
 				std::strncpy(name, p.name.c_str(), sizeof(name) - 1); name[sizeof(name) - 1] = '\0';
@@ -422,7 +422,7 @@ namespace Editor
 
 				if (ImGui::Button(TR("Delete point")))
 				{
-					track->points.erase(track->point.begin() + m_selectedPoint);
+					track->points.erase(track->points.begin() + m_selectedPoint);
 					m_selectedPoint = -1;
 					edited = true;
 				}
@@ -434,11 +434,11 @@ namespace Editor
 			}
 
 			for (const auto& issue : track->validate(clip->duration))
-				ImGui::TextColored(Imvec4(1.0f, 0.55f, 0.3f, 1.0f), "! %s", issue.c_str());
+				ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.3f, 1.0f), "! %s", issue.c_str());
 		}
 
 		//======== ライブ状態 ==========
-		if (auto* s = reg.try_get<ActionStateComponent>(selected))
+		if (auto* s = reg.try_get<FaluEngine::ActionStateComponent>(selected))
 		{
 			ImGui::Separator();
 			ImGui::TextUnformatted(TR("Live state:"));
@@ -452,7 +452,7 @@ namespace Editor
 				ImGui::PopStyleColor();
 			}
 
-			ImGui::Text("%s: %s", TR("If hit now"), toString(DefenseJudge::resolve(*s)));
+			ImGui::Text("%s: %s", TR("If hit now"), toString(FaluEngine::DefenseJudge::resolve(*s)));
 		}
 
 		//============= 保存 =====================

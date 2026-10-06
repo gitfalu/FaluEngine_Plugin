@@ -123,7 +123,7 @@ void Scene::onUpdate(float deltaTime) {
     }
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
-    bool anuAnimated = false;
+    bool anyAnimated = false;
     //-Animator更新
     for (auto entity : animView)
     {
@@ -144,8 +144,6 @@ void Scene::onUpdate(float deltaTime) {
         bool wrapped = false;
         if (animator.playbackTime > clip->duration)
         {
-            animator.playbackTime = animator.loop ?
-                fmod(animator.playbackTime, clip->duration) : clip->duration;
             if (animator.loop)
             {
                 animator.playbackTime = fmod(animator.playbackTime, clip->duration);
@@ -157,14 +155,12 @@ void Scene::onUpdate(float deltaTime) {
             }
         }
 
-        sampleAnimationPoses();
-
         ActionEventSystem::tick(m_registry, entity, animator, mesh.meshPath,
             clip->duration, prevTime, wrapped, deltaTime);
 
-        anuAnimated = true;
+        anyAnimated = true;
     }
-    if (anuAnimated)
+    if (anyAnimated)
         sampleAnimationPoses();
 
     // luaスクリプトによる更新処理

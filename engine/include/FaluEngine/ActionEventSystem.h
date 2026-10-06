@@ -5,6 +5,7 @@
  * \author tsunn
  * \date   October 2026
  *********************************************************************/
+#pragma once
 #include <FaluEngine/ActionEventTrack.h>
 #include <FaluEngine/EngineExport.h>
 
@@ -21,7 +22,7 @@ namespace FaluEngine
 		entt::entity entity = entt::null;
 		uint64_t uuid = 0;
 		ActionWindowType type = ActionWindowType::Parry;
-		bool opend = true;
+		bool opened = true;
 		float timeSeconds = 0.0f;
 	};
 

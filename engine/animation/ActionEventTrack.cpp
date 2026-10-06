@@ -11,8 +11,15 @@ namespace FaluEngine
 	namespace
 	{
 		constexpr std::array<const char*, kActionWindowTypeCount> kTypeNames = {
-			"Parry","JustDodge","Invincible","SuperArmor",
-			"HitActive","CancelWindow","InputBuffer","Custom"
+			"Parry",
+			"JustDodge",
+			"JustGuard",
+			"Invincible",
+			"SuperArmor",
+			"HitActive",
+			"CancelWindow",
+			"InputBuffer",
+			"Custom"
 		};
 
 		static_assert(kTypeNames.size() == kActionWindowTypeCount, "kTypeNames must match ActionWindowType");
@@ -61,8 +68,8 @@ namespace FaluEngine
 			{
 				mask |= actionWindowBit(w.type);
 			}
-			return mask;
 		}
+		return mask;
 	}
 
 	void ActionEventTrack::sort()
@@ -103,7 +110,7 @@ namespace FaluEngine
 			if (w.type == ActionWindowType::Custom && w.tag.empty())
 				issues.push_back(name + ": Custom window has no tag");
 
-			for (size_t j = 0; j < windows.size(); ++j)
+			for (size_t j = i + 1; j < windows.size(); ++j)
 			{
 				const auto& o = windows[j];
 				if (o.type == w.type && o.startFrame < w.endFrame && w.startFrame < o.endFrame)
@@ -210,8 +217,8 @@ namespace FaluEngine
 		else
 		{
 			state.stepMask = overlap | active;
-			state.enteredMask = state.stepMask & -prevActive;
-			state.exitedMask = (prevActive | state.stepMask) & -active;
+			state.enteredMask = state.stepMask & ~prevActive;
+			state.exitedMask = (prevActive | state.stepMask) & ~active;
 			if (in.clipChanged) state.exitedMask |= oldActive;
 		}
 		state.hasEvaluated = true;

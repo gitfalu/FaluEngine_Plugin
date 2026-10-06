@@ -5,6 +5,7 @@
  * \author tsunn
  * \date   October 2026
  *********************************************************************/
+#pragma once
 #include <FaluEngine/EngineExport.h>
 
 #include <cstdint>
@@ -101,12 +102,12 @@ namespace FaluEngine
 		std::shared_ptr<const ActionEventTrack> track;
 		std::string cachedMeshPath;
 		std::string cachedClipName;
-		uint32_t cachedRevision = 0xFFFFFFFu;
+		uint32_t cachedRevision = 0xFFFFFFFFu;
 		bool hasEvaluated = false;
 
 		[[nodiscard]] bool isActive(ActionWindowType t) const noexcept { return (activeMask & actionWindowBit(t)) != 0; }
 
-		[[nodiscard]] bool wasActionThisStep(ActionWindowType t) const noexcept { return (stepMask & actionWindowBit(t)) != 0; }
+		[[nodiscard]] bool wasActiveThisStep(ActionWindowType t) const noexcept { return (stepMask & actionWindowBit(t)) != 0; }
 		[[nodiscard]] bool justEntered(ActionWindowType t) const noexcept { return (enteredMask & actionWindowBit(t)) != 0; }
 		[[nodiscard]] bool justExited(ActionWindowType t) const noexcept { return (exitedMask & actionWindowBit(t)) != 0; }
 	};
@@ -144,7 +145,7 @@ namespace FaluEngine
 	class FALU_ENGINE_API DefenseJudge
 	{
 	public:
-		[[nodiscade]] static DefenseResult resolve(const ActionStateComponent& s, bool useStepMask = true) noexcept;
+		[[nodiscard]] static DefenseResult resolve(const ActionStateComponent& s, bool useStepMask = true) noexcept;
 
 
 		[[nodiscard]] static float quality(const ActionStateComponent& s, ActionWindowType t) noexcept;

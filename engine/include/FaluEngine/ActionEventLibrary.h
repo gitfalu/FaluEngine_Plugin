@@ -5,6 +5,7 @@
  * \author tsunn
  * \date   October 2026
  *********************************************************************/
+#pragma once
 #include <FaluEngine/ActionEventTrack.h>
 #include <FaluEngine/EngineExport.h>
 

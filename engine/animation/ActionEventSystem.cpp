@@ -14,7 +14,7 @@ namespace FaluEngine
 	{
 		bool refreshTrack(ActionStateComponent& s, const std::string& meshPath, const std::string& clipName)
 		{
-			const bool clipChanged = { s.cachedMeshPath != meshPath || s.cachedClipName != clipName };
+			const bool clipChanged = ( s.cachedMeshPath != meshPath || s.cachedClipName != clipName );
 
 			if (clipChanged || s.cachedRevision != ActionEventLibrary::get().revision())
 			{
@@ -106,13 +106,13 @@ namespace FaluEngine
 		for (uint32_t i = 0; i < kActionWindowTypeCount; ++i)
 		{
 			const auto type = static_cast<ActionWindowType>(i);
-			if (s.exitedMask & actionWindowBit(type))
+			if (s.exitedMask & FaluEngine::actionWindowBit(type))
 				bus.publish(ActionWindowEvent{ e, uuid,type,false,timeSeconds });
 		}
 		for (uint32_t i = 0; i < kActionWindowTypeCount; ++i)
 		{
 			const auto type = static_cast<ActionWindowType>(i);
-			if (s.exitedMask & actionWindowBit(type))
+			if (s.enteredMask & FaluEngine::actionWindowBit(type))
 				bus.publish(ActionWindowEvent{ e, uuid,type,true,timeSeconds });
 		}
 		for (const auto& p : s.firedPoints)

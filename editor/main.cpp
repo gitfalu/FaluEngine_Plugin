@@ -660,7 +660,8 @@ public:
             ImGui::Text(TR("Entities: %u"), scene->entityCount());
             ImGui::Text(TR("Scene: %s"), scene->getName().c_str());
         }
-        ImGui::Text("GPU: '{}'", renderer->getAdapterName());
+        if(renderer)
+            ImGui::Text("GPU: %s", renderer->getAdapterName().c_str());
         ImGui::End();
 
         saveCurrentScene();
