@@ -152,5 +152,5 @@ namespace FaluEngine
 
 	[[nodiscard]] FALU_ENGINE_API std::string actionTracksToJson(const std::vector<ActionEventTrack>& tracks);
 
-	FALU_ENGINE_API bool actionTracksFromJson(std::string_view json, std::vector<ActionEventTrack>& out, std::string& error);
+	FALU_ENGINE_API bool actionTracksFromJson(std::string_view text, std::vector<ActionEventTrack>& out, std::string& error);
 }
