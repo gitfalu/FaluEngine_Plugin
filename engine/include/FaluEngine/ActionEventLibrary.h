@@ -41,7 +41,7 @@ namespace FaluEngine
 		/// @param meshPath 
 		/// @param errorOut 
 		/// @return 
-		bool save(const std::string& meshPath, std::string& errorOut = nullptr);
+		bool save(const std::string& meshPath, std::string* errorOut = nullptr);
 
 		void reload(const std::string& meshPath);
 
