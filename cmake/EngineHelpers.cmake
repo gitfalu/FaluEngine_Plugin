@@ -68,3 +68,13 @@ function(engine_copy_assets TARGET ASSET_DIR)
         COMMENT "Copying assets: ${ASSET_DIR}"
     )
 endfunction()
+
+#
+# ハイブリッドGPU搭載PCで高性能GPUの使用をドライバに要求する
+#
+function(engine_request_high_performance_gpu TARGET)
+    if(WIN32)
+        target_sources(${TARGET} PRIVATE
+            "${CMAKE_SOURCE_DIR}/engine/platform/HighPerformanceGpu.cpp")
+    endif()
+endfunction()

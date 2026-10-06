@@ -5,9 +5,13 @@
 #include "FaluEngine/UITypes.h"
 #include "FaluEngine/LightTypes.h"
 #include "FaluEngine/AudioTypes.h"
+#include "FaluEngine/Application.h"
 #include "physics/RigidbodyComponent.h"
+#include "terrain/TerrainComponent.h"
+#include "terrain/TerrainFactory.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
+#include "renderer/dx11/DX11Renderer.h"
 
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -261,6 +265,25 @@ namespace FaluEngine
 				};
 			}
 
+			// Terrain
+			if (m_scene.registry().all_of<TerrainComponent>(entity))
+			{
+				auto& terrain = m_scene.registry().get<TerrainComponent>(entity);
+				entityJson["terrain"] =
+				{
+					{"resolutionX",terrain.resolutionX},
+					{"resolutionZ",terrain.resolutionZ},
+					{"sizeX",terrain.sizeX},
+					{"sizeZ",terrain.sizeZ},
+					{"heightScale",terrain.heightScale},
+					{"noiseFrequency",terrain.noiseFrequency},
+					{"lacunarity",terrain.lacunarity},
+					{"persistence",terrain.persistence},
+					{"seed",terrain.seed},
+					{"heights",terrain.heights}
+				};
+			}
+
 			// RelationshipComponent
 			if (m_scene.registry().all_of<RelationshipComponent>(entity))
 			{
@@ -496,6 +519,35 @@ namespace FaluEngine
 				sky.exposure = sj.value("exposure", 1.0f);
 				sky.enabled = sj.value("enabled", true);
 			}
+
+			// TerrainComponent
+			if (entityJson.contains("terrain"))
+			{
+				auto& tj = entityJson["terrain"];
+				auto& terrain = entity.addComponent<TerrainComponent>();
+				terrain.resolutionX = tj.value("resolutionX", 128u);
+				terrain.resolutionZ = tj.value("resolutionZ", 128u);
+				terrain.sizeX = tj.value("sizeX", 100.0f);
+				terrain.sizeZ = tj.value("sizeZ", 100.0f);
+				terrain.heightScale = tj.value("heightScale", 20.0f);
+				terrain.noiseFrequency = tj.value("noiseFrequency", 0.02f);
+				terrain.octaves = tj.value("octaves", 4);
+				terrain.lacunarity = tj.value("lacunarity", 2.0f);
+				terrain.persistence = tj.value("persistence", 0.5f);
+				terrain.seed = tj.value("seed", 1337u);
+
+				size_t expectedCount = static_cast<size_t>(terrain.vertexCountX()) * terrain.vertexCountZ();
+				if (tj.contains("heights") && tj["heights"].is_array() && tj["heights"].size() == expectedCount)
+				{
+					terrain.heights = tj["heights"].get<std::vector<float>>();
+					terrain.dirty = false;
+				}
+				else
+				{
+					LOG_WARN("SceneSerializer: terrain heights missing/size mismatch for '{}'. Will regenerate from noise.", name);
+					terrain.dirty = true;
+				}
+			}
 		}
 
 		// eŽqŠÖŒW‚Ì•œŒ³
@@ -514,7 +566,10 @@ namespace FaluEngine
 			Entity parent(itParent->second, &m_scene);
 			child.setParent(parent);
 		}
-
+		if (auto* renderer = static_cast<DX11Renderer*>(Application::getInstance().getRenderer()))
+		{
+			rebuildAllPendingTerrains(m_scene, renderer->getDevice());
+		}
 
 		LOG_INFO("SceneSerializer: loaded '{}' ({} entities)", 
 			path, root["entities"].size());

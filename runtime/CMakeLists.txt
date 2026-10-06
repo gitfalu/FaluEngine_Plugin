@@ -21,4 +21,5 @@ if(TARGET GameCode)
     add_dependencies(FaluEngineRuntime GameCode)
 endif()
 
+engine_request_high_performance_gpu(FaluEngineRuntime)
 engine_copy_assets(FaluEngineRuntime assets)

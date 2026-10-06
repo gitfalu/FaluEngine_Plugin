@@ -1,4 +1,5 @@
 #include "ContentBrowserPanel.h"
+#include <FaluEngine/Localization.h>
 #include "asset/loaders/AnimationCache.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
@@ -71,7 +72,7 @@ namespace Editor{
 
 		ImGui::SameLine();
 
-		if (ImGui::SmallButton("[Refresh]")) refresh();
+		if (ImGui::SmallButton(TR("[Refresh]"))) refresh();
 
 
 		if (m_gridView) {
@@ -85,7 +86,7 @@ namespace Editor{
 		ImGui::SetNextItemWidth(160.0f);
 		ImGui::InputText("##Search", m_searchBuf, sizeof(m_searchBuf));
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Search files");
+			ImGui::SetTooltip(TR("Search files"));
 
 		ImGui::Separator();
 
@@ -215,7 +216,7 @@ namespace Editor{
 		
 		ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f,0.8f,0.2f,1.0f });
 		bool opened = ImGui::TreeNodeEx(
-			path.string().c_str(), flags, "%s", name.c_str());
+			FaluEngine::PathResolver::toUtf8(path).c_str(), flags, "%s", name.c_str());
 		ImGui::PopStyleColor();
 
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())

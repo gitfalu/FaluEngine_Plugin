@@ -4,18 +4,25 @@
 void FileWatcher::watch(const std::string& path, std::function<void()> onChanged)
 {
 	auto fullPath = FaluEngine::PathResolver::resolve(path);
-	if (!std::filesystem::exists(fullPath)) return;
-	m_watched[path] = { path,std::filesystem::last_write_time(fullPath),std::move(onChanged) };
+
+	std::error_code ec;
+	const auto ts = std::filesystem::last_write_time(fullPath, ec);
+	if (ec) return;
+	
+	m_watched[path] = { path,fullPath,ts,std::move(onChanged) };
 }
 
 void FileWatcher::poll()
 {
+	const auto now = std::chrono::steady_clock::now();
+	if (now - m_lastPoll < kPollInterval) return;
+	m_lastPoll = now;
+
 	for (auto& [assetPath, entry] : m_watched)
 	{
-		const auto fullPath = FaluEngine::PathResolver::resolve(assetPath);
-
-		if (!std::filesystem::exists(fullPath)) continue;
-		auto ts = std::filesystem::last_write_time(fullPath);
+		std::error_code ec;
+		auto ts = std::filesystem::last_write_time(entry.fullpath,ec);
+		if (ec) continue;
 
 		if (ts != entry.lastWriteTime)
 		{

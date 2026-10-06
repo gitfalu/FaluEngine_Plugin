@@ -23,6 +23,8 @@ namespace FaluEngine
 		
 		[[nodiscard]] ID3D11ShaderResourceView* getSRV() const noexcept { return m_srv.Get(); }
 
+		[[nodiscard]] ID3D11Texture2D* getTexture() const noexcept { return m_texture.Get(); }
+
 		[[nodiscard]] uint32_t getWidth() const noexcept { return m_width; }
 		[[nodiscard]] uint32_t getHeight() const noexcept { return m_height; }
 		[[nodiscard]] bool isValid() const noexcept { return m_rtv != nullptr; }

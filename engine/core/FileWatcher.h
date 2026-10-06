@@ -1,4 +1,6 @@
+
 #pragma once
+#include <chrono>
 #include <functional>
 #include <string>
 #include <filesystem>
@@ -22,9 +24,12 @@ private:
 	struct Entry
 	{
 		std::filesystem::path path;
+		std::filesystem::path fullpath;
 		std::filesystem::file_time_type lastWriteTime;
 		std::function<void()> onChanged;
 	};
+	static constexpr std::chrono::milliseconds kPollInterval{ 500 };
 
 	std::unordered_map<std::string, Entry> m_watched;
+	std::chrono::steady_clock::time_point m_lastPoll{};
 };

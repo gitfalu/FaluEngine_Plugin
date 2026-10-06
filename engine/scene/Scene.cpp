@@ -3,6 +3,7 @@
 #include "FaluEngine/Component.h"
 #include "FaluEngine/Application.h"
 #include "FaluEngine/InputManager.h"
+#include "FaluEngine/ActionEventSystem.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "asset/AssetManager.h"
@@ -27,11 +28,12 @@ Scene::~Scene() {
 
 Entity Scene::createEntity(const std::string& name) {
     Entity e(m_registry.create(), this);
+    //-デフォルトで適用するコンポーネント
     e.addComponent<TagComponent>(name);
     e.addComponent<TransformComponent>();
     e.addComponent<RelationshipComponent>();
     e.addComponent<IDComponent>().uuid = generateUUID();
-
+    //-コンポーネントリストに登録
     m_rootOrder.push_back(e);
     LOG_TRACE("Entity created: '{}'", name);
     return e;
@@ -39,31 +41,30 @@ Entity Scene::createEntity(const std::string& name) {
 
 void Scene::destroyEntity(Entity entity) {
     if (!entity.isValid()) return;
-
+    //-PhysicsSystemのレジストリから削除
     if (m_registry.all_of<RigidbodyComponent>(entity))
     {
         PhysicsSystem::get().unregisterEntity(entity);
     }
-
+    //-スクリプトインスタンスを削除
     if (m_registry.all_of<ScriptComponent>(entity))
     {
         auto& sc = m_registry.get<ScriptComponent>(entity);
         if (sc.instance) sc.instance->onDestroy(entity);
     }
-
     if (m_registry.all_of<NativeScriptComponent>(entity))
     {
         auto& nsc = m_registry.get<NativeScriptComponent>(entity);
         if (nsc.instance) { Entity e(entity, this); nsc.instance->onDestroy(e); }
     }
-
+    //-再生中の音声を停止する
     if (m_registry.all_of<AudioSourceComponent>(entity))
     {
         auto& src = m_registry.get<AudioSourceComponent>(entity);
         if (src.handle.voice)
             AudioEngine::get().stop(src.handle);
     }
-
+    //-親子関係のあるEntityは再帰処理により削除する
     if (m_registry.all_of<RelationshipComponent>(entity))
     {
         entt::entity parentEntity = entt::null;
@@ -122,7 +123,8 @@ void Scene::onUpdate(float deltaTime) {
     }
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
-
+    bool anyAnimated = false;
+    //-Animator更新
     for (auto entity : animView)
     {
         auto& animator = animView.get<AnimatorComponent>(entity);
@@ -137,15 +139,29 @@ void Scene::onUpdate(float deltaTime) {
         if (!clip) 
             continue;
 
+        const float prevTime = animator.playbackTime;
         animator.playbackTime += deltaTime * animator.playbackSpeed;
+        bool wrapped = false;
         if (animator.playbackTime > clip->duration)
         {
-            animator.playbackTime = animator.loop ?
-                fmod(animator.playbackTime, clip->duration) : clip->duration;
+            if (animator.loop)
+            {
+                animator.playbackTime = fmod(animator.playbackTime, clip->duration);
+                wrapped = true;
+            }
+            else
+            {
+                animator.playbackTime = clip->duration;
+            }
         }
 
-        sampleAnimationPoses();
+        ActionEventSystem::tick(m_registry, entity, animator, mesh.meshPath,
+            clip->duration, prevTime, wrapped, deltaTime);
+
+        anyAnimated = true;
     }
+    if (anyAnimated)
+        sampleAnimationPoses();
 
     // luaスクリプトによる更新処理
     auto scriptView = m_registry.view<ScriptComponent>();
@@ -199,9 +215,11 @@ void Scene::onRender(bool useOwnCamera) {
         Application::getInstance().getRenderer());
     if (!renderer) return;
 
+    //-各種描画関連更新処理
     updateWorldMatrices();
     updateUILayout(renderer);
     collectLights(renderer, useOwnCamera);
+    //-各種描画処理
     renderMeshes(renderer);
     renderSky(renderer);
     if (useOwnCamera)
@@ -401,15 +419,19 @@ void Scene::collectLights(DX11Renderer* renderer, bool useOwnCamera)
 
 void Scene::renderMeshes(DX11Renderer* renderer)
 {
+    //-パス内で不変のリソース(IBL/環境マップ/シャドウ)は描画ごとではなく一回だけバインド
+    renderer->bindPBRFrameResources();
+
     // MeshComponent を持つエンティティをレンダラーへ送る
     auto meshView = m_registry.view<MeshComponent, TransformComponent>();
     for (auto entity : meshView)
     {
         auto& mesh = meshView.get<MeshComponent>(entity);
         auto& transform = meshView.get<TransformComponent>(entity);
-        if (!mesh.visible || mesh.meshPath.empty()) continue;
+        if (!mesh.visible)continue;
+        if(!mesh.cachedMesh && mesh.meshPath.empty()) continue;
 
-        if (!mesh.cachedMesh)
+        if (!mesh.cachedMesh && !mesh.meshPath.empty())
             mesh.cachedMesh = AssetManager::get().load<MeshAsset>(mesh.meshPath);
         if (!mesh.cachedMesh || !mesh.cachedMesh->vertexBuffer || !mesh.cachedMesh->indexBuffer) continue;
 
@@ -457,34 +479,38 @@ void Scene::renderMeshes(DX11Renderer* renderer)
             renderer->setBoundIB(ib);
         }
 
-        for (const auto& sub : mesh.cachedMesh->subMeshes)
+        //-ボーンを持つメッシュは行列を一回だけ送る
+        const bool skinnedMesh = mesh.cachedMesh->hasSkeleton;
+        if (skinnedMesh)
         {
-            if (mesh.cachedMesh->hasSkeleton)
+            if (m_registry.all_of<AnimatorComponent>(entity))
             {
-                if (m_registry.all_of<AnimatorComponent>(entity))
-                {
-                    auto& animator = m_registry.get<AnimatorComponent>(entity);
+                auto& animator = m_registry.get<AnimatorComponent>(entity);
 
-                    if (animator.boneMatrices.empty())
-                    {
-                        animator.boneMatrices.assign(
-                            mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
-                    }
-                    renderer->updateSkinningMatrices(animator.boneMatrices);
-                }
-                else
+                if (animator.boneMatrices.empty())
                 {
-                    static thread_local std::vector<glm::mat4> identityMatrices;
-                    identityMatrices.assign(mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
-                    renderer->updateSkinningMatrices(identityMatrices);
+                    animator.boneMatrices.assign(
+                        mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f)
+                    );
                 }
-                renderer->drawSkinnedSubMeshPBR(sub.indexOffset, sub.indexCount,
-                    transform.worldMatrix, mat);
+                renderer->updateSkinningMatrices(animator.boneMatrices);
             }
             else
             {
-                renderer->drawSubMeshPBR(sub.indexOffset, sub.indexCount,
-                    transform.worldMatrix, mat);
+                static thread_local std::vector<glm::mat4> identityMatrices;
+                identityMatrices.assign(mesh.cachedMesh->skeleton.bones.size(), glm::mat4(1.0f));
+                renderer->updateSkinningMatrices(identityMatrices);
+            }
+        }
+        for (const auto& sub : mesh.cachedMesh->subMeshes)
+        {
+            if (skinnedMesh)
+            {
+                renderer->drawSkinnedSubMeshPBR(sub.indexOffset, sub.indexCount, transform.worldMatrix, mat);
+            }
+            else
+            {
+                renderer->drawSubMeshPBR(sub.indexOffset, sub.indexCount, transform.worldMatrix, mat);
             }
         }
     }

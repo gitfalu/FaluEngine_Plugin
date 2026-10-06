@@ -1,4 +1,5 @@
 #include "GameViewPanel.h"
+#include "FaluEngine/Localization.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include <imgui.h>
 

@@ -34,6 +34,7 @@ target_sources(FaluEngine
         core/GameLoop.cpp
         core/Memory/PoolAllocator.cpp
         core/PathResolver.cpp
+        core/Localization.cpp
 
         scene/Scene.cpp
         scene/Entity.cpp
@@ -50,6 +51,7 @@ target_sources(FaluEngine
         renderer/dx11/ShadowMap.cpp
         renderer/dx11/EnvironmentMap.cpp
         renderer/dx11/UI.cpp
+        renderer/dx11/ScreenshotCapture.cpp
 
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp
@@ -75,6 +77,18 @@ target_sources(FaluEngine
         plugin/PluginManager.cpp
 
         replay/ReplayRecorder.cpp
+
+        animation/ActionEventTrack.cpp
+        animation/ActionEventLibrary.cpp
+        animation/ActionEventSystem.cpp
+
+        terrain/TerrainGenerator.cpp
+        terrain/TerrainFactory.cpp
+        
+        llm/Claudeapiclient.cpp
+        llm/FrameContextBuilder.cpp
+
+        tools/TerrainSculptTool.cpp
 )
 
 get_target_property(FALU_ENGINE_SOURCES FaluEngine SOURCES)
@@ -104,8 +118,11 @@ target_link_libraries(FaluEngine
         Microsoft::DirectXTex
         DirectX::D3D11
         Jolt
+        nlohmann_json::nlohmann_json
         d3dcompiler.lib
+        dxgi.lib
         xaudio2.lib
+        winhttp.lib
 )
 
 target_compile_definitions(FaluEngine

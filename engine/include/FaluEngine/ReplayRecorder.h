@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <deque>
+#include <string>
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -28,6 +29,8 @@ namespace FaluEngine
 
 		void reset();
 
+		[[nodiscard]] std::string describeFrameRange(Scene& scene, uint64_t fromFrame, uint64_t toFrame) const;
+
 		[[nodiscard]] bool empty() const noexcept { return m_frames.empty(); }
 		[[nodiscard]] uint64_t oldestFrame() const noexcept;
 		[[nodiscard]] uint64_t latestFrame() const noexcept;
@@ -46,6 +49,12 @@ namespace FaluEngine
 			bool playing = true;
 		};
 
+		struct RigidbodySnapshotRaw
+		{
+			glm::vec3 linearVelocity{ 0.0f };
+			glm::vec3 angularVelocity{ 0.0f };
+		};
+
 		template<typename T>
 		struct Diff
 		{
@@ -59,6 +68,8 @@ namespace FaluEngine
 			TransformSnapshotRaw transform;
 			bool hasAnimator = false;
 			AnimatorSnapshotRaw animator;
+			bool hasRigidbody = 0;
+			RigidbodySnapshotRaw rigidbody;
 		};
 
 		struct FrameRecord
@@ -66,6 +77,7 @@ namespace FaluEngine
 			uint64_t frameNo = 0;
 			std::vector<Diff<TransformSnapshotRaw>> transChanged;
 			std::vector<Diff<AnimatorSnapshotRaw>> animChanged;
+			std::vector<Diff<RigidbodySnapshotRaw>> rigidChanged;
 			std::vector<uint64_t> destroyedUuids;
 		};
 

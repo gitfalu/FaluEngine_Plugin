@@ -3,6 +3,7 @@
 #include "FaluEngine/Scene.h"
 #include <imgui.h>
 #include <entt/entt.hpp>
+#include <d3d11.h>
 #include <glm/gtc/quaternion.hpp>
 
 namespace FaluEngine
@@ -16,13 +17,14 @@ namespace Editor
 	class InspectorPanel
 	{
 	public:
-		void draw(FaluEngine::Scene* scene, entt::entity selected);
+		void draw(FaluEngine::Scene* scene, entt::entity selected,ID3D11Device* device);
 
 	private:
 		void drawTransformComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawMeshComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawCameraComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawRigidbodyComponent(FaluEngine::Scene* scene, entt::entity entity);
+		void drawTerrainComponent(FaluEngine::Scene* scene, entt::entity entity, ID3D11Device* device);
 		void drawScriptComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawNativeScriptComponent(FaluEngine::Scene* scene, entt::entity entity);
 
@@ -39,7 +41,7 @@ namespace Editor
 		void drawMaterialEditor(FaluEngine::MaterialAsset* material,
 			const std::string& materialPath);
 
-		void drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity);
+		void drawAddComponentMenu(FaluEngine::Scene* scene, entt::entity entity, ID3D11Device* device);
 
 		template<typename T>
 		bool drawComponentHeader(const char* label, FaluEngine::Scene* scene, entt::entity entity)
