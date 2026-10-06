@@ -3,6 +3,7 @@
 #include "FaluEngine/Component.h"
 #include "FaluEngine/Application.h"
 #include "FaluEngine/InputManager.h"
+#include "FaluEngine/ActionEventSystem.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "asset/AssetManager.h"
@@ -122,6 +123,7 @@ void Scene::onUpdate(float deltaTime) {
     }
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
+    bool anuAnimated = false;
     //-Animator更新
     for (auto entity : animView)
     {
@@ -137,15 +139,33 @@ void Scene::onUpdate(float deltaTime) {
         if (!clip) 
             continue;
 
+        const float prevTime = animator.playbackTime;
         animator.playbackTime += deltaTime * animator.playbackSpeed;
+        bool wrapped = false;
         if (animator.playbackTime > clip->duration)
         {
             animator.playbackTime = animator.loop ?
                 fmod(animator.playbackTime, clip->duration) : clip->duration;
+            if (animator.loop)
+            {
+                animator.playbackTime = fmod(animator.playbackTime, clip->duration);
+                wrapped = true;
+            }
+            else
+            {
+                animator.playbackTime = clip->duration;
+            }
         }
 
         sampleAnimationPoses();
+
+        ActionEventSystem::tick(m_registry, entity, animator, mesh.meshPath,
+            clip->duration, prevTime, wrapped, deltaTime);
+
+        anuAnimated = true;
     }
+    if (anuAnimated)
+        sampleAnimationPoses();
 
     // luaスクリプトによる更新処理
     auto scriptView = m_registry.view<ScriptComponent>();

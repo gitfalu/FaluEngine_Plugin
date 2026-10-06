@@ -5,6 +5,7 @@
 #include "FaluEngine/Component.h"
 #include "physics/RigidbodyComponent.h"
 #include "physics/PhysicsSystem.h"
+#include "FaluEngine/ActionEventSystem.h"
 
 #include <algorithm>
 
@@ -372,5 +373,7 @@ namespace FaluEngine
 				a.playing = s.animator.playing;
 			}
 		}
+
+		ActionEventSystem::resyncAll(scene.registry());
 	}
 }
