@@ -75,6 +75,7 @@ target_sources(FaluEngine
         script/NativeScriptRegistry.cpp
 
         plugin/PluginManager.cpp
+        plugin/HotReloadManager.cpp
 
         replay/ReplayRecorder.cpp
 

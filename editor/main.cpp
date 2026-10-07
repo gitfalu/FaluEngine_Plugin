@@ -16,6 +16,7 @@
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "core/EditorStateManager.h"
+#include "core/Events.h"
 #include "scene/CameraController.h"
 #include "scene/SceneSerializer.h"
 #include "physics/PhysicsSystem.h"
@@ -32,6 +33,7 @@
 #include "EditorLocalization.h"
 #include "platform/Window.h"
 #include "plugin/PluginManager.h"
+#include "plugin/HotReloadManager.h"
 #include "tools/TerrainSculptTool.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -189,10 +191,70 @@ public:
                     m_cameraCtrl->onMouseScroll(e.offsetY);
             });
 
+        {
+            using FaluEngine::HotReloadManager;
+            HotReloadManager::Config cfg;
+            cfg.cmakeExe = FALU_CMAKE_EXE;
+            cfg.buildDir = FALU_BUILD_DIR;
+            cfg.buildConfig = FALU_BUILD_CONFIG;
+            cfg.target = "GameCode";
+            cfg.sourceDirs = { FALU_GAME_SRC_DIR };
+            cfg.dllPath = FaluEngine::PathResolver::resolve("GameCode.dll");
+            cfg.shaderSourceDir = FALU_SHADER_SRC_DIR;
+            cfg.shaderRuntimeDir = FaluEngine::PathResolver::getAssetRoot() / "shaders";
+
+            HotReloadManager::get().setHooks({
+                [this]() {
+                    m_hierarchy.clearSelected();
+                    auto* scene = getSceneManager().getActive();
+                    if (!scene) return;
+                    auto view = scene->registry().view<FaluEngine::NativeScriptComponent>();
+                    for (auto entity : view)
+                    {
+                        auto& nsc = view.get<FaluEngine::NativeScriptComponent>(entity);
+                        if (nsc.instance)
+                        {
+                            FaluEngine::Entity e(entity, scene);
+                            nsc.instance->onDestroy(e);
+                            nsc.instance.reset();
+                        }
+                        nsc.initialize = false;
+                        nsc.factory = nullptr;
+                    }
+                },
+                // new DLL registry bind
+                [this]() {
+                    auto* scene = getSceneManager().getActive();
+                    if (!scene) return;
+                    auto view = scene->registry().view<FaluEngine::NativeScriptComponent>();
+                    for (auto entity : view)
+                    {
+                        auto& nsc = view.get<FaluEngine::NativeScriptComponent>(entity);
+                        if (!nsc.scriptName.empty())
+                            nsc.bindByName(nsc.scriptName);
+                    }
+                }
+                });
+            HotReloadManager::get().init(cfg);
+
+            FaluEngine::EventBus::get().subscribe<FaluEngine::WindowFocusEvent>(
+                [](const FaluEngine::WindowFocusEvent& e)
+                {
+                    if (e.focused) FaluEngine::HotReloadManager::get().onEditorFocused();
+                });
+        }
+
         LOG_INFO("FaluEngine Editor started");
     }
     void onUpdate(float deltaTime) override 
     { 
+        {
+            auto& hr = FaluEngine::HotReloadManager::get();
+            hr.update(FaluEngine::EditorStateManager::get().isEditing());
+            if (hr.consumeShaderReloadRequest())
+                static_cast<FaluEngine::DX11Renderer*>(getRenderer())->reloadShaders();
+        }
+
         m_fps = 1.0f / (deltaTime > 0.0f ? deltaTime : 1.0f);
 
         if (m_cameraCtrl && m_sceneView.isFocused())
@@ -251,31 +313,9 @@ public:
             if (ImGui::BeginMenu(TR("File")))
             {
                 //====== Script Reload ======
-                if (ImGui::MenuItem(TR("Reload Scripts")))
+                if (ImGui::MenuItem(TR("Reload Scripts"),nullptr,false,!FaluEngine::HotReloadManager::get().isBusy()))
                 {
-                    auto view = scene->registry().view<FaluEngine::NativeScriptComponent>();
-                    for (auto entity : view)
-                    {
-                        auto& nsc = view.get<FaluEngine::NativeScriptComponent>(entity);
-                        nsc.instance = nullptr;
-                        nsc.initialize = false;
-                    }
-
-                    std::string gameCodePath =
-                        "GameCode.dll";
-
-                    if (FaluEngine::PluginManager::get().reload(gameCodePath))
-                    {
-                        auto* plugin = FaluEngine::PluginManager::get().getPlugin(gameCodePath);
-                        if (plugin)
-                        {
-                            for (auto& [name, factory] : plugin->getScriptFactories())
-                                FaluEngine::NativeScriptRegistry::get().registerScript(name, factory);
-                        }
-                        LOG_INFO("Scripts reloaded");
-                    }
-                    else
-                        LOG_ERROR("Failed to reload GameCode.dll");
+                    FaluEngine::HotReloadManager::get().requestRebuild();
                 }
 
                 if (ImGui::MenuItem(TR("New")))
@@ -499,6 +539,14 @@ public:
 
                 }
             }
+            {
+                const auto status = FaluEngine::HotReloadManager::get().statusText();
+                if (!status.empty())
+                {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("| %s", status.c_str());
+                }
+            }
 
             ImGui::EndMainMenuBar();
         }
@@ -668,6 +716,7 @@ public:
     }
     void onShutdown() override 
     {
+        FaluEngine::HotReloadManager::get().shutdown();
         LOG_INFO("FaluEngine Editor shutdown");
     }
 

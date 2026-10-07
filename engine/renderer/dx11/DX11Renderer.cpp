@@ -60,6 +60,22 @@ bool DX11Renderer::init(void* windowHandle, uint32_t width, uint32_t height) {
 
 namespace
 {
+    bool compileHLSL(const std::filesystem::path& path, const char* entry,
+        const char* profile, UINT flags, ComPtr<ID3DBlob>& out)
+    {
+        ComPtr<ID3DBlob> err;
+
+        HRESULT hr = D3DCompileFromFile(path.wstring().c_str(), nullptr,
+            D3D_COMPILE_STANDARD_FILE_INCLUDE, entry, profile, flags, 0, &out, &err);
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[HLSL] {} : {}", path.filename().string(),
+                err ? static_cast<const char*>(err->GetBufferPointer()) : "file not found / unknown error");
+            return false;
+        }
+        return true;
+    }
+
     /// @brief 文字を小文字に変換するヘルパー関数
     /// @param s 変換前の文字列
     /// @return 
@@ -151,6 +167,64 @@ namespace
         return chosen->adapter;
     }
 }// namespace
+
+bool DX11Renderer::reloadShaders()
+{
+    UINT flags = 0;
+#ifdef ENGINE_DEBUG
+    flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+    ComPtr<ID3D11VertexShader> pbrVS, skinVS,shadowVS, shadowSkinVS, skyVS, uiVS;
+    ComPtr<ID3D11PixelShader> pbrPS, skyPS, uiPS;
+
+    // コンパイルを行うラムダ式
+    auto buildVS = [&](const char* rel, ComPtr<ID3D11VertexShader>& dst) ->bool
+        {
+            ComPtr<ID3DBlob> blob;
+            if (!compileHLSL(PathResolver::resolve(rel), "VS", "vs_5_0", flags, blob)) return false;
+            return SUCCEEDED(m_device->CreateVertexShader(blob->GetBufferPointer(), 
+                blob->GetBufferSize(), nullptr, &dst));
+        };
+
+    auto buildPS = [&](const char* rel, ComPtr<ID3D11PixelShader>& dst) ->bool
+        {
+            ComPtr<ID3DBlob> blob;
+            if (!compileHLSL(PathResolver::resolve(rel), "PS", "ps_5_0", flags, blob)) return false;
+            return SUCCEEDED(m_device->CreatePixelShader(blob->GetBufferPointer(),
+                blob->GetBufferSize(), nullptr, &dst));
+        };
+
+    // コンパイルがすべて通ったか確認する
+    const bool ok = 
+        buildVS("assets/shaders/PBR.vert.hlsl", pbrVS) &&
+        buildPS("assets/shaders/PBR.pixel.hlsl", pbrPS) &&
+        buildVS("assets/shaders/PBR_Skinned.vert.hlsl", skinVS) &&
+        buildVS("assets/shaders/ShadowDepth.vert.hlsl", shadowVS) &&
+        buildVS("assets/shaders/ShadowDepth_Skinned.vert.hlsl", shadowSkinVS) &&
+        buildVS("assets/shaders/SkySphere.vert.hlsl", skyVS) &&
+        buildPS("assets/shaders/SkySphere.pixel.hlsl", skyPS) &&
+        buildVS("assets/shaders/UI.vert.hlsl", uiVS) &&
+        buildPS("assets/shaders/UI.pixel.hlsl", uiPS);
+
+    if (!ok)
+    {
+        LOG_WARN("[HLSL] reload aborted: keeping previous shaders");
+        return false;
+    }
+
+    m_vertexShader = pbrVS; m_pixelShader = pbrPS;
+    m_skinnedVertexShader = skinVS;
+    m_shadowVS = shadowVS; m_shadowSkinnedVS = shadowSkinVS;
+    m_skyVS = skyVS; m_skyPS = skyPS;
+    m_uiVertexShader = uiVS; m_uiPixelShader = uiPS;
+    
+    m_boundVS = nullptr;
+    m_boundPS = nullptr;
+
+    LOG_INFO("[HLSL] shaders reloaded");
+    return true;
+}
 
 /// @brief スワップチェインの作成
 /// @param hwnd WindowHandle

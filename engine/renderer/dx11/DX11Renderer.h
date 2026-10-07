@@ -330,6 +330,10 @@ public:
         return m_brdfLutSRV.Get();
     }
 
+    /// @brief 実行時に使うHLSLを再コンパイルして差し替える
+    /// @return 
+    bool reloadShaders();
+
 private:
     bool createDeviceAndSwapChain(HWND hwnd);
     void uploadMaterialCB(const MaterialCB& mat);

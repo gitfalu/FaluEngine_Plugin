@@ -18,6 +18,20 @@ target_link_libraries(FaluEngineEditor
         FaluEngine::Internal
 )
 
+target_compile_definitions(FaluEngineEditor PRIVATE
+    FALU_CMAKE_EXE="${CMAKE_COMMAND}"
+    FALU_BUILD_DIR="${CMAKE_BINARY_DIR}"
+    FALU_BUILD_CONFIG="$<CONFIG>"
+    FALU_GAME_SRC_DIR="${PROJECT_SOURCE_DIR}/game"
+    FALU_SHADER_SRC_DIR="${PROJECT_SOURCE_DIR}/assets/shaders"
+)
+
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    target_compile_definitions(FaluEngineEditor PRIVATE FALU_VS_GENERATOR=1)
+else()
+    target_compile_definitions(FaluEngineEditor PRIVATE FALU_VS_GENERATOR=0)
+endif()
+
 if(TARGET GameCode)
     add_dependencies(FaluEngineEditor GameCode)
 endif()
