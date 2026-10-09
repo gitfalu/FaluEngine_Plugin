@@ -22,6 +22,10 @@ void PlayerController::onUpdate(FaluEngine::Entity& entity, float deltaTime)
 		if(t.position.x > -5.0f)
 			t.position.x -= deltaTime * 10.0f;
 	}
+	if (input.isKeyPressed(FaluEngine::Key::Space))
+	{
+		t.position.x = 0.0f;
+	}
 	
 }
 

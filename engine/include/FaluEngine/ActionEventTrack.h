@@ -19,8 +19,8 @@ namespace FaluEngine
 	enum class ActionWindowType : uint8_t
 	{
 		Parry = 0,     // パリィ受付
-		JustGuard,     // ジャストガード受付
 		JustDodge,     // ジャスト回避(ギリギリ回避)受付
+		JustGuard,     // ジャストガード受付
 		Invincible,    // 無敵
 		SuperArmor,    // スーパーアーマー(怯まない)
 		HitActive,     // 攻撃判定が有効な区間

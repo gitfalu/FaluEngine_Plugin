@@ -214,6 +214,7 @@ namespace FaluEngine
 		si.hStdError = writePipe;
 		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 
+		// cmd command ‚ğì¬
 		std::wstring cmd = L"\"" + m_cfg.cmakeExe.wstring() + L"\" --build \"" +
 			m_cfg.buildDir.wstring() + L"\" --target " +
 			std::wstring(m_cfg.target.begin(), m_cfg.target.end()) + 

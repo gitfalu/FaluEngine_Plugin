@@ -52,6 +52,7 @@ target_sources(FaluEngine
         renderer/dx11/EnvironmentMap.cpp
         renderer/dx11/UI.cpp
         renderer/dx11/ScreenshotCapture.cpp
+        renderer/dx11/FocusMapPass.cpp
 
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp

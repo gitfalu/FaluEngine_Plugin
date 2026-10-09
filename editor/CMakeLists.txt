@@ -9,6 +9,7 @@ add_executable(FaluEngineEditor
     panels/ContentBrowserPanel.cpp
     panels/LLMDebugPanel.cpp
     panels/AnimationEventPanel.cpp
+    panels/FocusAnalysisPanel.cpp
     EditorSettings.cpp
     EditorLocalization.cpp
 )

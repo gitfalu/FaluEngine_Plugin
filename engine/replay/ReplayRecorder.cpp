@@ -134,6 +134,7 @@ namespace FaluEngine
 					m_lastValues[id.uuid];
 				}
 
+				// 各コンポーネントずつ値に変更のあったオブジェクトをスナップショットして保管する
 				if (scene.registry().all_of<TransformComponent>(e))
 				{
 					auto& t = scene.registry().get<TransformComponent>(e);
@@ -142,7 +143,7 @@ namespace FaluEngine
 					auto it = m_lastValues.find(id.uuid);
 					const bool isNew = (it == m_lastValues.end()) || !it->second.hasTransform;
 					if (isNew)
-					{
+					{// UUID
 						m_baseSnapshot[id.uuid].hasTransform = true;
 						m_baseSnapshot[id.uuid].transform = snap;
 						m_lastValues[id.uuid].hasTransform = true;
