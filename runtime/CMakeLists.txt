@@ -7,6 +7,8 @@ add_executable(FaluEngineRuntime
 )
 add_executable(FaluEngine::Runtime ALIAS FaluEngineRuntime)
 
+falu_add_headers(FaluEngineRuntime ${CMAKE_CURRENT_SOURCE_DIR})
+
 target_link_libraries(FaluEngineRuntime 
     PRIVATE 
         FaluEngine::Internal

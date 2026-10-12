@@ -14,6 +14,8 @@ add_executable(FaluEngineEditor
     EditorLocalization.cpp
 )
 
+falu_add_headers(FaluEngineEditor ${CMAKE_CURRENT_SOURCE_DIR})
+
 target_link_libraries(FaluEngineEditor 
     PRIVATE
         FaluEngine::Internal

@@ -1,4 +1,5 @@
 add_library(FaluEngine SHARED)
+include(EngineHelpers)
 
 # 公開API
 add_library(FaluEngineInternal INTERFACE)
@@ -93,8 +94,7 @@ target_sources(FaluEngine
         tools/TerrainSculptTool.cpp
 )
 
-get_target_property(FALU_ENGINE_SOURCES FaluEngine SOURCES)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${FALU_ENGINE_SOURCES})
+falu_add_headers(FaluEngine ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_include_directories(FaluEngine
     PUBLIC

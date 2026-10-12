@@ -78,3 +78,14 @@ function(engine_request_high_performance_gpu TARGET)
             "${CMAKE_SOURCE_DIR}/engine/platform/HighPerformanceGpu.cpp")
     endif()
 endfunction()
+
+#
+# ヘッダファイルをソリューションエクスプローラーに登録する関数
+#
+function(falu_add_headers target root)
+    file(GLOB_RECURSE _falu_hdrs CONFIGURE_DEPENDS
+        "${root}/*.h" "${root}/*.hpp" "${root}/*.inl")
+    target_sources(${target} PRIVATE ${_falu_hdrs})
+    get_target_property(_falu_all ${target} SOURCES)
+    source_group(TREE "${root}" FILES ${_falu_all})
+endfunction()

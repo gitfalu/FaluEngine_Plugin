@@ -10,6 +10,10 @@ add_library(GameCode SHARED
     GameModule.cpp
 )
 
+include(EngineHelpers)
+
+falu_add_headers(GameCode ${CMAKE_CURRENT_SOURCE_DIR})
+
 target_link_libraries(GameCode
     PRIVATE
         FaluEngine::Engine
