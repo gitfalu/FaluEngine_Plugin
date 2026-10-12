@@ -52,6 +52,7 @@ target_sources(FaluEngine
         renderer/dx11/EnvironmentMap.cpp
         renderer/dx11/UI.cpp
         renderer/dx11/ScreenshotCapture.cpp
+        renderer/dx11/FocusMapPass.cpp
 
         asset/AssetManager.cpp
         asset/loaders/MeshLoader.cpp
@@ -75,6 +76,7 @@ target_sources(FaluEngine
         script/NativeScriptRegistry.cpp
 
         plugin/PluginManager.cpp
+        plugin/HotReloadManager.cpp
 
         replay/ReplayRecorder.cpp
 

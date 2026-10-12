@@ -1,5 +1,7 @@
 #include "Win32Platform.h"
 #include "core/Logger.h"
+#include "core/Events.h"
+#include "FaluEngine/EventBus.h"
 #include "FaluEngine/ImGuiLayer.h"
 #include "FaluEngine/InputManager.h"
 
@@ -117,7 +119,9 @@ LRESULT CALLBACK Win32Window::wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         if (self && self->m_onClose) self->m_onClose();
         PostQuitMessage(0);
         return 0;
-    
+    case WM_ACTIVATEAPP:
+        EventBus::get().publish(WindowFocusEvent{ wp != FALSE });
+        return 0;
     }
     return DefWindowProc(hwnd, msg, wp, lp);
 }
