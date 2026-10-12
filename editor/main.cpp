@@ -29,6 +29,7 @@
 #include "panels/GameViewPanel.h"
 #include "panels/LLMDebugPanel.h"
 #include "panels/AnimationEventPanel.h"
+#include "panels/FocusAnalysisPanel.h"
 #include "EditorSettings.h"
 #include "EditorLocalization.h"
 #include "platform/Window.h"
@@ -236,6 +237,10 @@ public:
                 }
                 });
             HotReloadManager::get().init(cfg);
+
+            // FocusAnalysisPanel の初期化
+            auto* r = static_cast<FaluEngine::DX11Renderer*>(getRenderer());
+            m_focusPanel.init(r->getDevice(), r->getContext());
 
             FaluEngine::EventBus::get().subscribe<FaluEngine::WindowFocusEvent>(
                 [](const FaluEngine::WindowFocusEvent& e)
@@ -683,8 +688,11 @@ public:
             renderer->beginGameOffscreen(gw, gh);
             scene->onRender();
             renderer->endGameOffscreen();
+
+            m_focusPanel.analyzeIfNeeded(renderer, scene, gw, gh);
         }
         m_gameView.drawImage(renderer);
+        m_focusPanel.draw(scene);
         
         if (m_contentBrowser.draw(scene, m_hierarchy.getSelected()))
             m_hierarchy.clearSelected();
@@ -758,6 +766,7 @@ private:
     Editor::GameViewPanel m_gameView;
     Editor::LLMDebugPanel m_llmDebugPanel;
     Editor::AnimationEventPanel m_animEventPanel;
+    Editor::FocusAnalysisPanel m_focusPanel;
     FaluEngine::Camera m_editorCamera;
 
     bool m_openNewScenePopup = false;
