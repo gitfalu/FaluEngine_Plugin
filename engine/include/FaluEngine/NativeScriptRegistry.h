@@ -9,7 +9,7 @@
 
 namespace FaluEngine
 {
-	class FALU_ENGINE_API NativeScriptRegistry
+	class FALU_CORE_API NativeScriptRegistry
 	{
 	public:
 		using FactoryFn = std::function<std::unique_ptr<NativeScript>()>;

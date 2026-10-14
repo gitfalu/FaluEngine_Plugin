@@ -105,8 +105,8 @@ struct ScriptComponent {
     std::string scriptPath; // assets/scripts/xxx.lua
     std::unique_ptr<ScriptInstance> instance;
 
-    FALU_ENGINE_API ScriptComponent();
-    FALU_ENGINE_API ~ScriptComponent();
+    FALU_SCENE_API ScriptComponent();
+    FALU_SCENE_API ~ScriptComponent();
 };
 
 struct NativeScriptComponent

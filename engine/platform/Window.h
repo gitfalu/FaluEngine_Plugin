@@ -10,7 +10,7 @@ namespace FaluEngine {
 using ResizeCallback = std::function<void(uint32_t w, uint32_t h)>;
 using CloseCallback  = std::function<void()>;
 
-class FALU_ENGINE_API Window {
+class FALU_GRAPHICS_API Window {
 public:
     struct Desc {
         std::wstring title  = L"FaluEngine";

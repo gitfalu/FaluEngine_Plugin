@@ -14,10 +14,10 @@ namespace FaluEngine::Loc
 		const char* en;
 	};
 
-	FALU_ENGINE_API void setLanguage(Language lang);
-	FALU_ENGINE_API Language getLanguage();
-	FALU_ENGINE_API void addEntries(const Entry* entries, std::size_t count);
-	FALU_ENGINE_API const char* tr(const char* key);
+	FALU_CORE_API void setLanguage(Language lang);
+	FALU_CORE_API Language getLanguage();
+	FALU_CORE_API void addEntries(const Entry* entries, std::size_t count);
+	FALU_CORE_API const char* tr(const char* key);
 }
 
 #define TR(text) ::FaluEngine::Loc::tr(text)

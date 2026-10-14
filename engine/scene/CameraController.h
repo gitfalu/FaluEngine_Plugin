@@ -5,7 +5,7 @@
 #include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
-	class FALU_ENGINE_API CameraController {
+	class FALU_SCENE_API CameraController {
 	public:
 		explicit CameraController(Camera& camera) : m_camera(camera){}
 

@@ -13,12 +13,12 @@
 
 namespace FaluEngine {
 
-struct FALU_ENGINE_API SceneChangeEvent {
+struct FALU_SCENE_API SceneChangeEvent {
 	std::string from;
 	std::string to;
 };
 
-class FALU_ENGINE_API SceneManager {
+class FALU_SCENE_API SceneManager {
 public:
 	static SceneManager& get();
 

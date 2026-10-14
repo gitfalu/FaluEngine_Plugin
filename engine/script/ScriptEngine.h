@@ -10,7 +10,7 @@ class Scene;
 
 // Lua スクリプトエンジン。
 // エンジン API を Lua に公開し、ScriptComponent の .lua ファイルを実行する。
-class FALU_ENGINE_API ScriptEngine {
+class FALU_SCENE_API ScriptEngine {
 public:
     static ScriptEngine& get();
     

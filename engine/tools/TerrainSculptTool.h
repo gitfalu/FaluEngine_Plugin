@@ -21,7 +21,7 @@ namespace Editor
 		Smooth,
 	};
 
-	class FALU_ENGINE_API TerrainSculptTool
+	class FALU_SCENE_API TerrainSculptTool
 	{
 	public:
 		static TerrainSculptTool& get();

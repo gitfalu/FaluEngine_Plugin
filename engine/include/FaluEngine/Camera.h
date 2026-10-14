@@ -4,7 +4,7 @@
 #include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine {
-	class FALU_ENGINE_API Camera {
+	class FALU_GRAPHICS_API Camera {
 	public:
 		Camera() { recalculate(); }
 

@@ -9,7 +9,7 @@
 
 
 
-class FALU_ENGINE_API FileWatcher
+class FALU_CORE_API FileWatcher
 {
 public:
 	/// @brief 監視対象パスと、変更検知時のコールバックを登録

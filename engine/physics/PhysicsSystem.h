@@ -15,7 +15,7 @@ namespace FaluEngine {
 
 	class Scene;
 
-	struct FALU_ENGINE_API RaycastHit
+	struct FALU_SCENE_API RaycastHit
 	{
 		bool hit = false;
 		entt::entity entity = entt::null;
@@ -24,7 +24,7 @@ namespace FaluEngine {
 		float distance = 0.0f;
 	};
 
-	class FALU_ENGINE_API PhysicsSystem
+	class FALU_SCENE_API PhysicsSystem
 	{
 	public:
 		static PhysicsSystem& get();

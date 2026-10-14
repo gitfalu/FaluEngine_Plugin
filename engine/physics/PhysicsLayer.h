@@ -21,7 +21,7 @@ namespace FaluEngine
 		static constexpr JPH::uint NUM_LAYERS = 2;
 	}
 
-	class FALU_ENGINE_API ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
+	class FALU_SCENE_API ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 	{
 	public:
 		bool ShouldCollide(JPH::ObjectLayer a, JPH::ObjectLayer b) const override
@@ -39,7 +39,7 @@ namespace FaluEngine
 	};
 
 
-	class FALU_ENGINE_API BPlayerInterfaceImpl : public JPH::BroadPhaseLayerInterface
+	class FALU_SCENE_API BPlayerInterfaceImpl : public JPH::BroadPhaseLayerInterface
 	{
 	public:
 		BPlayerInterfaceImpl() {
@@ -76,7 +76,7 @@ namespace FaluEngine
 		JPH::BroadPhaseLayer m_objectToBP[Layers::NUM_LAYERS];
 	};
 
-	class FALU_ENGINE_API ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
+	class FALU_SCENE_API ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 	{
 	public:
 		bool ShouldCollide(JPH::ObjectLayer layer, JPH::BroadPhaseLayer bpLayer) const override

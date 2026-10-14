@@ -5,5 +5,5 @@
 
 namespace FaluEngine
 {
-	FALU_ENGINE_API void drawText(float x, float y,const std::string& text, uint32_t colorABGR = 0xFFFFFFFF);
+	FALU_GRAPHICS_API void drawText(float x, float y,const std::string& text, uint32_t colorABGR = 0xFFFFFFFF);
 }

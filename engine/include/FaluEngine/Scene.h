@@ -10,7 +10,7 @@ namespace FaluEngine {
     class DX11Renderer;
     class Entity;
 
-    class FALU_ENGINE_API Scene {
+    class FALU_SCENE_API Scene {
     public:
         explicit Scene(std::string name = "Untitled");
         ~Scene();

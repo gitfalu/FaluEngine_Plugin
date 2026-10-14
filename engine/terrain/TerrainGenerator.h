@@ -7,7 +7,7 @@
 
 namespace FaluEngine
 {
-	FALU_ENGINE_API void generateTerrainHeights(TerrainComponent& terrain);
+	FALU_SCENE_API void generateTerrainHeights(TerrainComponent& terrain);
 	
-	FALU_ENGINE_API std::shared_ptr<MeshAsset> buildTerrainMesh(TerrainComponent& terrain, ID3D11Device* device);
+	FALU_SCENE_API std::shared_ptr<MeshAsset> buildTerrainMesh(TerrainComponent& terrain, ID3D11Device* device);
 }

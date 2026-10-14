@@ -23,7 +23,7 @@ namespace FaluEngine {
 // bus.unsubscribe<WindowResizeEvent>(id);
 // ──────────────────────────────────────────────────────────────────────────
 
-class FALU_ENGINE_API EventBus {
+class FALU_CORE_API EventBus {
 public:
     /// @brief シングルトン
     /// @return 

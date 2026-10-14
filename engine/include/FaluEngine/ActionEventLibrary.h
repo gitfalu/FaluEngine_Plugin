@@ -15,7 +15,7 @@
 
 namespace FaluEngine
 {
-	class FALU_ENGINE_API ActionEventLibrary
+	class FALU_SCENE_API ActionEventLibrary
 	{
 	public:
 		static ActionEventLibrary& get();

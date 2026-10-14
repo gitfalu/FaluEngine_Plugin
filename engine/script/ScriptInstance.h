@@ -8,7 +8,7 @@ namespace FaluEngine {
 	class Entity;
 
 
-	class FALU_ENGINE_API ScriptInstance {
+	class FALU_SCENE_API ScriptInstance {
 	public:
 		ScriptInstance(sol::state& lua, const std::string& scriptPath);
 		~ScriptInstance();

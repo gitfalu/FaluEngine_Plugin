@@ -5,7 +5,7 @@ namespace FaluEngine
 {
 	class Entity;
 
-	class FALU_ENGINE_API NativeScript
+	class FALU_CORE_API NativeScript
 	{
 	public:
 		virtual ~NativeScript() = default;

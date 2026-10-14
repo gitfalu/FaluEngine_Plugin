@@ -4,7 +4,7 @@ struct IXAudio2SourceVoice;
 
 namespace FaluEngine
 {
-	struct FALU_ENGINE_API AudioVoiceHandle
+	struct FALU_AUDIO_API AudioVoiceHandle
 	{
 		IXAudio2SourceVoice* voice = nullptr;
 	};

@@ -17,7 +17,7 @@
 
 namespace FaluEngine
 {
-	class FALU_ENGINE_API HotReloadManager
+	class FALU_CORE_API HotReloadManager
 	{
 	public:
 		struct Config

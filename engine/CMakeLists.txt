@@ -1,9 +1,8 @@
-add_library(FaluEngine SHARED)
-include(EngineHelpers)
-
 # 公開API
 add_library(FaluEngineInternal INTERFACE)
 add_library(FaluEngine::Internal ALIAS FaluEngineInternal)
+include(EngineHelpers)
+
 
 target_include_directories(FaluEngineInternal INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
