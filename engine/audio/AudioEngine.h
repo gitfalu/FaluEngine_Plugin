@@ -12,7 +12,7 @@ namespace FaluEngine
 {
 	using Microsoft::WRL::ComPtr;
 
-	class FALU_ENGINE_API AudioEngine
+	class FALU_AUDIO_API AudioEngine
 	{
 	private:
 		struct ActiveVoice : public IXAudio2VoiceCallback

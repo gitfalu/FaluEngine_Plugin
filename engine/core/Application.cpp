@@ -86,6 +86,7 @@ bool Application::initRenderer() {
         LOG_ERROR("Failed to initialize renderer");
         return false;
     }
+    setActiveRenderer(m_renderer.get());
 
     HWND hwnd = static_cast<HWND>(m_window->getNativeHandle());
     if (!m_imguiLayer.init(hwnd, renderer->getDevice(), renderer->getContext())) {
@@ -174,6 +175,7 @@ int Application::run() {
     PhysicsSystem::get().shutdown();
     m_imguiLayer.shutdown();
 
+    setActiveRenderer(nullptr);
     m_renderer.reset();
     m_window.reset();
 

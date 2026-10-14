@@ -16,9 +16,9 @@ struct TextureAsset : Asset {
     // ID3D11ShaderResourceView* srv = nullptr; // DirectX 統合後に追加
 };
 
-FALU_ENGINE_API std::shared_ptr<TextureAsset> loadTexture(const std::string& path,ID3D11Device* device,
+FALU_GRAPHICS_API std::shared_ptr<TextureAsset> loadTexture(const std::string& path,ID3D11Device* device,
     ID3D11DeviceContext* context);
 
-FALU_ENGINE_API void registerTextureLoader(ID3D11Device* device, ID3D11DeviceContext* context);
+FALU_GRAPHICS_API void registerTextureLoader(ID3D11Device* device, ID3D11DeviceContext* context);
 
 } // namespace FaluEngine

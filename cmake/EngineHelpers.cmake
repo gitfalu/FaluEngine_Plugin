@@ -61,10 +61,14 @@ function(engine_copy_assets TARGET ASSET_DIR)
         message(STATUS "engine_copy_assets: '${ASSET_DIR}' not found, skipping")
         return()
     endif()
+    set(_dest "$<TARGET_FILE_DIR:${TARGET}>")
+    if(ARGC GREATER 2)
+        set(_dest "${ARGV2}")
+    endif()
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/${ASSET_DIR}"
-            "$<TARGET_FILE_DIR:${TARGET}>/${ASSET_DIR}"
+            "${_dest}/${ASSET_DIR}"
         COMMENT "Copying assets: ${ASSET_DIR}"
     )
 endfunction()

@@ -29,8 +29,8 @@ struct MeshAsset : Asset {
     glm::mat4 globalInverseTransform = glm::mat4(1.0f);
 };
 
-FALU_ENGINE_API std::shared_ptr<MeshAsset> loadMesh(const std::string& path,ID3D11Device* device);
+FALU_GRAPHICS_API std::shared_ptr<MeshAsset> loadMesh(const std::string& path,ID3D11Device* device);
 
-FALU_ENGINE_API void registerMeshLoader(ID3D11Device* device);
+FALU_GRAPHICS_API void registerMeshLoader(ID3D11Device* device);
 
 } // namespace FaluEngine

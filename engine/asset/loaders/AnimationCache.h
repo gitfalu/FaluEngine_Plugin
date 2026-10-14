@@ -6,7 +6,7 @@
 
 namespace FaluEngine
 {
-	class FALU_ENGINE_API AnimationCache
+	class FALU_GRAPHICS_API AnimationCache
 	{
 	public:
 		static AnimationCache& get();

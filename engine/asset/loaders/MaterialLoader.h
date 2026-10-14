@@ -38,11 +38,11 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	FALU_ENGINE_API std::shared_ptr<MaterialAsset> loadMaterial(const std::string& path);
+	FALU_GRAPHICS_API std::shared_ptr<MaterialAsset> loadMaterial(const std::string& path);
 
-	FALU_ENGINE_API bool saveMaterial(const std::string& path, const MaterialAsset& material);
+	FALU_GRAPHICS_API bool saveMaterial(const std::string& path, const MaterialAsset& material);
 
-	FALU_ENGINE_API void registerMaterialLoader();
+	FALU_GRAPHICS_API void registerMaterialLoader();
 
 
 }

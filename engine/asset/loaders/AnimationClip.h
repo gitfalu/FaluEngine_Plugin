@@ -52,7 +52,7 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	FALU_ENGINE_API std::vector<std::shared_ptr<AnimationClip>> loadAnimationFromFile(const std::string& meshPath);
+	FALU_GRAPHICS_API std::vector<std::shared_ptr<AnimationClip>> loadAnimationFromFile(const std::string& meshPath);
 
-	FALU_ENGINE_API void registerAnimationLoader();
+	FALU_GRAPHICS_API void registerAnimationLoader();
 }
