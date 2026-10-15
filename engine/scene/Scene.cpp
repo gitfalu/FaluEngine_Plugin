@@ -212,7 +212,7 @@ static void computeWorldMatrix(entt::registry& registry, entt::entity entity,
 
 void Scene::onRender(bool useOwnCamera) {
     auto* renderer = static_cast<DX11Renderer*>(
-        Application::getInstance().getRenderer());
+        getActiveRenderer());
     if (!renderer) return;
 
     //-各種描画関連更新処理
@@ -627,7 +627,7 @@ void Scene::updateUILayout(DX11Renderer* renderer)
 
 void Scene::updateUIInteraction()
 {
-    auto* renderer = static_cast<DX11Renderer*>(Application::getInstance().getRenderer());
+    auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer());
     if (!renderer)return;
     
     glm::vec2 activeSize = { static_cast<float>(renderer->getActiveWidth()),

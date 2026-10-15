@@ -7,7 +7,7 @@ namespace FaluEngine
 {
 	// 地形コンポーネント
 	// MeshComponentとRigidbodyComponentを組として１エンティティに付与
-	struct FALU_ENGINE_API TerrainComponent
+	struct FALU_SCENE_API TerrainComponent
 	{
 		//-グリッドの分割数
 		uint32_t resolutionX = 128;

@@ -9,7 +9,7 @@
 
 namespace FaluEngine {
 
-class FALU_ENGINE_API Logger {
+class FALU_CORE_API Logger {
 public:
     static void init(const std::filesystem::path& logDir = "logs");
     static void shutdown();

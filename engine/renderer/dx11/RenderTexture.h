@@ -12,7 +12,7 @@ using Microsoft::WRL::ComPtr;
 namespace FaluEngine
 {
 
-	class FALU_ENGINE_API RenderTexture
+	class FALU_GRAPHICS_API RenderTexture
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t width, uint32_t height);

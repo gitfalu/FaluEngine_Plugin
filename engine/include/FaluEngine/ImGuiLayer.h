@@ -9,7 +9,7 @@
 
 namespace FaluEngine {
 	
-class FALU_ENGINE_API ImGuiLayer {
+class FALU_GRAPHICS_API ImGuiLayer {
 public:
 	bool init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context);
 

@@ -16,7 +16,7 @@
 
 
 namespace FaluEngine {
-	class FALU_ENGINE_API PathResolver {
+	class FALU_CORE_API PathResolver {
 	public:
 		static void Init(const std::filesystem::path& exePath = getExePath());
 

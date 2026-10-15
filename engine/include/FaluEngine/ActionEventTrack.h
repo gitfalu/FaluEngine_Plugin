@@ -38,8 +38,8 @@ namespace FaluEngine
 		return 1u << static_cast<uint32_t>(t);
 	}
 
-	FALU_ENGINE_API const char* toString(ActionWindowType t)noexcept;
-	FALU_ENGINE_API bool actionWindowTypeFromString(std::string_view s, ActionWindowType& out) noexcept;
+	FALU_SCENE_API const char* toString(ActionWindowType t)noexcept;
+	FALU_SCENE_API bool actionWindowTypeFromString(std::string_view s, ActionWindowType& out) noexcept;
 
 	struct ActionWindow
 	{
@@ -67,11 +67,11 @@ namespace FaluEngine
 		[[nodiscard]] float toSeconds(float frame) const noexcept { return frame / fps; }
 		[[nodiscard]] float toFrame(float seconds) const noexcept { return seconds * fps; }
 
-		[[nodiscard]] FALU_ENGINE_API uint32_t maskAt(float seconds) const noexcept;
+		[[nodiscard]] FALU_SCENE_API uint32_t maskAt(float seconds) const noexcept;
 
-		FALU_ENGINE_API void sort();
+		FALU_SCENE_API void sort();
 
-		[[nodiscard]] FALU_ENGINE_API std::vector<std::string> validate(float clipDurationSec) const;
+		[[nodiscard]] FALU_SCENE_API std::vector<std::string> validate(float clipDurationSec) const;
 	};
 
 	//================ ÉâÉìÉ^ÉCÉÄèÛë‘
@@ -123,7 +123,7 @@ namespace FaluEngine
 		bool  clipChanged = false;
 	};
 
-	class FALU_ENGINE_API ActionTrackEvaluator
+	class FALU_SCENE_API ActionTrackEvaluator
 	{
 	public:
 		static void step(ActionStateComponent& state, const ActionEventTrack* track, const ActionStepInput& in);
@@ -140,9 +140,9 @@ namespace FaluEngine
 		SuperArmor,
 	};
 
-	FALU_ENGINE_API const char* toString(DefenseResult r) noexcept;
+	FALU_SCENE_API const char* toString(DefenseResult r) noexcept;
 
-	class FALU_ENGINE_API DefenseJudge
+	class FALU_SCENE_API DefenseJudge
 	{
 	public:
 		[[nodiscard]] static DefenseResult resolve(const ActionStateComponent& s, bool useStepMask = true) noexcept;
@@ -151,7 +151,7 @@ namespace FaluEngine
 		[[nodiscard]] static float quality(const ActionStateComponent& s, ActionWindowType t) noexcept;
 	};
 
-	[[nodiscard]] FALU_ENGINE_API std::string actionTracksToJson(const std::vector<ActionEventTrack>& tracks);
+	[[nodiscard]] FALU_SCENE_API std::string actionTracksToJson(const std::vector<ActionEventTrack>& tracks);
 
-	FALU_ENGINE_API bool actionTracksFromJson(std::string_view text, std::vector<ActionEventTrack>& out, std::string& error);
+	FALU_SCENE_API bool actionTracksFromJson(std::string_view text, std::vector<ActionEventTrack>& out, std::string& error);
 }

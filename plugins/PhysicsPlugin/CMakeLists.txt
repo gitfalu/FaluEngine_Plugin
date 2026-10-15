@@ -9,5 +9,5 @@ target_link_libraries(PhysicsPlugin
 
 set_target_properties(PhysicsPlugin PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY
-        "${CMAKE_BINARY_DIR}/bin/plugins"
+        "${FALU_MODULE_DIR}/plugins"
 )

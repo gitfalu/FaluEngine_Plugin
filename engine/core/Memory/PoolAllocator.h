@@ -8,7 +8,7 @@ namespace FaluEngine {
 
 // 固定サイズブロックのプールアロケータ。
 // 同じサイズのオブジェクトを大量に生成する場面（パーティクル、コンポーネント等）で使う。
-class FALU_ENGINE_API PoolAllocator {
+class FALU_CORE_API PoolAllocator {
 public:
     // blockSize: 1ブロックのバイト数, blockCount: 確保するブロック数
     PoolAllocator(std::size_t blockSize, std::size_t blockCount);

@@ -29,7 +29,7 @@ using Microsoft::WRL::ComPtr;
 namespace FaluEngine {
 
 /// @brief 頂点情報
-struct FALU_ENGINE_API Vertex {
+struct FALU_GRAPHICS_API Vertex {
     glm::vec3 position;     // 位置
     glm::vec4 color;        // 色
     glm::vec2 uv;           // UV座標
@@ -39,7 +39,7 @@ struct FALU_ENGINE_API Vertex {
 };
 
 /// @brief スキンメッシュの頂点
-struct FALU_ENGINE_API SkinnedVertex
+struct FALU_GRAPHICS_API SkinnedVertex
 {
     glm::vec3 position;     // 位置
     glm::vec4 color;        // 色
@@ -52,13 +52,13 @@ struct FALU_ENGINE_API SkinnedVertex
 };
 #define MAX_BONES (128) // 最大の骨の数
 /// @brief スキンメッシュの定数バッファ
-struct FALU_ENGINE_API SkinningCB
+struct FALU_GRAPHICS_API SkinningCB
 {
     glm::mat4 boneMatrices[MAX_BONES]; // 骨の行列
 };
 
 /// @brief ライトのデータ
-struct FALU_ENGINE_API LightData {
+struct FALU_GRAPHICS_API LightData {
     glm::vec4 position;     // 位置
     glm::vec4 direction;    // 方向
     glm::vec4 color;        // 色
@@ -68,7 +68,7 @@ struct FALU_ENGINE_API LightData {
     float spotOuter;        //-光がなくなる円の半径位置
 };
 /// @brief ライトの定数バッファ
-struct FALU_ENGINE_API LightCB {
+struct FALU_GRAPHICS_API LightCB {
     LightData lights[16];       // ライトのデータ(最大16個まで)
     int lightCount = 0;         // ライトの個数
     float _pad0[3];             // 
@@ -78,14 +78,14 @@ struct FALU_ENGINE_API LightCB {
 };
 
 /// @brief トランスフォーム定数バッファ
-struct FALU_ENGINE_API TransformCB {
+struct FALU_GRAPHICS_API TransformCB {
     glm::mat4 mvp;          // ビュープロジェクション行列
     glm::mat4 world;        // ワールド行列
     glm::mat4 normalMatrix; // 法線行列
 };
 
 /// @brief マテリアル定数バッファ
-struct FALU_ENGINE_API MaterialCB {
+struct FALU_GRAPHICS_API MaterialCB {
     glm::vec4 albedoColor = { 1.0f,1.0f,1.0f,1.0f }; // ベースカラー
     float metallic = 0.0f;          // 金属
     float roughness = 0.5f;         //-粗さ
@@ -100,13 +100,13 @@ struct FALU_ENGINE_API MaterialCB {
 };
 
 /// @brief 影定数バッファ
-struct FALU_ENGINE_API ShadowCB
+struct FALU_GRAPHICS_API ShadowCB
 {
     glm::mat4 lightMVP; //-ライトの行列
 };
 
 /// @brief 影設定の定数バッファ
-struct FALU_ENGINE_API ShadowSettingsCB
+struct FALU_GRAPHICS_API ShadowSettingsCB
 {
     glm::mat4 lightSpaceMatrix; //-ライト行列
     int useShadow = 0;          //-影の使用フラグ
@@ -116,13 +116,13 @@ struct FALU_ENGINE_API ShadowSettingsCB
 };
 
 /// @brief スカイボックス定数バッファ
-struct FALU_ENGINE_API SkyCB
+struct FALU_GRAPHICS_API SkyCB
 {
     glm::mat4 viewProj; //-ビュープロジェクション行列
 };
 
 /// @brief スカイボックス設定定数バッファ
-struct FALU_ENGINE_API SkySettingsCB
+struct FALU_GRAPHICS_API SkySettingsCB
 {
     glm::vec4 topColor;     //-頂点色
     glm::vec4 bottomColor;  //-底辺色
@@ -133,14 +133,14 @@ struct FALU_ENGINE_API SkySettingsCB
 };
 
 /// @brief 
-struct FALU_ENGINE_API PrefilterCB
+struct FALU_GRAPHICS_API PrefilterCB
 {
     float roughness = 0.0f;
     glm::vec3 _pad = {};
 };
 
 /// @brief UITransform定数バッファ
-struct FALU_ENGINE_API UITransformCB
+struct FALU_GRAPHICS_API UITransformCB
 {
     glm::mat4 orthoProjection;  //-平行投影行列
     glm::vec2 position;         //-位置
@@ -150,14 +150,14 @@ struct FALU_ENGINE_API UITransformCB
 };
 
 /// @brief UIマテリアル定数バッファ
-struct FALU_ENGINE_API UIMaterialCB
+struct FALU_GRAPHICS_API UIMaterialCB
 {
     glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };  //-色
     int useTexture = 0; //-テクスチャ使用フラグ
     glm::vec3 _pad;
 };
 
-class FALU_ENGINE_API DX11Renderer final : public IRenderer {
+class FALU_GRAPHICS_API DX11Renderer final : public IRenderer {
 public:
     /// @brief コピー防止コンストラクタ
     /// @param  

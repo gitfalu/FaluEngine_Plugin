@@ -75,7 +75,7 @@ public:
 
         // GameCodeの取得
         std::string gameCodePath = FaluEngine::PathResolver::toUtf8(
-            FaluEngine::PathResolver::resolve("GameCode.dll"));
+            FaluEngine::PathResolver::resolve("modules/GameCode.dll"));
         if (FaluEngine::PluginManager::get().load(gameCodePath))
         {
             auto* plugin = FaluEngine::PluginManager::get().getPlugin(gameCodePath);
@@ -140,7 +140,8 @@ private:
     std::unique_ptr<FaluEngine::CameraController> m_cameraCtrl;
 };
 
-int main() {
+extern "C" __declspec(dllexport) int FaluRuntimeMain()
+{
     RuntimeApp app;
     return app.run();
 }

@@ -21,7 +21,7 @@
 
 namespace FaluEngine {
 
-class FALU_ENGINE_API PluginManager {
+class FALU_CORE_API PluginManager {
 public:
     static PluginManager& get();
 

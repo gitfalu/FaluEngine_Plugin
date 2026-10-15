@@ -11,7 +11,7 @@
 namespace FaluEngine {
 
 // アセットの基底クラス
-struct FALU_ENGINE_API Asset {
+struct FALU_CORE_API Asset {
     virtual ~Asset() = default;
     std::string path;
     bool loaded = false;
@@ -26,7 +26,7 @@ using AssetLoaderFn = std::function<std::shared_ptr<Asset>(const std::string&)>;
 
 // 型安全なアセットキャッシュ。
 // ローダーを差し替えられるよう、ロード処理は各 Loader クラスに委譲する。
-class FALU_ENGINE_API AssetManager {
+class FALU_CORE_API AssetManager {
 public:
     static AssetManager& get();
 

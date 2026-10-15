@@ -566,7 +566,7 @@ namespace FaluEngine
 			Entity parent(itParent->second, &m_scene);
 			child.setParent(parent);
 		}
-		if (auto* renderer = static_cast<DX11Renderer*>(Application::getInstance().getRenderer()))
+		if (auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer()))
 		{
 			rebuildAllPendingTerrains(m_scene, renderer->getDevice());
 		}

@@ -2171,4 +2171,11 @@ void DX11Renderer::generateBRDFLUT()
     LOG_INFO("BRDFLUT generated (512x512)");
 }
 
+namespace
+{
+    IRenderer* g_activeRenderer = nullptr;
+}
+IRenderer* getActiveRenderer() noexcept { return g_activeRenderer; }
+void setActiveRenderer(IRenderer* renderer) noexcept { g_activeRenderer = renderer; }
+
 } // namespace FaluEngine

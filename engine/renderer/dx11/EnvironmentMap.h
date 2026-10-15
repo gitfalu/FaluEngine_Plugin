@@ -12,7 +12,7 @@ using Microsoft::WRL::ComPtr;
 
 namespace FaluEngine
 {
-	class FALU_ENGINE_API EnvironmentMap
+	class FALU_GRAPHICS_API EnvironmentMap
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t size = 512, uint32_t mipLevels = 1);

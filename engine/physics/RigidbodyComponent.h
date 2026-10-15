@@ -6,20 +6,20 @@
 
 namespace FaluEngine
 {
-	enum class FALU_ENGINE_API BodyType {
+	enum class FALU_SCENE_API BodyType {
 		Static,
 		Dynamic,
 		Kinematic,
 	};
 
-	enum class FALU_ENGINE_API ColliderShape {
+	enum class FALU_SCENE_API ColliderShape {
 		Box,
 		Sphere,
 		Capsule,
 		HeightField,
 	};
 
-	struct FALU_ENGINE_API RigidbodyComponent {
+	struct FALU_SCENE_API RigidbodyComponent {
 		BodyType bodyType = BodyType::Dynamic;
 		ColliderShape shape = ColliderShape::Box;
 

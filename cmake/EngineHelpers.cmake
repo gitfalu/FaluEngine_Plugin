@@ -49,7 +49,7 @@ macro(engine_add_plugin NAME)
     target_link_libraries(${NAME} PRIVATE engine_core ${PLG_DEPS})
 
     set_target_properties(${NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/plugins
+        RUNTIME_OUTPUT_DIRECTORY ${FALU_MODULE_DIR}/plugins
         FOLDER "Plugins"
     )
 endmacro()
@@ -61,10 +61,14 @@ function(engine_copy_assets TARGET ASSET_DIR)
         message(STATUS "engine_copy_assets: '${ASSET_DIR}' not found, skipping")
         return()
     endif()
+    set(_dest "$<TARGET_FILE_DIR:${TARGET}>")
+    if(ARGC GREATER 2)
+        set(_dest "${ARGV2}")
+    endif()
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/${ASSET_DIR}"
-            "$<TARGET_FILE_DIR:${TARGET}>/${ASSET_DIR}"
+            "${_dest}/${ASSET_DIR}"
         COMMENT "Copying assets: ${ASSET_DIR}"
     )
 endfunction()
@@ -77,4 +81,15 @@ function(engine_request_high_performance_gpu TARGET)
         target_sources(${TARGET} PRIVATE
             "${CMAKE_SOURCE_DIR}/engine/platform/HighPerformanceGpu.cpp")
     endif()
+endfunction()
+
+#
+# ヘッダファイルをソリューションエクスプローラーに登録する関数
+#
+function(falu_add_headers target root)
+    file(GLOB_RECURSE _falu_hdrs CONFIGURE_DEPENDS
+        "${root}/*.h" "${root}/*.hpp" "${root}/*.inl")
+    target_sources(${target} PRIVATE ${_falu_hdrs})
+    get_target_property(_falu_all ${target} SOURCES)
+    source_group(TREE "${root}" FILES ${_falu_all})
 endfunction()

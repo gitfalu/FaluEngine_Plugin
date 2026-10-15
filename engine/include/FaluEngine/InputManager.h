@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 namespace FaluEngine {
-	class FALU_ENGINE_API InputManager {
+	class FALU_CORE_API InputManager {
 	public:
 		static InputManager& get();
 

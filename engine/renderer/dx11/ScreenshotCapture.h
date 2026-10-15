@@ -10,7 +10,7 @@ namespace FaluEngine
 {
 	class RenderTexture;
 
-	class FALU_ENGINE_API ScreenshotCapture
+	class FALU_GRAPHICS_API ScreenshotCapture
 	{
 	public:
 		static std::vector<uint8_t> captureToPNG(

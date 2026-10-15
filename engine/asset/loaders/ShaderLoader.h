@@ -21,8 +21,8 @@ namespace FaluEngine
 		bool valid = false;
 	};
 
-	FALU_ENGINE_API std::shared_ptr<ShaderAsset> loadeShader(
+	FALU_GRAPHICS_API std::shared_ptr<ShaderAsset> loadeShader(
 		const std::string& vsPath, const std::string& psPath, ID3D11Device* device);
 
-	FALU_ENGINE_API void registerShaderLoader(ID3D11Device* device);
+	FALU_GRAPHICS_API void registerShaderLoader(ID3D11Device* device);
 }

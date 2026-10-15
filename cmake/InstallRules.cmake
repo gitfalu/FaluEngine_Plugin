@@ -1,38 +1,41 @@
 include_guard(GLOBAL)
 
-install(TARGETS FaluEngine
+# エンジンのDLLを機能ごとに
+install(TARGETS FaluCore FaluAudio FaluGraphics FaluScene FaluEngine
     EXPORT FaluEngineTargets
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION bin
+    RUNTIME DESTINATION bin/modules
+    LIBRARY DESTINATION bin/modules
     ARCHIVE DESTINATION lib
 )
 
 if(TARGET FaluEngineRuntime)
-    install(TARGETS FaluEngineRuntime
+    install(TARGETS FaluEngineRuntime RUNTIME DESTINATION bin)
+    install(TARGETS FaluRuntimeModule
         RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-        RUNTIME DESTINATION bin
+        RUNTIME DESTINATION bin/modules
     )
 endif()
 
 if(TARGET FaluEngineEditor)
-    install(TARGETS FaluEngineEditor
+    install(TARGETS FaluEngineEditor RUNTIME DESTINATION bin)
+    install(TARGETS FaluEditorModule
         RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-        RUNTIME DESTINATION bin
+        RUNTIME DESTINATION bin/modules
     )
 endif()
 
 if(TARGET GameCode)
     install(TARGETS GameCode
         RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION bin
+        RUNTIME DESTINATION bin/modules
+        LIBRARY DESTINATION bin/modules
     )
 endif()
 
 if(TARGET PhysicsPlugin)
     install(TARGETS PhysicsPlugin
-        RUNTIME DESTINATION bin/plugins
-        LIBRARY DESTINATION bin/plugins
+        RUNTIME DESTINATION bin/modules/plugins
+        LIBRARY DESTINATION bin/modules/plugins
     )
 endif()
 
@@ -47,7 +50,7 @@ install(DIRECTORY
 )
 
 install(RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-    DESTINATION bin
+    DESTINATION bin/modules
     PRE_EXCLUDE_REGEXES
         "api-ms-win-.*"
         "ext-ms-win-.*"

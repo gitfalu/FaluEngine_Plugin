@@ -9,7 +9,7 @@
 
 namespace FaluEngine
 {
-	struct FALU_ENGINE_API AudioClip : public Asset
+	struct FALU_AUDIO_API AudioClip : public Asset
 	{
 		WAVEFORMATEX format{};
 		std::vector<uint8_t> pcmData;

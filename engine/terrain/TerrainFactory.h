@@ -10,21 +10,21 @@ namespace FaluEngine
 
 	// TerrainComponentを受け取り地形のメッシュを生成
 
-	FALU_ENGINE_API Entity createTerrainEntity(
+	FALU_SCENE_API Entity createTerrainEntity(
 		Scene& scene,
 		TerrainComponent params,
 		ID3D11Device* device,
 		const char* name = "Terrain"
 	);
 
-	FALU_ENGINE_API void addTerrainComponents(
+	FALU_SCENE_API void addTerrainComponents(
 		Scene& scene,
 		Entity entity,
 		TerrainComponent params,
 		ID3D11Device* device
 	);
 
-	FALU_ENGINE_API void regenerateTerrain(
+	FALU_SCENE_API void regenerateTerrain(
 		Scene& scene,
 		Entity entity,
 		ID3D11Device* device
@@ -35,7 +35,7 @@ namespace FaluEngine
 	/// @param entity 
 	/// @param device 
 	/// @return 
-	FALU_ENGINE_API void rebuildTerrainMeshOnly(
+	FALU_SCENE_API void rebuildTerrainMeshOnly(
 		Scene& scene,
 		Entity entity,
 		ID3D11Device* device
@@ -45,7 +45,7 @@ namespace FaluEngine
 	/// @param scene 
 	/// @param entity 
 	/// @return 
-	FALU_ENGINE_API void syncTerrainPhysics(
+	FALU_SCENE_API void syncTerrainPhysics(
 		Scene& scene,
 		Entity entity
 	);
@@ -54,7 +54,7 @@ namespace FaluEngine
 	/// @param scene 
 	/// @param device 
 	/// @return 
-	FALU_ENGINE_API void rebuildAllPendingTerrains(
+	FALU_SCENE_API void rebuildAllPendingTerrains(
 		Scene& scene,
 		ID3D11Device* device
 	);

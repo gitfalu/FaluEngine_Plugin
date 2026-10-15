@@ -6,7 +6,7 @@ namespace FaluEngine
 {
 	class Scene;
 
-	class FALU_ENGINE_API SceneSerializer
+	class FALU_SCENE_API SceneSerializer
 	{
 	public:
 		explicit SceneSerializer(Scene& scene) : m_scene(scene) {}

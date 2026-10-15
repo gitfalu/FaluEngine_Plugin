@@ -35,7 +35,7 @@ namespace FaluEngine
 		float timeSeconds = 0.0f;
 	};
 
-	class FALU_ENGINE_API ActionEventSystem
+	class FALU_SCENE_API ActionEventSystem
 	{
 	public:
 		static void tick(entt::registry& reg, entt::entity e,

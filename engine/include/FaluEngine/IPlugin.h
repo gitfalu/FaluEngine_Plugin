@@ -10,7 +10,7 @@ namespace FaluEngine {
 // ── プラグインインターフェース ────────────────────────────────────────────
 // 全てのプラグインはこの純粋仮想クラスを実装する。
 // DLL エクスポート関数 createPlugin() / destroyPlugin() を必ず定義すること。
-class FALU_ENGINE_API IPlugin {
+class FALU_CORE_API IPlugin {
 public:
     virtual ~IPlugin() = default;
 

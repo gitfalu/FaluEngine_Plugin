@@ -14,7 +14,7 @@ namespace FaluEngine
 	class Scene;
 
 	/// @brief 実行フレームを
-	class FALU_ENGINE_API ReplayRecorder
+	class FALU_SCENE_API ReplayRecorder
 	{
 	public:
 		explicit ReplayRecorder(size_t maxFrames = 600); // 60FPSで１０秒を目安にレコードを取る

@@ -13,7 +13,7 @@ using Microsoft::WRL::ComPtr;
 namespace FaluEngine
 {
 
-	class FALU_ENGINE_API ShadowMap
+	class FALU_GRAPHICS_API ShadowMap
 	{
 	public:
 		bool create(ID3D11Device* device, uint32_t size = 2048);

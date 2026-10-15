@@ -9,7 +9,7 @@ class Scene;
 
 // レンダラーの抽象インターフェース。
 // DirectX11 / Vulkan / OpenGL など実装を差し替えられるようにするための PAL。
-class FALU_ENGINE_API IRenderer {
+class FALU_GRAPHICS_API IRenderer {
 public:
     virtual ~IRenderer() = default;
 
@@ -28,5 +28,8 @@ public:
     [[nodiscard]] virtual uint32_t getWidth()  const noexcept = 0;
     [[nodiscard]] virtual uint32_t getHeight() const noexcept = 0;
 };
+
+FALU_GRAPHICS_API IRenderer* getActiveRenderer() noexcept;
+FALU_GRAPHICS_API void setActiveRenderer(IRenderer* renderer) noexcept;
 
 } // namespace FaluEngine

@@ -4,5 +4,5 @@
 
 namespace FaluEngine
 {
-	FALU_ENGINE_API void playSound(const std::string& path, float volume = 1.0f, bool loop = false);
+	FALU_AUDIO_API void playSound(const std::string& path, float volume = 1.0f, bool loop = false);
 }

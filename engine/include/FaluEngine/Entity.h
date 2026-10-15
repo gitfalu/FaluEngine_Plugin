@@ -7,7 +7,7 @@ namespace FaluEngine {
 
 class Scene;
 
-class FALU_ENGINE_API Entity {
+class FALU_SCENE_API Entity {
 public:
     Entity() = default;
     Entity(entt::entity handle, Scene* scene)

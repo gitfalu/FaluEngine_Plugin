@@ -16,7 +16,7 @@
 
 namespace FaluEngine {
 
-class Win32Window final : public Window {
+class FALU_GRAPHICS_API Win32Window final : public Window {
 public:
     Win32Window()  = default;
     ~Win32Window() override { destroy(); }
