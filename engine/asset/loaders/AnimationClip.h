@@ -16,7 +16,7 @@ namespace FaluEngine
 	struct ScaleKey { float time; glm::vec3 value; };
 
 	/// @brief 1ボーン分のアニメーションチャンネル
-	struct BoneAnimChannel
+	struct FALU_GRAPHICS_API BoneAnimChannel
 	{
 		std::string boneName;
 		std::vector<PositionKey> positionKeys;

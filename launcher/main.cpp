@@ -5,8 +5,8 @@
  * \author tsunn
  * \date   October 2026
  *********************************************************************/
-#ifndef WIN32_LEAN_MEAN
-#define WIN32_LEAN_MEAN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
 
 #ifndef NOMINMAX

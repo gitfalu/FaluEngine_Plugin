@@ -49,7 +49,7 @@ macro(engine_add_plugin NAME)
     target_link_libraries(${NAME} PRIVATE engine_core ${PLG_DEPS})
 
     set_target_properties(${NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/plugins
+        RUNTIME_OUTPUT_DIRECTORY ${FALU_MODULE_DIR}/plugins
         FOLDER "Plugins"
     )
 endmacro()

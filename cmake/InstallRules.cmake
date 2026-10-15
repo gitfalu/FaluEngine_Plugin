@@ -50,7 +50,7 @@ install(DIRECTORY
 )
 
 install(RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-    DESTINATION bin
+    DESTINATION bin/modules
     PRE_EXCLUDE_REGEXES
         "api-ms-win-.*"
         "ext-ms-win-.*"

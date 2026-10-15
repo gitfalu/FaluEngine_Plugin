@@ -200,7 +200,7 @@ public:
             cfg.buildConfig = FALU_BUILD_CONFIG;
             cfg.target = "GameCode";
             cfg.sourceDirs = { FALU_GAME_SRC_DIR };
-            cfg.dllPath = FaluEngine::PathResolver::resolve("GameCode.dll");
+            cfg.dllPath = FaluEngine::PathResolver::resolve("modules/GameCode.dll");
             cfg.shaderSourceDir = FALU_SHADER_SRC_DIR;
             cfg.shaderRuntimeDir = FaluEngine::PathResolver::getAssetRoot() / "shaders";
 
@@ -776,7 +776,7 @@ private:
 
 };
 
-int main()
+extern "C" __declspec(dllexport) int FaluEditorMain()
 {
     // リークチェック
 #if defined(_DEBUG)

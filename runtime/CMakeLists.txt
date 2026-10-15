@@ -14,7 +14,7 @@ target_link_libraries(FaluRuntimeModule
 )
 
 set_target_properties(FaluRuntimeModule PROPERTIES
-    OUTPUT_NAME "FaluEngine"
+    OUTPUT_NAME "FaluRuntime"
     FOLDER "Runtime"
 )
 
@@ -33,4 +33,4 @@ set_target_properties(FaluEngineRuntime PROPERTIES
 )
 
 engine_request_high_performance_gpu(FaluEngineRuntime)
-engine_copy_assets(FaluEngineRuntime assets)
+engine_copy_assets(FaluRuntimeModule assets "${FALU_OUTPUT_DIR}")
