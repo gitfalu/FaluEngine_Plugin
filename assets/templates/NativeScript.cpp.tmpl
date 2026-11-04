@@ -1,0 +1,23 @@
+﻿#include "{{CLASS_NAME}}.h"
+#include "FaluEngine/NativeScriptRegistry.h"
+#include "FaluEngine/Component.h"
+#include "FaluEngine/Scene.h"
+
+void {{CLASS_NAME}}::onInit(FaluEngine::Entity& entity)
+{
+}
+
+void {{CLASS_NAME}}::onUpdate(FaluEngine::Entity& entity ,float deltaTime)
+{
+}
+
+void {{CLASS_NAME}}::onDestroy(FaluEngine::Entity& entity)
+{
+}
+
+void {{CLASS_NAME}}::onClick(FaluEngine::Entity& entity)
+{
+}
+
+// エディタのInspectorから名前で選べるように登録(必須)
+REGISTER_NATIVE_SCRIPT({{CLASS_NAME}})

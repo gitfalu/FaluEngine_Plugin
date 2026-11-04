@@ -1,0 +1,21 @@
+﻿#pragma once
+#include "FaluEngine/NativeScript.h"
+#include "FaluEngine/Entity.h"
+
+/// @brief {{CLASS_NAME}}
+/// @date {{DATE}}
+class {{CLASS_NAME}} : public FaluEngine::NativeScript
+{
+public:
+	/// @brief シーン開始時(Play開始時)に一回呼ばれる
+	void onInit(FaluEngine::Entity& entity) override;
+
+	/// @brief 毎フレーム呼ばれる
+	void onUpdate(FaluEngine::Entity& entity, float deltaTime) override;
+
+	/// @brief 破棄時に呼ばれる
+	void onDestroy(FaluEngine::Entity& entity) override;
+
+	/// @brief ボタンクリック時に呼ばれる
+	void onClick(FaluEngine::Entity& entity) override;
+};

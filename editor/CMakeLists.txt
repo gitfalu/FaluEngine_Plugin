@@ -27,10 +27,7 @@ set_target_properties(FaluEditorModule PROPERTIES
 )
 
 target_compile_definitions(FaluEditorModule PRIVATE
-    FALU_CMAKE_EXE="${CMAKE_COMMAND}"
-    FALU_BUILD_DIR="${CMAKE_BINARY_DIR}"
     FALU_BUILD_CONFIG="$<CONFIG>"
-    FALU_GAME_SRC_DIR="${PROJECT_SOURCE_DIR}/game"
     FALU_SHADER_SRC_DIR="${PROJECT_SOURCE_DIR}/assets/shaders"
 )
 
@@ -40,9 +37,8 @@ else()
     target_compile_definitions(FaluEditorModule PRIVATE FALU_VS_GENERATOR=0)
 endif()
 
-if(TARGET GameCode)
-    add_dependencies(FaluEditorModule GameCode)
-endif()
+# GameCodeはエディタが生成するvcxprojからMSBuildでビルド
+add_dependencies(FaluEditorModule FaluSdk)
 
 add_executable(FaluEngineEditor ${CMAKE_SOURCE_DIR}/launcher/main.cpp)
 target_compile_definitions(FaluEngineEditor PRIVATE FALU_MODULE_NAME=FaluEditor)

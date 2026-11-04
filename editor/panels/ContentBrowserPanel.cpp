@@ -6,6 +6,8 @@
 #include "FaluEngine/Component.h"
 #include "scene/SceneManager.h"
 #include "core/PathResolver.h"
+#include "plugin/ScriptProjectGenerator.h"
+#include "plugin/HotReloadManager.h"
 #include <imgui.h>
 #include <algorithm>
 #include <cctype>
@@ -112,6 +114,7 @@ namespace Editor{
 		ImGui::SameLine();
 		ImGui::BeginChild("FilePanel", { 0,0 }, false);
 		sceneChanged = drawFilePanel(scene,selected);
+		drawContextMenu();
 		ImGui::EndChild();
 
 		ImGui::End();
@@ -429,6 +432,9 @@ namespace Editor{
 		if (ext == ".scene")return AssetType::Scene;
 		if (ext == ".lua")return AssetType::Script;
 		if (ext == ".mat") return AssetType::Material;
+		if (ext == ".h" || ext == ".hpp" || ext == ".cpp" || ext == ".hxx" || ext == ".inl" ||
+			ext == ".cpp" || ext == ".cc" || ext == ".cxx")
+			return AssetType::NativeScript;
 
 		return AssetType::Unknown;
 	}
@@ -444,6 +450,7 @@ namespace Editor{
 		case Editor::AssetType::Shader:		return "[SHD]";
 		case Editor::AssetType::Scene:		return "[SCN]";
 		case Editor::AssetType::Script:		return "[LUA]";
+		case Editor::AssetType::NativeScript: return "[C++]";
 		default: return "[   ]";
 		}
 	}
@@ -459,12 +466,20 @@ namespace Editor{
 		case Editor::AssetType::Shader: return { 1.0f,0.5f,0.2f,1.0f };
 		case Editor::AssetType::Scene: return { 1.0f,1.0f,0.4f,1.0f };
 		case Editor::AssetType::Script: return { 0.4f,1.0f,0.8f,1.0f };
+		case Editor::AssetType::NativeScript: return { 0.5f,0.7f,1.0f,1.0f };
 		default: return { 0.7f,0.7f,0.7f,1.0f };
 		}
 
 	}
 	void ContentBrowserPanel::applyToEntity(const ContentEntry& entry, FaluEngine::Scene* scene, entt::entity selected)
 	{
+		// C++スクリプトはダブルクリックで関連つけられたエディタ(Visual	Studio)で開く
+		if (entry.type == AssetType::NativeScript)
+		{
+			FaluEngine::ScriptProjectGenerator::openFile(entry.path);
+			return;
+		}
+
 		if (!scene || selected == entt::null) return;
 		if (!scene->registry().all_of<FaluEngine::MeshComponent>(selected)) return;
 
@@ -502,6 +517,78 @@ namespace Editor{
 			m.cachedMaterial = nullptr;
 			break;
 		default: break;
+		}
+	}
+
+	void ContentBrowserPanel::drawContextMenu()
+	{
+		auto& gen = FaluEngine::ScriptProjectGenerator::get();
+		if (!gen.isInitialized()) return;
+
+		if (ImGui::BeginPopupContextWindow("##ContentContext", ImGuiPopupFlags_MouseButtonRight))
+		{
+			if (ImGui::BeginMenu("Create"))
+			{
+				if (ImGui::MenuItem("C++ Script"))
+				{
+					m_openScriptPopup = true;
+					m_newScriptName[0] = '\0';
+					m_scriptError.clear();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Open C++ Project"))
+			{
+				gen.regenerate();
+				if (!gen.openSolution())
+					LOG_ERROR("ContentBrowser: failed to open C++ project");
+			}
+			if (ImGui::MenuItem("Regenerate C++ Project"))
+			{
+				const auto r = gen.regenerate();
+				if (r.changed) FaluEngine::HotReloadManager::get().requestRebuild();
+			}
+			ImGui::EndPopup();
+		}
+
+		if (m_openScriptPopup)
+		{
+			ImGui::OpenPopup("Create C++ Script");
+			m_openScriptPopup = false;
+		}
+
+		if (ImGui::BeginPopupModal("Create C++ Script", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextDisabled("%s", FaluEngine::PathResolver::toUtf8(m_currentPath).c_str());
+			ImGui::SetNextItemWidth(300.0f);
+			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+			const bool enter = ImGui::InputText("##ScriptName", m_newScriptName, sizeof(m_newScriptName),
+				ImGuiInputTextFlags_EnterReturnsTrue);
+
+			if (!m_scriptError.empty())
+				ImGui::TextColored({ 1.0f,0.4f,0.4f,1.0f }, "%s", m_scriptError.c_str());
+
+			const bool create = ImGui::Button("Create", { 100.0f,0.0f }) || enter;
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", { 100.0f,0.0f })) ImGui::CloseCurrentPopup();
+
+			if (create)
+			{
+				std::string err;
+				if (gen.createNativeScript(m_currentPath, m_newScriptName, err))
+				{
+					refresh();
+					// 新規スクリプトをすぐInspectorで選べるようにビルド＋リロードを走らせる
+					FaluEngine::HotReloadManager::get().requestRebuild();
+					ImGui::CloseCurrentPopup();
+				}
+				else
+				{
+					m_scriptError = err;
+				}
+			}
+			ImGui::EndPopup();
 		}
 	}
 }

@@ -42,7 +42,7 @@ namespace FaluEngine
 		bool isSourceFile(const fs::path& p)
 		{
 			const auto ext = p.extension().string();
-			return ext == ".cpp" || ext == ".h" || ext == ".hpp" || ext == ".inl" || ext == "cc" ||
+			return ext == ".cpp" || ext == ".h" || ext == ".hpp" || ext == ".inl" || ext == ".cc" || ext == ".cxx" || ext == ".hxx" ||
 				p.filename() == "CMakeLists.txt";
 		}
 
@@ -83,12 +83,15 @@ namespace FaluEngine
 			}
 		}
 
+		// MSBuildモード：Assets内のスクリプト構成からvcxprojを作り直す
+		const bool projectChanged = m_cfg.syncProject && m_cfg.syncProject();
+
 		// 最終更新の時間を取得する
 		const auto src = newestSourceTime();
 		const auto dll = fs::exists(m_cfg.dllPath, ec) ? fs::last_write_time(m_cfg.dllPath, ec)
 			: fs::file_time_type::min();
 		// 差分があればビルドをかける
-		if (src > dll)
+		if (src > dll || projectChanged)
 			startBuild();
 		else
 			m_buildStamp = src;
@@ -118,9 +121,15 @@ namespace FaluEngine
 		// HLSL
 		if (syncShaders()) m_shaderReload = true;
 
-		// C++
-		if (m_state == State::Building) return;
-		if (newestSourceTime() > m_buildStamp)
+		// スクリプトの追加/削除でvcxprojが変わったら再ビルド対象にする
+		const bool projectChanged = m_cfg.syncProject && m_cfg.syncProject();
+		if(m_state == State::Building)
+		{
+			// ビルド中に構成が変わった場合は、ビルド完了後の次回フォーカスで再ビルドさせる
+			if (projectChanged) m_buildStamp = std::filesystem::file_time_type::min();
+			return;
+		}
+		if (projectChanged || newestSourceTime() > m_buildStamp)
 		{
 			startBuild();
 		}
@@ -176,8 +185,19 @@ namespace FaluEngine
 	}
 
 	void HotReloadManager::startBuild()
-	{
-		if (m_cfg.cmakeExe.empty() || m_cfg.buildDir.empty())
+	{	
+		const bool useMsBuild = !m_cfg.projectFile.empty();
+		if (useMsBuild)
+		{
+			if (m_cfg.msbuildExe.empty())
+			{
+				LOG_ERROR("HotReload: MSBuild.exe not found. Install Visual Studio (or Build Tools) with 'Desktop development with C++'");
+				m_failHint = "MSBuild not found";
+				m_state = State::BuildFailed;
+				return;
+			}
+		}
+		else if (m_cfg.cmakeExe.empty() || m_cfg.buildDir.empty())
 		{
 			LOG_ERROR("hotReload: cmakeExe / buildDir not configured");
 			return;
@@ -191,6 +211,7 @@ namespace FaluEngine
 		m_buildStamp = newestSourceTime();
 		m_buildDone = false;
 		m_exitCode = 0;
+		m_sawError = false;
 		{
 			std::lock_guard lk(m_logMutex);
 			m_log.clear();
@@ -215,15 +236,26 @@ namespace FaluEngine
 		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 
 		// cmd command を作成
-		std::wstring cmd = L"\"" + m_cfg.cmakeExe.wstring() + L"\" --build \"" +
-			m_cfg.buildDir.wstring() + L"\" --target " +
-			std::wstring(m_cfg.target.begin(), m_cfg.target.end()) + 
-			L" --config " + std::wstring(m_cfg.buildConfig.begin(),m_cfg.buildConfig.end());
+		const std::wstring buildConfigW(m_cfg.buildConfig.begin(), m_cfg.buildConfig.end());
+		std::wstring cmd;
+		if (useMsBuild)
+		{
+			cmd = L"\"" + m_cfg.msbuildExe.wstring() + L"\" \"" + m_cfg.projectFile.wstring() +
+				L"\" /t:Build /m /nologo /v:m /p:Configuration=" + buildConfigW + L" /p:Platform=x64";
+		}
+		else
+		{
+			cmd = L"\"" + m_cfg.cmakeExe.wstring() + L"\" --build \"" +
+				m_cfg.buildDir.wstring() + L"\" --target " +
+				std::wstring(m_cfg.target.begin(), m_cfg.target.end()) +
+				L" --config " + buildConfigW;
 
-		// CMakeList.txt
-		const bool fullBuild = m_rebuildForced || cmakeChanged;
-		if (!fullBuild && m_cfg.skipDependencyBuild)
-			cmd += L" -- /p:BuildProjectReferences=false /nologo /v:m";
+			// CMakeList.txt
+			const bool fullBuild = m_rebuildForced || cmakeChanged;
+			if (!fullBuild && m_cfg.skipDependencyBuild)
+				cmd += L" -- /p:BuildProjectReferences=false /nologo /v:m";
+		}
+		const fs::path workDir = useMsBuild ? m_cfg.projectFile.parent_path() : m_cfg.buildDir;
 
 		// GameCode.pdb
 		{
@@ -238,7 +270,7 @@ namespace FaluEngine
 
 		PROCESS_INFORMATION pi{};
 		BOOL ok = CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, TRUE,
-			CREATE_NO_WINDOW, nullptr, m_cfg.buildDir.wstring().c_str(), &si, &pi);
+			CREATE_NO_WINDOW, nullptr, workDir.wstring().c_str(), &si, &pi);
 		SetEnvironmentVariableW(L"_LINK_", nullptr);
 		CloseHandle(writePipe);
 		if (!ok)
@@ -266,7 +298,7 @@ namespace FaluEngine
 						line = ansiToUtf8(line);
 						std::lock_guard lk(m_logMutex);
 						m_log.push_back(line);
-						if (isErrorLine(line)) m_pendingErrors.push_back(line);
+						if (isErrorLine(line)) { m_pendingErrors.push_back(line); m_sawError = true; }
 					};
 				while (ReadFile(readPipe, chunk, sizeof(chunk), &n, nullptr) && n > 0)
 				{

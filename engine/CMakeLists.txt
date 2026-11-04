@@ -72,6 +72,7 @@ falu_add_engine_module(FaluCore
 
         plugin/HotReloadManager.cpp
         plugin/PluginManager.cpp
+        plugin/ScriptProjectGenerator.cpp
 
         script/NativeScriptRegistry.cpp
 )
