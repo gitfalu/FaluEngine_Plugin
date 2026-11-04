@@ -24,13 +24,11 @@ if(TARGET FaluEngineEditor)
     )
 endif()
 
-if(TARGET GameCode)
-    install(TARGETS GameCode
-        RUNTIME_DEPENDENCY_SET falu_runtime_dependencies
-        RUNTIME DESTINATION bin/modules
-        LIBRARY DESTINATION bin/modules
-    )
-endif()
+# エディタ配布用SDK。GameCodeはエディタ上でユーザーがビルド
+install(CODE "
+    file(COPY \"${CMAKE_BINARY_DIR}/bin/\${CMAKE_INSTALL_CONFIG_NAME}/sdk\"
+        DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\")
+")
 
 if(TARGET PhysicsPlugin)
     install(TARGETS PhysicsPlugin

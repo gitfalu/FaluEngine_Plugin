@@ -22,6 +22,7 @@ namespace Editor {
 		Script, // .lua
 		Folder, 
 		Material,// .mat
+		NativeScript, // .h/.hpp/.cpp
 	};
 
 	struct ContentEntry {
@@ -52,6 +53,9 @@ namespace Editor {
 			FaluEngine::Scene* scene, entt::entity selected,
 			bool isGrid);
 
+		// 右クリックメニュー
+		void drawContextMenu();
+
 		void refresh();
 		void navigateTo(const std::filesystem::path& path);
 		AssetType detectType(const std::filesystem::path& path);
@@ -78,5 +82,10 @@ namespace Editor {
 
 		std::filesystem::path m_pendingNavigate;
 		bool m_hasPendingNavigate = false;
+
+		// C++ スクリプト作成ダイアログ
+		bool m_openScriptPopup = false;
+		char m_newScriptName[128] = {};
+		std::string m_scriptError;
 	};
 }

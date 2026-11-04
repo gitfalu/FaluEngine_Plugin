@@ -35,6 +35,7 @@
 #include "platform/Window.h"
 #include "plugin/PluginManager.h"
 #include "plugin/HotReloadManager.h"
+#include "plugin/ScriptProjectGenerator.h"
 #include "tools/TerrainSculptTool.h"
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -194,12 +195,28 @@ public:
 
         {
             using FaluEngine::HotReloadManager;
+            using FaluEngine::ScriptProjectGenerator;
+            using FaluEngine::PathResolver;
+
+            // C++スクリプトプロジェクト：Assets内の.h/.cppを探してGameProject/GameCode.slnを生成
+            {
+                ScriptProjectGenerator::Config pg;
+                pg.scriptRoot = PathResolver::getAssetRoot();
+                pg.projectDir = PathResolver::getRoot() / "GameProject";
+                pg.sdkDir = PathResolver::getRoot() / "sdk";
+                pg.outputDir = PathResolver::getRoot() / "modules";
+                pg.templateDir = PathResolver::getAssetRoot() / "templates";
+                ScriptProjectGenerator::get().init(pg);
+                ScriptProjectGenerator::get().regenerate();
+            }
+
             HotReloadManager::Config cfg;
-            cfg.cmakeExe = FALU_CMAKE_EXE;
-            cfg.buildDir = FALU_BUILD_DIR;
             cfg.buildConfig = FALU_BUILD_CONFIG;
             cfg.target = "GameCode";
-            cfg.sourceDirs = { FALU_GAME_SRC_DIR };
+            cfg.msbuildExe = ScriptProjectGenerator::findMSBuild();
+            cfg.projectFile = ScriptProjectGenerator::get().projectPath();
+            cfg.syncProject = []() {return ScriptProjectGenerator::get().regenerate().changed; };
+            cfg.sourceDirs = { PathResolver::getAssetRoot() };
             cfg.dllPath = FaluEngine::PathResolver::resolve("modules/GameCode.dll");
             cfg.shaderSourceDir = FALU_SHADER_SRC_DIR;
             cfg.shaderRuntimeDir = FaluEngine::PathResolver::getAssetRoot() / "shaders";

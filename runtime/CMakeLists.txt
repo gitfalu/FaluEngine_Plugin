@@ -18,10 +18,6 @@ set_target_properties(FaluRuntimeModule PROPERTIES
     FOLDER "Runtime"
 )
 
-if(TARGET GameCode)
-    add_dependencies(FaluRuntimeModule GameCode)
-endif()
-
 add_executable(FaluEngineRuntime ${CMAKE_SOURCE_DIR}/launcher/main.cpp)
 add_executable(FaluEngine::Runtime ALIAS FaluEngineRuntime)
 target_compile_definitions(FaluEngineRuntime PRIVATE FALU_MODULE_NAME=FaluRuntime)

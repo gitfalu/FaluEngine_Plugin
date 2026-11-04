@@ -27,6 +27,11 @@ namespace FaluEngine
 			std::filesystem::path buildDir; // Cmakeのビルドディレクトリ
 			std::string buildConfig = "Debug"; // マルチコンフィグ用
 			std::string target = "GameCode";
+
+			// MSBuildモード(配布用) : projectFileが指定されていればcmakeではなくMSBuildで直接ビルドする
+			std::filesystem::path msbuildExe; // MSBuild.exe
+			std::filesystem::path projectFile; // GameCode.vcxproj
+			std::function<bool()> syncProject; // スクリプト探索>vcxproj再生成。ファイル構成が変わったらtrue
 			bool skipDependencyBuild = false;
 
 			std::vector<std::filesystem::path> sourceDirs; // 監視するソースフォルダ

@@ -14,12 +14,11 @@ set(FALU_MODULE_DIR ${FALU_OUTPUT_DIR}/modules)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${FALU_MODULE_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${FALU_MODULE_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
 set(CMAKE_PDB_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/pdb/$<CONFIG>)
 
 option(FALU_BUILD_EDITOR  "Build editor" ON)
 option(FALU_BUILD_RUNTIME "Build runtime" ON)
-option(FALU_BUILD_GAME    "Build game module" ON)
 option(FALU_BUILD_PLUGINS "Build plugins" ON)
 option(FALU_BUILD_TESTS   "Build tests" ON)
 
@@ -31,9 +30,23 @@ include(GNUInstallDirs)
 
 add_subdirectory(engine)
 
-if(FALU_BUILD_GAME)
-    add_subdirectory(game)
+# エディタ配布時にエンジンソースを配布しなくてもNativeCodeを作成、編集できるように
+if(VCPKG_INSTALLED_DIR AND VCPKG_TARGET_TRIPLET)
+    set(FALU_VCPKG_PREFIX "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 endif()
+add_custom_target(FaluSdk ALL
+    COMMAND ${CMAKE_COMMAND}
+        -DENGINE_DIR=${CMAKE_SOURCE_DIR}/engine
+        -DSDK_DIR=${FALU_OUTPUT_DIR}/sdk
+        -DCONFIG=$<CONFIG>
+        -DENGINE_LIB_DIR=${CMAKE_BINARY_DIR}/lib/$<CONFIG>
+        -DVCPKG_DIR=${FALU_VCPKG_PREFIX}
+        -P ${CMAKE_SOURCE_DIR}/cmake/StageSdk.cmake
+    COMMENT "Staging FaluEngine SDK"
+    VERBATIM
+)
+add_dependencies(FaluSdk FaluEngine)
+set_target_properties(FaluSdk PROPERTIES FOLDER "Engine")
 
 if(FALU_BUILD_RUNTIME)
     add_subdirectory(runtime)
