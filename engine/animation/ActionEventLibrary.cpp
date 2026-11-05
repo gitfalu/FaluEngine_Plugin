@@ -1,4 +1,4 @@
-#include <FaluEngine/ActionEventLibrary.h>
+ï»¿#include <FaluEngine/ActionEventLibrary.h>
 
 #include "core/Logger.h"
 #include "core/PathResolver.h"
@@ -48,7 +48,7 @@ namespace FaluEngine
 			}
 			else
 			{
-				// ‰ó‚ê‚½ƒtƒ@ƒCƒ‹‚Ìê‡“Ç‚İ‚Ü‚¸Aã‘‚«‚ÅÁ‚¦‚È‚¢‚æ‚¤‚ÉŒx‚ğo‚·
+				// å£Šã‚ŒãŸãƒ•ã‚¡ã‚¤ãƒ«ã®å ´åˆèª­ã¿è¾¼ã¾ãšã€ä¸Šæ›¸ãã§æ¶ˆãˆãªã„ã‚ˆã†ã«è­¦å‘Šã‚’å‡ºã™
 				FALU_ENGINE_LOG_ERROR("ActionEventLibrary:failed to parse '{}': {}", fsPath.string(), err);
 			}
 		}

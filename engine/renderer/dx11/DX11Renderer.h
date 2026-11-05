@@ -153,6 +153,7 @@ struct FALU_GRAPHICS_API UITransformCB
 struct FALU_GRAPHICS_API UIMaterialCB
 {
     glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };  //-色
+    glm::vec4 uvRect = { 0.0f,0.0f,1.0f,1.0f };
     int useTexture = 0; //-テクスチャ使用フラグ
     glm::vec3 _pad;
 };
@@ -303,7 +304,8 @@ public:
 
     // UI
     void drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation,
-        const glm::vec4& color, ID3D11ShaderResourceView* srv = nullptr);
+        const glm::vec4& color, ID3D11ShaderResourceView* srv = nullptr,
+        const glm::vec4& uvRect = { 0.0f,0.0f,1.0f,1.0f }, bool point = false);
     void beginUIPass(uint32_t screenWidth, uint32_t screenHeight);
     void endUIPass();
     void setUILocalMousePos(const glm::vec2& pos) noexcept { m_uiLocalMousePos = pos; }
@@ -383,6 +385,7 @@ private:
 
     ComPtr<ID3D11SamplerState> m_samplerState;
     ComPtr<ID3D11SamplerState> m_lutSampler;
+    ComPtr<ID3D11SamplerState> m_pointSamplerState;
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;

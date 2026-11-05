@@ -1,6 +1,6 @@
-/*****************************************************************//**
+ï»¿/*****************************************************************//**
  * \file   HotReloadManager.h
- * \brief  C++‚ÆHLSL‚ÌƒzƒbƒgƒŠƒ[ƒhŠÇ—BƒGƒfƒBƒ^‚ÌƒEƒBƒ“ƒhƒE‚ªƒAƒNƒeƒBƒu‚É‚È‚Á‚½‚É•ÏXŠ´’m‚Åƒrƒ‹ƒh‚ğ’Ê‚µDLL·‚µ‘Ö‚¦
+ * \brief  C++ã¨HLSLã®ãƒ›ãƒƒãƒˆãƒªãƒ­ãƒ¼ãƒ‰ç®¡ç†ã€‚ã‚¨ãƒ‡ã‚£ã‚¿ã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ãªã£ãŸæ™‚ã«å¤‰æ›´æ„ŸçŸ¥ã§ãƒ“ãƒ«ãƒ‰ã‚’é€šã—DLLå·®ã—æ›¿ãˆ
  * 
  * \author tsunn
  * \date   October 2026
@@ -24,59 +24,59 @@ namespace FaluEngine
 		{
 			// C++
 			std::filesystem::path cmakeExe; // Cmake.exe
-			std::filesystem::path buildDir; // Cmake‚Ìƒrƒ‹ƒhƒfƒBƒŒƒNƒgƒŠ
-			std::string buildConfig = "Debug"; // ƒ}ƒ‹ƒ`ƒRƒ“ƒtƒBƒO—p
+			std::filesystem::path buildDir; // Cmakeã®ãƒ“ãƒ«ãƒ‰ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒª
+			std::string buildConfig = "Debug"; // ãƒãƒ«ãƒã‚³ãƒ³ãƒ•ã‚£ã‚°ç”¨
 			std::string target = "GameCode";
 
-			// MSBuildƒ‚[ƒh(”z•z—p) : projectFile‚ªw’è‚³‚ê‚Ä‚¢‚ê‚Îcmake‚Å‚Í‚È‚­MSBuild‚Å’¼Úƒrƒ‹ƒh‚·‚é
+			// MSBuildãƒ¢ãƒ¼ãƒ‰(é…å¸ƒç”¨) : projectFileãŒæŒ‡å®šã•ã‚Œã¦ã„ã‚Œã°cmakeã§ã¯ãªãMSBuildã§ç›´æ¥ãƒ“ãƒ«ãƒ‰ã™ã‚‹
 			std::filesystem::path msbuildExe; // MSBuild.exe
 			std::filesystem::path projectFile; // GameCode.vcxproj
-			std::function<bool()> syncProject; // ƒXƒNƒŠƒvƒg’Tõ>vcxprojÄ¶¬Bƒtƒ@ƒCƒ‹\¬‚ª•Ï‚í‚Á‚½‚çtrue
+			std::function<bool()> syncProject; // ã‚¹ã‚¯ãƒªãƒ—ãƒˆæ¢ç´¢>vcxprojå†ç”Ÿæˆã€‚ãƒ•ã‚¡ã‚¤ãƒ«æ§‹æˆãŒå¤‰ã‚ã£ãŸã‚‰true
 			bool skipDependencyBuild = false;
 
-			std::vector<std::filesystem::path> sourceDirs; // ŠÄ‹‚·‚éƒ\[ƒXƒtƒHƒ‹ƒ_
-			std::filesystem::path dllPath; // ƒrƒ‹ƒh¬‰Ê•¨‚ÌƒpƒX
+			std::vector<std::filesystem::path> sourceDirs; // ç›£è¦–ã™ã‚‹ã‚½ãƒ¼ã‚¹ãƒ•ã‚©ãƒ«ãƒ€
+			std::filesystem::path dllPath; // ãƒ“ãƒ«ãƒ‰æˆæœç‰©ã®ãƒ‘ã‚¹
 
 			// HLSL
-			std::filesystem::path shaderSourceDir; // ƒŠƒ|ƒWƒgƒŠ‘¤‚ÌƒpƒX
-			std::filesystem::path shaderRuntimeDir; // Às‚ÌƒpƒX
+			std::filesystem::path shaderSourceDir; // ãƒªãƒã‚¸ãƒˆãƒªå´ã®ãƒ‘ã‚¹
+			std::filesystem::path shaderRuntimeDir; // å®Ÿè¡Œæ™‚ã®ãƒ‘ã‚¹
 		};
 
 		struct Hooks
 		{
-			std::function<void()> beforeUnload; // DLL‚©‚çQÆ‚ğ‚Á‚Ä‚¢‚éƒIƒuƒWƒFƒNƒg‚©‚çQÆ‚ğ”jŠü
-			std::function<void()> afterLoad; // Äƒ[ƒhŒã‚ÉƒXƒNƒŠƒvƒg‚ğÄƒoƒCƒ“ƒh‚·‚é
+			std::function<void()> beforeUnload; // DLLã‹ã‚‰å‚ç…§ã‚’æŒã£ã¦ã„ã‚‹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‹ã‚‰å‚ç…§ã‚’ç ´æ£„
+			std::function<void()> afterLoad; // å†ãƒ­ãƒ¼ãƒ‰å¾Œã«ã‚¹ã‚¯ãƒªãƒ—ãƒˆã‚’å†ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹
 		};
 
-		/// @brief ƒrƒ‹ƒhÀsó‘Ô
+		/// @brief ãƒ“ãƒ«ãƒ‰å®Ÿè¡ŒçŠ¶æ…‹
 		enum class State { Idle,Building,BuildFailed,PendingReload,LoadFailed};
 
 		static HotReloadManager& get();
 
 		void setHooks(Hooks hooks) { m_hooks = std::move(hooks); }
 
-		/// @brief ‰Šú‰»ˆ—BDLL‚ª‘¶İ‚·‚ê‚Îƒ[ƒhAƒ\[ƒX‚ªV‚µ‚¯‚ê‚Îƒrƒ‹ƒh‚às‚¤
+		/// @brief åˆæœŸåŒ–å‡¦ç†ã€‚DLLãŒå­˜åœ¨ã™ã‚Œã°ãƒ­ãƒ¼ãƒ‰ã€ã‚½ãƒ¼ã‚¹ãŒæ–°ã—ã‘ã‚Œã°ãƒ“ãƒ«ãƒ‰ã‚‚è¡Œã†
 		/// @param cfg 
 		void init(Config cfg);
 		void shutdown();
 
-		/// @brief ƒEƒBƒ“ƒhƒE‚ªƒAƒNƒeƒBƒu‚É‚È‚Á‚½‚Éˆ—‚ğ—¬‚·ŠÖ”
+		/// @brief ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ãªã£ãŸæ™‚ã«å‡¦ç†ã‚’æµã™é–¢æ•°
 		void onEditorFocused();
 
-		/// @brief è“®ƒŠƒrƒ‹ƒh
+		/// @brief æ‰‹å‹•ãƒªãƒ“ãƒ«ãƒ‰
 		void requestRebuild();
 
-		/// @brief –ˆƒtƒŒ[ƒ€XV
+		/// @brief æ¯ãƒ•ãƒ¬ãƒ¼ãƒ æ›´æ–°
 		/// @param canReload 
 		void update(bool canReload);
 
-		/// @brief ƒŒƒ“ƒ_ƒ‰[‚ÌƒVƒF[ƒ_[Ä“Ç‚İ‚İ‚ğŒÄ‚Ô‚©”»’f‚·‚éŠÖ”
-		/// @return true‚ÅƒVƒF[ƒ_[Ä“Ç‚İ‚İ‚ğ‚©‚¯‚é
+		/// @brief ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã®ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼å†èª­ã¿è¾¼ã¿ã‚’å‘¼ã¶ã‹åˆ¤æ–­ã™ã‚‹é–¢æ•°
+		/// @return trueã§ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼å†èª­ã¿è¾¼ã¿ã‚’ã‹ã‘ã‚‹
 		[[nodiscard]] bool consumeShaderReloadRequest() { return m_shaderReload.exchange(false); }
 
 		[[nodiscard]] State getState() const noexcept { return m_state; }
 		[[nodiscard]] bool isBusy() const noexcept { return m_state == State::Building; }
-		/// @brief Œ»İ‚Ìƒrƒ‹ƒhó‹µ‚ğƒeƒLƒXƒg‚Æ‚µ‚Äó‚¯“n‚·
+		/// @brief ç¾åœ¨ã®ãƒ“ãƒ«ãƒ‰çŠ¶æ³ã‚’ãƒ†ã‚­ã‚¹ãƒˆã¨ã—ã¦å—ã‘æ¸¡ã™
 		/// @return 
 		[[nodiscard]] std::string statusText() const;
 		[[nodiscard]] std::vector<std::string> getBuildLog()const;
@@ -96,7 +96,7 @@ namespace FaluEngine
 		bool m_initialized = false;
 
 		State m_state = State::Idle;
-		std::filesystem::file_time_type m_buildStamp{}; // ÅŒã‚Éƒrƒ‹ƒh‚ğŠJn‚µ‚½“_‚Ìƒ\[ƒXÅV
+		std::filesystem::file_time_type m_buildStamp{}; // æœ€å¾Œã«ãƒ“ãƒ«ãƒ‰ã‚’é–‹å§‹ã—ãŸæ™‚ç‚¹ã®ã‚½ãƒ¼ã‚¹æœ€æ–°æ™‚åˆ»
 		std::filesystem::file_time_type m_shaderStamp{};
 		std::string m_loadedPath;
 		uint32_t m_generation = 0;
@@ -110,10 +110,10 @@ namespace FaluEngine
 		// BuildProcess
 		std::thread m_thread;
 		void* m_process = nullptr;
-		std::atomic<bool> m_buildDone{ false }; // atomic : ƒ}ƒ‹ƒ`ƒXƒŒƒbƒh‚Å‚Ì•ªŠ„ˆ—‚ğ‚µ‚È‚¢‚æ‚¤‚É‚·‚é
+		std::atomic<bool> m_buildDone{ false }; // atomic : ãƒãƒ«ãƒã‚¹ãƒ¬ãƒƒãƒ‰ã§ã®åˆ†å‰²å‡¦ç†ã‚’ã—ãªã„ã‚ˆã†ã«ã™ã‚‹
 		std::atomic<int> m_exitCode{ 0 };
 		mutable std::mutex m_logMutex;
-		std::vector<std::string> m_log; // ƒrƒ‹ƒhƒƒO‘Ss
+		std::vector<std::string> m_log; // ãƒ“ãƒ«ãƒ‰ãƒ­ã‚°å…¨è¡Œ
 		std::vector<std::string> m_pendingErrors;
 		std::atomic<bool> m_shaderReload{ false };
 	};

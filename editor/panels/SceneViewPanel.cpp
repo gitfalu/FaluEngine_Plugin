@@ -1,4 +1,4 @@
-#include "SceneViewPanel.h"
+ï»¿#include "SceneViewPanel.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
@@ -86,7 +86,7 @@ namespace Editor
 			m_imageSize.x,m_imageSize.y
 		);
 		
-		// ImGuizmo‚ðŽg—p‚µ‚½ƒOƒŠƒbƒh‚Ì•\Ž¦
+		// ImGuizmoã‚’ä½¿ç”¨ã—ãŸã‚°ãƒªãƒƒãƒ‰ã®è¡¨ç¤º
 		glm::mat4 view = renderer->getView();
 		glm::mat4 projection = renderer->getProjection();
 

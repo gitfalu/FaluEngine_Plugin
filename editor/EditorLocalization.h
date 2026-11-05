@@ -1,13 +1,13 @@
-#pragma once
+ï»¿#pragma once
 
 #include "FaluEngine/Localization.h"
 
 namespace Editor
 {
-	/// @brief –|–ó•\‚Ì“o˜^‚Æ•Û‘¶Ï‚İŒ¾Œê‚Ì“K—p
+	/// @brief ç¿»è¨³è¡¨ã®ç™»éŒ²ã¨ä¿å­˜æ¸ˆã¿è¨€èªã®é©ç”¨
 	void initLocalization();
 
-	/// @brief •\¦Œ¾Œê‚ğØ‚è‘Ö‚¦‚ÄAeditor_settings.json‚É•Û‘¶‚·‚é
+	/// @brief è¡¨ç¤ºè¨€èªã‚’åˆ‡ã‚Šæ›¿ãˆã¦ã€editor_settings.jsonã«ä¿å­˜ã™ã‚‹
 	/// @param lang 
 	void setLanguage(FaluEngine::Loc::Language lang);
 }

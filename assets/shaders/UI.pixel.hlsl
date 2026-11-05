@@ -1,6 +1,7 @@
 cbuffer UIMaterialCB : register(b1)
 {
     float4 color;
+    float4 uvRect;
     int useTexture;
     float3 _pad;
 };
@@ -19,7 +20,8 @@ float4 PS(PSInput pin) : SV_TARGET
     float4 result = color;
     if(useTexture != 0)
     {
-        result *= gTexture.Sample(gSampler, pin.uv);
+        float2 uv = uvRect.xy + pin.uv * uvRect.zw;
+        result *= gTexture.Sample(gSampler, uv);
     }
     return result;
 }

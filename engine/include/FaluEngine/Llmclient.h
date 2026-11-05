@@ -1,4 +1,4 @@
-#pragma once 
+ï»¿#pragma once 
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -7,7 +7,7 @@
 
 namespace FaluEngine
 {
-	/// @brief LLM‚É‘—‚é‰æ‘œˆê–‡•ª‚Ìƒf[ƒ^
+	/// @brief LLMã«é€ã‚‹ç”»åƒä¸€æšåˆ†ã®ãƒ‡ãƒ¼ã‚¿
 	struct FALU_ENGINE_API LLMImageAttachment
 	{
 		std::vector<uint8_t> pngData;

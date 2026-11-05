@@ -318,7 +318,7 @@ public:
         auto* scene = getSceneManager().getActive();
 
 
-        std::wstring title = L"FaluEngine Editor";
+        std::wstring title = FaluEngine::PathResolver::toWide("FaluEngine Editor");
         if (scene)
         {
             title += L" - " + FaluEngine::PathResolver::fromUtf8(scene->getName()).wstring();

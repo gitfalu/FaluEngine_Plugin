@@ -1,4 +1,4 @@
-#include "HotReloadManager.h"
+ï»¿#include "HotReloadManager.h"
 #include "PluginManager.h"
 #include "FaluEngine/NativeScriptRegistry.h"
 #include "core/Logger.h"
@@ -18,23 +18,23 @@ namespace FaluEngine
 {
 	namespace
 	{
-		// MSVC/Cmake‚Ìo—Í‚ÍANSIƒR[ƒhƒy[ƒWBUTF-8‚É’¼‚·
+		// MSVC/Cmakeã®å‡ºåŠ›ã¯ANSIã‚³ãƒ¼ãƒ‰ãƒšãƒ¼ã‚¸ã€‚UTF-8ã«ç›´ã™
 		std::string ansiToUtf8(const std::string& s)
 		{
 			if (s.empty()) return {};
-			// •¶š—ñ‚ªUtf8‚É•ÏŠ·‚Å‚«‚é‚©Šm”FB•ÏŠ·‚Å‚«‚½‚ç•ÏŠ·‚µ‚½‚à‚Ì‚ğ•Ô‚·
+			// æ–‡å­—åˆ—ãŒUtf8ã«å¤‰æ›ã§ãã‚‹ã‹ç¢ºèªã€‚å¤‰æ›ã§ããŸã‚‰å¤‰æ›ã—ãŸã‚‚ã®ã‚’è¿”ã™
 			if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.data(), (int)s.size(), nullptr, 0) > 0)
 				return s;
-			// •¶š—ñ‚ªAnsi‚É•ÏŠ·‚Å‚«‚é‚©Šm”FB•ÏŠ·‚Å‚«‚È‚©‚Á‚½‚çŒ³‚Ì•¶š—ñ‚ğ•Ô‚·
+			// æ–‡å­—åˆ—ãŒAnsiã«å¤‰æ›ã§ãã‚‹ã‹ç¢ºèªã€‚å¤‰æ›ã§ããªã‹ã£ãŸã‚‰å…ƒã®æ–‡å­—åˆ—ã‚’è¿”ã™
 			int wlen = MultiByteToWideChar(CP_ACP, 0, s.data(), (int)s.size(), nullptr, 0);
 			if (wlen <= 0)return s;
 			std::wstring w(wlen, L'\0');
-			// •¶š—ñ‚ªAnsi‚É•ÏŠ·‚Å‚«‚é‚©Šm”FB•ÏŠ·‚Å‚«–³‚©‚Á‚½‚çŒ³‚Ì•¶š—ñ‚ğ•Ô‚·
+			// æ–‡å­—åˆ—ãŒAnsiã«å¤‰æ›ã§ãã‚‹ã‹ç¢ºèªã€‚å¤‰æ›ã§ãç„¡ã‹ã£ãŸã‚‰å…ƒã®æ–‡å­—åˆ—ã‚’è¿”ã™
 			MultiByteToWideChar(CP_ACP, 0, s.data(), (int)s.size(), w.data(), wlen);
 			int ulen = WideCharToMultiByte(CP_UTF8, 0, w.data(), wlen, nullptr, 0, nullptr, nullptr);
 			if (ulen <= 0) return s;
 			std::string u(ulen, L'\0');
-			// •¶š—ñ‚ªUtf8‚É•ÏŠ·‚Å‚«‚é‚©Šm”FB•ÏŠ·‚Å‚«‚½‚ç•ÏŠ·‚µ‚½‚à‚Ì‚ğ•Ô‚·
+			// æ–‡å­—åˆ—ãŒUtf8ã«å¤‰æ›ã§ãã‚‹ã‹ç¢ºèªã€‚å¤‰æ›ã§ããŸã‚‰å¤‰æ›ã—ãŸã‚‚ã®ã‚’è¿”ã™
 			WideCharToMultiByte(CP_UTF8, 0, w.data(), wlen, u.data(), ulen, nullptr, nullptr);
 			return u;
 		}
@@ -46,7 +46,7 @@ namespace FaluEngine
 				p.filename() == "CMakeLists.txt";
 		}
 
-		/// @brief ƒGƒ‰[‚ğo—Í‚µ‚Ä‚¢‚és‚ª‚ ‚é‚©‚ğŠm”F‚·‚é
+		/// @brief ã‚¨ãƒ©ãƒ¼ã‚’å‡ºåŠ›ã—ã¦ã„ã‚‹è¡ŒãŒã‚ã‚‹ã‹ã‚’ç¢ºèªã™ã‚‹
 		/// @param l 
 		/// @return 
 		bool isErrorLine(const std::string& l)
@@ -70,10 +70,10 @@ namespace FaluEngine
 		m_initialized = true;
 		m_builtCMakeStamp = newestSourceTime(true);
 
-		// ‘O‰ñ‹O“¹‚ÌcŠ[‚ğ‘|œ
+		// å‰å›è»Œé“ã®æ®‹éª¸ã‚’æƒé™¤
 		cleanupShadows({});
 
-		// DLL‚ª‚·‚Å‚É‚ ‚ê‚Îƒ[ƒh
+		// DLLãŒã™ã§ã«ã‚ã‚Œã°ãƒ­ãƒ¼ãƒ‰
 		std::error_code ec;
 		if (fs::exists(m_cfg.dllPath, ec))
 		{
@@ -83,14 +83,14 @@ namespace FaluEngine
 			}
 		}
 
-		// MSBuildƒ‚[ƒhFAssets“à‚ÌƒXƒNƒŠƒvƒg\¬‚©‚çvcxproj‚ğì‚è’¼‚·
+		// MSBuildãƒ¢ãƒ¼ãƒ‰ï¼šAssetså†…ã®ã‚¹ã‚¯ãƒªãƒ—ãƒˆæ§‹æˆã‹ã‚‰vcxprojã‚’ä½œã‚Šç›´ã™
 		const bool projectChanged = m_cfg.syncProject && m_cfg.syncProject();
 
-		// ÅIXV‚ÌŠÔ‚ğæ“¾‚·‚é
+		// æœ€çµ‚æ›´æ–°ã®æ™‚é–“ã‚’å–å¾—ã™ã‚‹
 		const auto src = newestSourceTime();
 		const auto dll = fs::exists(m_cfg.dllPath, ec) ? fs::last_write_time(m_cfg.dllPath, ec)
 			: fs::file_time_type::min();
-		// ·•ª‚ª‚ ‚ê‚Îƒrƒ‹ƒh‚ğ‚©‚¯‚é
+		// å·®åˆ†ãŒã‚ã‚Œã°ãƒ“ãƒ«ãƒ‰ã‚’ã‹ã‘ã‚‹
 		if (src > dll || projectChanged)
 			startBuild();
 		else
@@ -121,11 +121,11 @@ namespace FaluEngine
 		// HLSL
 		if (syncShaders()) m_shaderReload = true;
 
-		// ƒXƒNƒŠƒvƒg‚Ì’Ç‰Á/íœ‚Åvcxproj‚ª•Ï‚í‚Á‚½‚çÄƒrƒ‹ƒh‘ÎÛ‚É‚·‚é
+		// ã‚¹ã‚¯ãƒªãƒ—ãƒˆã®è¿½åŠ /å‰Šé™¤ã§vcxprojãŒå¤‰ã‚ã£ãŸã‚‰å†ãƒ“ãƒ«ãƒ‰å¯¾è±¡ã«ã™ã‚‹
 		const bool projectChanged = m_cfg.syncProject && m_cfg.syncProject();
 		if(m_state == State::Building)
 		{
-			// ƒrƒ‹ƒh’†‚É\¬‚ª•Ï‚í‚Á‚½ê‡‚ÍAƒrƒ‹ƒhŠ®—¹Œã‚ÌŸ‰ñƒtƒH[ƒJƒX‚ÅÄƒrƒ‹ƒh‚³‚¹‚é
+			// ãƒ“ãƒ«ãƒ‰ä¸­ã«æ§‹æˆãŒå¤‰ã‚ã£ãŸå ´åˆã¯ã€ãƒ“ãƒ«ãƒ‰å®Œäº†å¾Œã®æ¬¡å›ãƒ•ã‚©ãƒ¼ã‚«ã‚¹ã§å†ãƒ“ãƒ«ãƒ‰ã•ã›ã‚‹
 			if (projectChanged) m_buildStamp = std::filesystem::file_time_type::min();
 			return;
 		}
@@ -204,7 +204,7 @@ namespace FaluEngine
 		}
 		if (m_thread.joinable()) m_thread.join();
 
-		// ÅIXV“ú‚ğXV
+		// æœ€çµ‚æ›´æ–°æ—¥æ™‚ã‚’æ›´æ–°
 		const auto cmakeStamp = newestSourceTime(true);
 		const bool cmakeChanged = cmakeStamp > m_builtCMakeStamp;
 		m_builtCMakeStamp = cmakeStamp;
@@ -235,7 +235,7 @@ namespace FaluEngine
 		si.hStdError = writePipe;
 		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 
-		// cmd command ‚ğì¬
+		// cmd command ã‚’ä½œæˆ
 		const std::wstring buildConfigW(m_cfg.buildConfig.begin(), m_cfg.buildConfig.end());
 		std::wstring cmd;
 		if (useMsBuild)
@@ -436,17 +436,17 @@ namespace FaluEngine
 		fs::file_time_type newest = fs::file_time_type::min();
 		for (const auto& root : m_cfg.sourceDirs)
 		{
-			// ƒfƒBƒŒƒNƒgƒŠ‚Ì‘¶İŠm”F
+			// ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã®å­˜åœ¨ç¢ºèª
 			std::error_code ec;
 			if (!fs::exists(root, ec)) continue;
-			// ƒfƒBƒŒƒNƒgƒŠ‚Ì’Tõ
+			// ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã®æ¢ç´¢
 			for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
 			{
 				if (ec) break;
-				// “Ç‚İ‚ß‚È‚¢/“Ç‚İ‚İ‚½‚­‚È‚¢ƒtƒ@ƒCƒ‹‚ğ‚Í‚¶‚­
+				// èª­ã¿è¾¼ã‚ãªã„/èª­ã¿è¾¼ã¿ãŸããªã„ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã¯ã˜ã
 				if (!it->is_regular_file(ec) || !isSourceFile(it->path()) || 
 					(cmakeOnly && it->path().filename() != "CMakeLists.txt")) continue;
-				// ÅIXV“ú‚ğæ“¾‚µ‚ÄXV‚³‚ê‚Ä‚¢‚½‚ç’u‚«Š·‚¦
+				// æœ€çµ‚æ›´æ–°æ—¥ã‚’å–å¾—ã—ã¦æ›´æ–°ã•ã‚Œã¦ã„ãŸã‚‰ç½®ãæ›ãˆ
 				auto t = fs::last_write_time(it->path(), ec);
 				if (!ec && t > newest) newest = t;
 			}

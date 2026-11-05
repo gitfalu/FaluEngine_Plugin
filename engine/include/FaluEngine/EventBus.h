@@ -47,8 +47,8 @@ public:
             h(std::any_cast<const Event&>(e));
             } });
         
-        // 降順ソート
-        std::sort(vec.begin(), vec.end(),
+        // 降順ソート(stable_sortで安定して並べ替えを行う)
+        std::stable_sort(vec.begin(), vec.end(),
             [](const Entry& a, const Entry& b) {return a.priority > b.priority; });
 
         return id;
@@ -69,7 +69,7 @@ public:
                 h(std::any_cast<const Event&>(e));
             } });
 
-        std::sort(vec.begin(), vec.end(),
+        std::stable_sort(vec.begin(), vec.end(),
             [](const Entry& a, const Entry& b) {return a.priority > b.priority; });
 
         return id;
@@ -94,28 +94,41 @@ public:
     /// @param event 
     template<typename Event>
     void publish(const Event& event) {
-        auto key = std::type_index(typeid(Event));
-        auto it = m_handlers.find(key);
-        if (it == m_handlers.end())return;
+        const auto key = std::type_index(typeid(Event));
 
-        auto handleCopy = it->second;
+        // ハンドラ内でsubscrideされてもiteratorが無効にならないよう、
+        // コピーした後はitを保持しない
+        std::vector<Entry> handleCopy;
+        {
+            auto it = m_handlers.find(key);
+            if (it == m_handlers.end()) return;
+            handleCopy = it->second;
+        }
         std::any wrapped = event;
 
-        // once　フラグの物を後で削除するため別リストで管理
+        // once:フラグの物を後で削除するため別リストで管理
         std::vector<HandlerId> toRemove;
 
         for (auto& entry : handleCopy)
         {
             entry.fn(wrapped);
-            if (entry.once)toRemove.push_back(entry.id);
+            if (entry.once) toRemove.push_back(entry.id);
         }
 
-        // subscribeOnce の後処理
-        for (auto removeId : toRemove) {
-            auto& vec = it->second;
-            vec.erase(std::remove_if(vec.begin(), vec.end(),
-                [removeId](const Entry& e) {return e.id == removeId; }), vec.end());
+        // subscribeOnce の後処理(再検索する)
+        if (!toRemove.empty())
+        {
+            auto it = m_handlers.find(key);
+            if (!it != m_handlers.end())
+            {
+                auto& vec = it->second;
+                vec.erase(std::remove_if(vec.begin(), vec.end(),
+                    [&toRemove](const Entry& e) { // ラムダ式 toRemoveを参照キャプチャ
+                        return std::find(toRemove.begin(), toRemove.end(), e.id) != toRemove.end();
+                    }), vec.end());
+            }
         }
+        
     }
 
     /// @brief 全ハンドラーをクリア

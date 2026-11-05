@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <FaluEngine/EngineExport.h>
 #include <entt/entt.hpp>
@@ -71,7 +71,7 @@ namespace FaluEngine
 		std::vector<uint16_t> entityIndex;
 		std::vector<entt::entity> entities;
 
-		std::vector<FocusCategoryStat> categoryStats; // ƒJƒeƒSƒŠ‚²‚Æ‚Ìƒf[ƒ^
-		std::vector<FocusEntityStat> entityStats; // ƒsƒNƒZƒ‹‚Ì‘½‚¢‡‚Éƒ\[ƒg‚·‚éƒŠƒXƒg
+		std::vector<FocusCategoryStat> categoryStats; // ã‚«ãƒ†ã‚´ãƒªã”ã¨ã®ãƒ‡ãƒ¼ã‚¿
+		std::vector<FocusEntityStat> entityStats; // ãƒ”ã‚¯ã‚»ãƒ«ã®å¤šã„é †ã«ã‚½ãƒ¼ãƒˆã™ã‚‹ãƒªã‚¹ãƒˆ
 	};
 }

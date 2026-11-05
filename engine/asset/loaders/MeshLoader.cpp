@@ -1,4 +1,4 @@
-#include "MeshLoader.h"
+ï»¿#include "MeshLoader.h"
 #include "core/Logger.h"
 #include "renderer/dx11/DX11Renderer.h"
 #include "core/PathResolver.h"
@@ -104,7 +104,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
         aiProcess_CalcTangentSpace |
         aiProcess_GenNormals 
         //|
-        //aiProcess_LimitBoneWeights // ‚P’¸“_“–‚½‚è‚Ìƒ{[ƒ“‚ÌƒŠƒ~ƒbƒg
+        //aiProcess_LimitBoneWeights // ï¼‘é ‚ç‚¹å½“ãŸã‚Šã®ãƒœãƒ¼ãƒ³ã®ãƒªãƒŸãƒƒãƒˆ
         );
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -114,7 +114,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
 
     auto asset = std::make_shared<MeshAsset>();
     
-    //====== ƒ{[ƒ“‚Ì—L–³‚Ìƒ`ƒFƒbƒN
+    //====== ãƒœãƒ¼ãƒ³ã®æœ‰ç„¡ã®ãƒã‚§ãƒƒã‚¯
     bool anyBones = false;
     for (uint32_t m = 0; m < scene->mNumMeshes; ++m)
     {
@@ -124,7 +124,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
     asset->globalInverseTransform =
         glm::inverse(aiMatToGlm(scene->mRootNode->mTransformation));
 
-    //====== ƒƒbƒVƒ…‚Ì“Ç‚İ‚İ
+    //====== ãƒ¡ãƒƒã‚·ãƒ¥ã®èª­ã¿è¾¼ã¿
     for (uint32_t m = 0; m < scene->mNumMeshes; ++m) {
         const aiMesh* mesh = scene->mMeshes[m];
 
@@ -136,7 +136,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
             ? static_cast<uint32_t>(asset->skinnedVertices.size())
             : static_cast<uint32_t>(asset->vertices.size());
 
-        // ƒ{[ƒ“‚ÌWeight‚Ìˆêƒoƒbƒtƒ@
+        // ãƒœãƒ¼ãƒ³ã®Weightã®ä¸€æ™‚ãƒãƒƒãƒ•ã‚¡
         std::vector<BoneWeightData> boneWeightData(mesh->mNumVertices);
         if (anyBones)
             extractBoneWeights(mesh, asset->skeleton, boneWeightData);
@@ -225,7 +225,7 @@ std::shared_ptr<MeshAsset> loadMesh(const std::string& path, ID3D11Device* devic
         
         asset->subMeshes.push_back(sub);
     }
-    // ƒ{[ƒ“ŠK‘w‚ğƒm[ƒhƒcƒŠ[‚©‚ç\’z
+    // ãƒœãƒ¼ãƒ³éšå±¤ã‚’ãƒãƒ¼ãƒ‰ãƒ„ãƒªãƒ¼ã‹ã‚‰æ§‹ç¯‰
     if (anyBones)
     {
         buildBoneHierarchy(scene->mRootNode, asset->skeleton, -1);

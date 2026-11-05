@@ -1,4 +1,4 @@
-#include "TerrainGenerator.h"
+ï»¿#include "TerrainGenerator.h"
 #include "core/Logger.h"
 #include <cmath>
 #include <random>
@@ -129,7 +129,7 @@ namespace FaluEngine
 					static_cast<float>(z) / static_cast<float>(terrain.resolutionZ)
 				};
 
-				// ’†S·•ª‚Å–@ü‚ğŒvZ
+				// ä¸­å¿ƒå·®åˆ†ã§æ³•ç·šã‚’è¨ˆç®—
 				float hL = heightAt(static_cast<int>(x) - 1, static_cast<int>(z));
 				float hR = heightAt(static_cast<int>(x) + 1, static_cast<int>(z));
 				float hD = heightAt(static_cast<int>(x), static_cast<int>(z) - 1);
@@ -158,7 +158,7 @@ namespace FaluEngine
 				uint32_t i2 = (z + 1) * vx + x;
 				uint32_t i3 = (z + 1) * vx + (x + 1);
 
-				// OŠpŒ`‚Ì\¬‡˜‚ÍMeshLoader‚ÌAssimp‚É€‹’‚µŒv‰ñ‚è
+				// ä¸‰è§’å½¢ã®æ§‹æˆé †åºã¯MeshLoaderã®Assimpã«æº–æ‹ ã—æ™‚è¨ˆå›ã‚Š
 				asset->indices.push_back(i0);
 				asset->indices.push_back(i2);
 				asset->indices.push_back(i1);

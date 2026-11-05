@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 #include <FaluEngine/EngineExport.h>
 #include <cstddef>
 
-/// @brief ƒR[ƒh‚É‘‚©‚ê‚½•¶š—ñ‚ğ‰pŒê‚Æ“ú–{Œê‚É•ÏŠ·BƒŠƒXƒg‚É‚È‚¢‚à‚Ì‚Í‚»‚Ì‚Ü‚Ü•Ô‚·
+/// @brief ã‚³ãƒ¼ãƒ‰ã«æ›¸ã‹ã‚ŒãŸæ–‡å­—åˆ—ã‚’è‹±èªã¨æ—¥æœ¬èªã«å¤‰æ›ã€‚ãƒªã‚¹ãƒˆã«ãªã„ã‚‚ã®ã¯ãã®ã¾ã¾è¿”ã™
 namespace FaluEngine::Loc
 {
 	enum class Language { English = 0, Japanese = 1, };

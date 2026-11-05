@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -13,11 +13,11 @@ namespace FaluEngine
 {
 	class Scene;
 
-	/// @brief ÀsƒtƒŒ[ƒ€‚ğ
+	/// @brief å®Ÿè¡Œãƒ•ãƒ¬ãƒ¼ãƒ ã‚’
 	class FALU_SCENE_API ReplayRecorder
 	{
 	public:
-		explicit ReplayRecorder(size_t maxFrames = 600); // 60FPS‚Å‚P‚O•b‚ğ–ÚˆÀ‚ÉƒŒƒR[ƒh‚ğæ‚é
+		explicit ReplayRecorder(size_t maxFrames = 600); // 60FPSã§ï¼‘ï¼ç§’ã‚’ç›®å®‰ã«ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’å–ã‚‹
 
 		void setCapacity(size_t maxFrames);
 

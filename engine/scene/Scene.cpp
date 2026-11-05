@@ -592,10 +592,12 @@ void Scene::renderUI(DX11Renderer* renderer)
                 btn.hoveredColor : btn.normalColor;
         }
 
+        // UIのコンポーネントを参照し位置やテクスチャを適用してドローコール
         renderer->drawUIQuad(
             rt.computedPosition, rt.computedSize, rt.rotation,
             finalColor,
-            (img.cachedTexture && img.cachedTexture->srv) ? img.cachedTexture->srv.Get() : nullptr
+            (img.cachedTexture && img.cachedTexture->srv) ? img.cachedTexture->srv.Get() : nullptr,
+            img.uvRect,img.pointFilter
         );
     }
 

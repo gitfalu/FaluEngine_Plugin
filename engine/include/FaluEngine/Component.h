@@ -175,6 +175,8 @@ struct ImageComponent
 {
     std::string texturePath;
     glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+    glm::vec4 uvRect = { 0.0f,0.0f,1.0f,1.0f }; // UV座標とサイズ
+    bool pointFilter = false; // ドットの描画を鮮明化するための設定
     bool visible = true;
 
     std::shared_ptr<TextureAsset> cachedTexture;
@@ -196,6 +198,14 @@ struct TextComponent
     float fontSize = 24.0f;
     glm::vec4 color = { 1,1,1,1 };
     std::string fontPath;
+};
+
+struct SpriteAnimatorComponent
+{
+    std::string clipPath;
+    float time = 0.0f;
+    float speed = 1.0f;
+    bool playing = true;
 };
 
 //======= Audio ========

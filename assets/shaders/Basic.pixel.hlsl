@@ -116,11 +116,11 @@ float3 calcPhong(float3 normal,float3 worldPos,float3 viewDir,
 
 float4 PS(PSInput input) : SV_TARGET
 {
-    // ƒx[ƒXƒJƒ‰[
+    // ãƒ™ãƒ¼ã‚¹ã‚«ãƒ©ãƒ¼
     float4 baseColor = useTexture
         ? gTexture.Sample(gSampler, input.uv) * input.color
         : input.color;
-    // –@üæ“¾
+    // æ³•ç·šå–å¾—
     float3 normal = normalize(input.normal);
     if (useNormalMap != 0)
     {
@@ -137,7 +137,7 @@ float4 PS(PSInput input) : SV_TARGET
     // ambient
     float3 result = ambientColor.rgb * baseColor.rgb;
     
-    // Šeƒ‰ƒCƒg‚ÌŠñ—^‚ğ‰ÁZ
+    // å„ãƒ©ã‚¤ãƒˆã®å¯„ä¸ã‚’åŠ ç®—
     for (int i = 0; i < lightCount; ++i)
     {
         LightData light = lights[i];

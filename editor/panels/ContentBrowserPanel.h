@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <imgui.h>
 #include <filesystem>
 #include <string>
@@ -42,10 +42,10 @@ namespace Editor {
 		void clearDragged() { m_draggedPath.clear(); }
 
 	private:
-		//= ¶ƒyƒCƒ“FƒtƒHƒ‹ƒ_ƒcƒŠ[
+		//= å·¦ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ„ãƒªãƒ¼
 		void drawFolderTree(const std::filesystem::path& path);
 
-		//= ‰EƒyƒCƒ“FƒtƒHƒ‹ƒ_ƒcƒŠ[
+		//= å³ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ„ãƒªãƒ¼
 		bool drawFilePanel(FaluEngine::Scene* scene, entt::entity selected);
 		bool drawGridView(FaluEngine::Scene* scene, entt::entity selected);
 		bool drawListView(FaluEngine::Scene* scene, entt::entity selected);
@@ -53,7 +53,7 @@ namespace Editor {
 			FaluEngine::Scene* scene, entt::entity selected,
 			bool isGrid);
 
-		// ‰EƒNƒŠƒbƒNƒƒjƒ…[
+		// å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼
 		void drawContextMenu();
 
 		void refresh();
@@ -83,7 +83,7 @@ namespace Editor {
 		std::filesystem::path m_pendingNavigate;
 		bool m_hasPendingNavigate = false;
 
-		// C++ ƒXƒNƒŠƒvƒgì¬ƒ_ƒCƒAƒƒO
+		// C++ ã‚¹ã‚¯ãƒªãƒ—ãƒˆä½œæˆãƒ€ã‚¤ã‚¢ãƒ­ã‚°
 		bool m_openScriptPopup = false;
 		char m_newScriptName[128] = {};
 		std::string m_scriptError;

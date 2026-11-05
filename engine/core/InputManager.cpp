@@ -1,4 +1,4 @@
-#include "FaluEngine/InputManager.h"
+ï»¿#include "FaluEngine/InputManager.h"
 
 #include "FaluEngine/EventBus.h"
 #include "Logger.h"
@@ -22,7 +22,7 @@ namespace FaluEngine {
 	}
 
 	/*
-	 * ƒL[ó‘Ô
+	 * ã‚­ãƒ¼çŠ¶æ…‹
 	 */
 	bool InputManager::isKeyDown(Key key) const noexcept
 	{
@@ -40,7 +40,7 @@ namespace FaluEngine {
 	}
 
 	/*
-	* ƒ}ƒEƒXó‘Ô
+	* ãƒã‚¦ã‚¹çŠ¶æ…‹
 	*/
 	bool InputManager::isMouseButtonDown(MouseButton btn) const noexcept
 	{
@@ -58,7 +58,7 @@ namespace FaluEngine {
 	}
 
 	/**
-	* Win32‚©‚ç‚Ì’Ê’m
+	* Win32ã‹ã‚‰ã®é€šçŸ¥
 	*/
 	void InputManager::onKeyDown(uint16_t vkCode, bool repeat)
 	{

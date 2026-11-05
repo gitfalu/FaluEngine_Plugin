@@ -462,6 +462,17 @@ bool DX11Renderer::createShaders(const std::filesystem::path& vsPath, const std:
     sd.MaxLOD = D3D11_FLOAT32_MAX;
     m_device->CreateSamplerState(&sd, &m_samplerState);
 
+    // PointFilter用サンプラーステート作成
+    sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sd.MaxAnisotropy = 1;
+    sd.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    sd.MinLOD = 0;
+    sd.MaxLOD = D3D11_FLOAT32_MAX;
+    m_device->CreateSamplerState(&sd, &m_pointSamplerState);
+
     //===== Shadow Depth Shader =======
     //-パスを変換しファイルの存在確認
     std::filesystem::path shadowVSPath = PathResolver::resolve("assets/shaders/ShadowDepth.vert.hlsl");
@@ -1835,7 +1846,10 @@ void DX11Renderer::drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCou
 
 //======== UI ============
 
-void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const glm::vec4& color, ID3D11ShaderResourceView* srv)
+void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation, 
+    const glm::vec4& color, ID3D11ShaderResourceView* srv,
+    const glm::vec4& uvRect,bool point
+)
 {
     UITransformCB tcb;
     tcb.orthoProjection = glm::transpose(m_uiOrthoProjection);
@@ -1882,7 +1896,7 @@ void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
     m_context->PSSetShader(m_uiPixelShader.Get(), nullptr, 0);
     m_context->VSSetConstantBuffers(0, 1, m_uiTransformCB.GetAddressOf());
     m_context->PSSetConstantBuffers(1, 1, m_uiMaterialCB.GetAddressOf());
-    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_pointSamplerState.GetAddressOf());
 
     UINT stride = sizeof(glm::vec2) * 2, offset = 0;
     m_context->IASetVertexBuffers(0, 1, m_uiQuadVB.GetAddressOf(), &stride, &offset);

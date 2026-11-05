@@ -75,7 +75,7 @@ struct PSInput
 };
 
 //========= Cook-Torrance BRDF ============
-/// GGX •ª•z
+/// GGX åˆ†å¸ƒ
 float distributionGGX(float3 N,float3 H,float roughness)
 {
     float a = roughness * roughness;

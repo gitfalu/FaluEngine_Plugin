@@ -1,4 +1,4 @@
-#include "SceneSerializer.h"
+ï»¿#include "SceneSerializer.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
@@ -550,7 +550,7 @@ namespace FaluEngine
 			}
 		}
 
-		// eqŠÖŒW‚Ì•œŒ³
+		// è¦ªå­é–¢ä¿‚ã®å¾©å…ƒ
 		for (const auto& entityJson : root["entities"])
 		{
 			if (!entityJson.contains("parent")) continue;
