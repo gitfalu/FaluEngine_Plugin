@@ -385,7 +385,7 @@ private:
 
     ComPtr<ID3D11SamplerState> m_samplerState;
     ComPtr<ID3D11SamplerState> m_lutSampler;
-    ComPtr<ID3D11SamplerState> m_pointSamplerState;
+    ComPtr<ID3D11SamplerState> m_uiPointSampler;
 
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;

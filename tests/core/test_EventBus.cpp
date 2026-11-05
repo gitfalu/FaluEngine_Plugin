@@ -5,7 +5,14 @@ using namespace FaluEngine;
 
 struct TestEvent { int value; };
 
-TEST(EventBus, SubscribeAndPublish) {
+class EventBusTest : public ::testing::Test
+{
+protected:
+    void SetUp() override { EventBus::get().clear(); }
+    void TearDown() override { EventBus::get().clear(); }
+};
+TEST_F(EventBusTest,SubscribeAndPublish)
+{
     int received = -1;
 
     EventBus::get().subscribe<TestEvent>([&](const TestEvent& e) {
@@ -16,7 +23,7 @@ TEST(EventBus, SubscribeAndPublish) {
     EXPECT_EQ(received, 42);
 }
 
-TEST(EventBus, Unsubscribe) {
+TEST_F(EventBusTest, Unsubscribe) {
     int count = 0;
 
     auto id = EventBus::get().subscribe<TestEvent>([&](const TestEvent&) { ++count; });
@@ -28,7 +35,7 @@ TEST(EventBus, Unsubscribe) {
     EXPECT_EQ(count, 1); // アンサブ後は増えない
 }
 
-TEST(EventBus, MultipleSubscribers) {
+TEST_F(EventBusTest, MultipleSubscribers) {
     int a = 0, b = 0;
 
     EventBus::get().subscribe<TestEvent>([&](const TestEvent&) { ++a; });
