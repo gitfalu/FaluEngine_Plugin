@@ -215,7 +215,22 @@ namespace FaluEngine
 				entityJson["image"] = {
 					{"texturePath",img.texturePath},
 					{"color",vec4ToJson(img.color)},
+					{"uvRect",vec4ToJson(img.uvRect)},
+					{"pointFilter",img.pointFilter},
 					{"visible",img.visible}
+				};
+			}
+
+			// SpriteAnimator
+			if (m_scene.registry().all_of<SpriteAnimatorComponent>(entity))
+			{
+				auto& sa = m_scene.registry().get<SpriteAnimatorComponent>(entity);
+				entityJson["spriteAnimator"] = {
+					{"clipPath",sa.clipPath},
+					{"time",sa.time},
+					{"speed",sa.speed},
+					{"playing",sa.playing},
+					{"pixelPerfect",sa.pixelPerfect}
 				};
 			}
 
@@ -477,7 +492,21 @@ namespace FaluEngine
 				auto& img = entity.addComponent<ImageComponent>();
 				img.texturePath = ij.value("texturePath", "");
 				img.color = vec4FromJson(ij["color"]);
+				img.uvRect = vec4FromJson(ij["uvRect"]);
+				img.pointFilter = ij.value("pointFilter", false);
 				img.visible = ij.value("visible", true);
+			}
+
+			// SpriteAnimator
+			if (entityJson.contains("spriteAnimator"))
+			{
+				auto& saj = entityJson["spriteAnimator"];
+				auto& sa = entity.addComponent<SpriteAnimatorComponent>();
+				sa.clipPath = saj.value("clipPath", "");
+				sa.time = saj.value("time",0.0f);
+				sa.speed = saj.value("speed", 1.0f);
+				sa.playing = saj.value("playing", false);
+				sa.pixelPerfect = saj.value("pixelPerfect", true);
 			}
 
 			// Button

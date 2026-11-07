@@ -21,6 +21,8 @@ namespace FaluEngine {
     struct MeshAsset;
     struct MaterialAsset;
     struct TextureAsset;
+    struct SpriteSheetAsset;
+    struct SpriteClipAsset;
     struct ScriptInstance;
 
 
@@ -200,12 +202,20 @@ struct TextComponent
     std::string fontPath;
 };
 
+/// @brief スプライトアニメーションを再生しImageComponentに現在情報を書き込む
 struct SpriteAnimatorComponent
 {
-    std::string clipPath;
-    float time = 0.0f;
+    std::string clipPath; // .fanim2d
+    float time = 0.0f; // 
     float speed = 1.0f;
     bool playing = true;
+
+    //---- 以下はランタイム状態 ----
+    bool started = false;
+    int lastFrame = -1;
+    std::string cachedClipPath;
+    std::shared_ptr<SpriteClipAsset> cachedClip;
+    std::shared_ptr<SpriteSheetAsset> cachedSheet;
 };
 
 //======= Audio ========

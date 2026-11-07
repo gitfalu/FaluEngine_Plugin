@@ -4,6 +4,7 @@
 #include "FaluEngine/Application.h"
 #include "FaluEngine/InputManager.h"
 #include "FaluEngine/ActionEventSystem.h"
+#include "FaluEngine/SpriteAnimationSystem.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "asset/AssetManager.h"
@@ -121,6 +122,9 @@ void Scene::onUpdate(float deltaTime) {
             src.hasStarted = true;
         }
     }
+
+    //==== Sprite Animation (2D / UI) =====
+    updateSpriteAnimations(m_registry, deltaTime);
 
     auto animView = m_registry.view<AnimatorComponent, MeshComponent>();
     bool anyAnimated = false;

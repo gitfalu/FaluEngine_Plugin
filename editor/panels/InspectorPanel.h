@@ -36,6 +36,7 @@ namespace Editor
 		void drawRectTransformComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawCanvasComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawImageComponent(FaluEngine::Scene* scene, entt::entity entity);
+		void drawSpriteAnimatorComponent(FaluEngine::Scene* scene, entt::entity entity);
 		void drawButtonComponent(FaluEngine::Scene* scene, entt::entity entity);
 
 		void drawMaterialEditor(FaluEngine::MaterialAsset* material,

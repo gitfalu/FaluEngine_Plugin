@@ -74,6 +74,7 @@ namespace Editor
 		drawRectTransformComponent(scene, selected);
 		drawCanvasComponent(scene, selected);
 		drawImageComponent(scene, selected);
+		drawSpriteAnimatorComponent(scene, selected);
 		drawButtonComponent(scene, selected);
 
 		ImGui::Spacing();
@@ -658,7 +659,23 @@ namespace Editor
 			}
 
 			ImGui::ColorEdit4(TR("Color"), &img.color.x);
+			ImGui::ColorEdit4(TR("UV Rect"), &img.uvRect.x);
+			ImGui::Checkbox(TR("Point Filter"), &img.pointFilter);
 			ImGui::Checkbox(TR("Visible"), &img.visible);
+		}
+	}
+
+	void InspectorPanel::drawSpriteAnimatorComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::SpriteAnimatorComponent>("Sprite Animator", scene, entity)) return;
+
+		auto& sa = scene->registry().get<FaluEngine::SpriteAnimatorComponent>(entity);
+
+		char buf[512];
+		strncpy_s(buf, sa.clipPath.c_str(), sizeof(buf));
+		if (ImGui::InputText(TR("Clip Path"), buf, sizeof(buf)))
+		{
+			sa.clipPath = buf;
 		}
 	}
 

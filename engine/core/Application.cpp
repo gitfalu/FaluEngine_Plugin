@@ -14,6 +14,7 @@
 #include "asset/loaders/TextureLoader.h"
 #include "asset/loaders/ShaderLoader.h"
 #include "asset/loaders/MaterialLoader.h"
+#include "asset/loaders/SpriteAsset.h"
 #include "audio/AudioEngine.h"
 
 #ifdef _WIN32
@@ -97,6 +98,7 @@ bool Application::initRenderer() {
     registerTextureLoader(renderer->getDevice(), renderer->getContext());
     registerShaderLoader(renderer->getDevice());
     registerMaterialLoader();
+    registerSpriteLoaders();
     LOG_INFO("AssetManager loader registered");
 
     return true;
