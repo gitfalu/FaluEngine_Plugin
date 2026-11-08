@@ -676,7 +676,40 @@ namespace Editor
 		if (ImGui::InputText(TR("Clip Path"), buf, sizeof(buf)))
 		{
 			sa.clipPath = buf;
+			sa.cachedClip.reset();
+			sa.started = false;
 		}
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+			{
+				const char* payloadPath = static_cast<const char*>(payload->Data);
+				const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+				if (std::filesystem::path(assetPath).extension() == ".fanim2d" &&
+					std::filesystem::exists(FaluEngine::PathResolver::resolve(assetPath)))
+				{
+					sa.clipPath = assetPath;
+					sa.cachedClip.reset();
+					sa.started = false;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		if (!sa.clipPath.empty() &&
+			!std::filesystem::exists(FaluEngine::PathResolver::resolve(sa.clipPath)))
+		{
+			ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not found");
+		}
+
+		ImGui::DragFloat(TR("Speed"), &sa.speed, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat(TR("Time"), &sa.time, 0.01f, 0.0f, 3600.0f);
+		ImGui::Checkbox(TR("Playing"), &sa.playing);
+		ImGui::Checkbox(TR("Pixel Perfect"), &sa.pixelPerfect);
+
+		if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
+			ImGui::TextColored({ 1.0f,0.8f,0.2f,1.0f }, "Required an Image component");
 	}
 
 	void InspectorPanel::drawButtonComponent(FaluEngine::Scene* scene, entt::entity entity)
@@ -1017,6 +1050,19 @@ namespace Editor
 						e.addComponent<FaluEngine::RectTransformComponent>();
 						FaluEngine::SceneManager::get().markDirty();
 					}
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::SpriteAnimatorComponent>(entity))
+			{
+				if (ImGui::MenuItem(TR("Sprite Animator Component")))
+				{
+					e.addComponent<FaluEngine::SpriteAnimatorComponent>();
+					if (!e.hasComponent<FaluEngine::ImageComponent>())
+						e.addComponent<FaluEngine::ImageComponent>();
+					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
+						e.addComponent<FaluEngine::RectTransformComponent>();
+					FaluEngine::SceneManager::get().markDirty();
 				}
 			}
 

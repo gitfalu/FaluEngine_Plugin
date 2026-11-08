@@ -119,7 +119,7 @@ public:
         if (!toRemove.empty())
         {
             auto it = m_handlers.find(key);
-            if (!it != m_handlers.end())
+            if (it != m_handlers.end())
             {
                 auto& vec = it->second;
                 vec.erase(std::remove_if(vec.begin(), vec.end(),

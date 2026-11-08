@@ -209,6 +209,7 @@ struct SpriteAnimatorComponent
     float time = 0.0f; // 
     float speed = 1.0f;
     bool playing = true;
+    bool pixelPerfect = true; // ポイントフィルターを有効にするか否か
 
     //---- 以下はランタイム状態 ----
     bool started = false;
