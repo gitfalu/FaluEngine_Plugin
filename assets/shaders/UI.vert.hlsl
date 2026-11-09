@@ -23,14 +23,17 @@ PSInput VS(VSInput vin)
 {
     PSInput vout;
     
+    // 先にサイズをかけてから回転を行う
+    float2 scalePos = vin.localPos * size;
+    
     float cosR = cos(rotation);
     float sinR = sin(rotation);
     float2 rotatedPos = float2(
-        vin.localPos.x * cosR - vin.localPos.y * sinR,
-        vin.localPos.x * sinR + vin.localPos.y * cosR
+        scalePos.x * cosR - scalePos.y * sinR,
+        scalePos.x * sinR + scalePos.y * cosR
     );
     
-    float2 worldPos = position + rotatedPos * size;
+    float2 worldPos = position + rotatedPos;
     
     vout.position = mul(float4(worldPos, 0.0f, 1.0f), orthoProjection);
     vout.uv = vin.uv;

@@ -73,6 +73,8 @@ namespace Editor
 		ImGuizmo::BeginFrame();
 
 		if (!scene || selected == entt::null) return;
+		// UIは3DGizmoの対象外
+		if (scene->registry().all_of<FaluEngine::RectTransformComponent>(selected)) return;
 		if (!scene->registry().all_of<FaluEngine::TransformComponent,
 			FaluEngine::CameraComponent>(entt::null))
 		{

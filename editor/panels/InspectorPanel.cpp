@@ -95,6 +95,14 @@ namespace Editor
 	{
 		if (!scene->registry().all_of<FaluEngine::TransformComponent>(entity)) return;
 
+		// UIはTransformを使わない。編集しても反映されないため案内だけを出す
+		if (scene->registry().all_of<FaluEngine::RectTransformComponent>(entity))
+		{
+			ImGui::TextDisabled("UI element: Transform is not used. Edit 'RectTransform' below");
+			ImGui::Spacing();
+			return;
+		}
+
 		if(ImGui::CollapsingHeader("Transform",ImGuiTreeNodeFlags_DefaultOpen))
 		{
 

@@ -41,7 +41,7 @@ namespace FaluEngine::UILayout
 			}
 			else
 			{
-				size = (anchorMaxPx - anchorMinPx) * rt.sizeDelta;
+				size = (anchorMaxPx - anchorMinPx) + rt.sizeDelta;
 				pivotPoint = (anchorMinPx + anchorMaxPx) * 0.5f + rt.anchoredPos;
 			}
 			const glm::vec2 scaledSize = size * rt.scale;
