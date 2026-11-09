@@ -27,5 +27,5 @@ namespace FaluEngine
 	/// @param registry 
 	/// @param entity 
 	/// @return 
-	FALU_SCENE_API void applySprteAnimatorFrame(entt::registry& registry, entt::entity entity);
+	FALU_SCENE_API void applySpriteAnimatorFrame(entt::registry& registry, entt::entity entity);
 }

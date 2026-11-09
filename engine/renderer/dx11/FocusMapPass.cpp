@@ -391,7 +391,19 @@ namespace FaluEngine
 			if (reg.get<CanvasComponent>(e).enabled) { anyCanvas = true; break; }
 		if (!anyCanvas) return;
 
-		const float w = static_cast<float>(uiRefW), h = static_cast<float>(uiRefH);
+		// ScaleWithScreenSizeのCanvasは仮想ピクセル空間でレイアウトされるのでその空間を基準にする
+		float w = static_cast<float>(uiRefW), h = static_cast<float>(uiRefH);
+		for (auto e : reg.view<CanvasComponent>())
+		{
+			const auto& c = reg.get<CanvasComponent>(e);
+			if (c.enabled && c.renderMode == CanvasRenderMode::ScreenSpaceOverlay &&
+				c.scaleMode == CanvasScaleMode::ScaleWithScreenSize &&
+				c.computedSize.x > 0.0f && c.computedSize.y > 0.0f)
+			{
+				w = c.computedSize.x; h = c.computedSize.y;
+				break;
+			}
+		}
 		const float gw = static_cast<float>(out.width), gh = static_cast<float>(out.height);
 
 		auto imageView = reg.view<ImageComponent, RectTransformComponent>();
@@ -409,7 +421,7 @@ namespace FaluEngine
 			const uint16_t idx = static_cast<uint16_t>(out.entities.size());
 
 			const glm::vec2 half = rt.computedSize * 0.5f;
-			const float ang = glm::radians(rt.rotation);
+			const float ang = glm::radians(rt.computedRotation);
 			const float c = std::cos(ang), s = std::sin(ang);
 			const float ex = std::fabs(c) * half.x + std::fabs(s) * half.y;
 			const float ey = std::fabs(s) * half.x + std::fabs(c) * half.y;

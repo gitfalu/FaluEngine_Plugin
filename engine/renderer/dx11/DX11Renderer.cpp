@@ -464,11 +464,11 @@ bool DX11Renderer::createShaders(const std::filesystem::path& vsPath, const std:
 
     // PointFilter用サンプラーステート作成
     D3D11_SAMPLER_DESC psd = sd;
-    sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-    m_device->CreateSamplerState(&sd, &m_uiPointSampler);
+    psd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    psd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    psd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    psd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    m_device->CreateSamplerState(&psd, &m_uiPointSampler);
 
     //===== Shadow Depth Shader =======
     //-パスを変換しファイルの存在確認
@@ -1891,9 +1891,14 @@ void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, 
 
 void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
 {
+    beginUIPass(glm::vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+}
+
+void DX11Renderer::beginUIPass(const glm::vec2& layoutSize)
+{
     m_uiOrthoProjection = glm::orthoLH(
-        -static_cast<float>(screenWidth) * 0.5f, static_cast<float>(screenWidth) * 0.5f,
-        -static_cast<float>(screenHeight) * 0.5f, static_cast<float>(screenHeight) * 0.5f,
+        -layoutSize.x * 0.5f, layoutSize.x * 0.5f,
+        -layoutSize.y * 0.5f, layoutSize.y * 0.5f,
         -1.0f, 1.0f
     );
 
@@ -1918,6 +1923,7 @@ void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
     m_boundIB = nullptr;
     m_boundVS = nullptr;
     m_boundPS = nullptr;
+
 }
 
 void DX11Renderer::endUIPass()

@@ -170,6 +170,7 @@ falu_add_engine_module(FaluScene
         scene/Scene.cpp
         scene/SceneManager.cpp
         scene/SceneSerializer.cpp
+        scene/UILayout.cpp
 
         script/ScriptEngine.cpp
         script/ScriptInstance.cpp

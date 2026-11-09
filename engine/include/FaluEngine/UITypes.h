@@ -10,6 +10,13 @@ namespace FaluEngine
 		WorldSpace,
 	};
 
+	/// @brief Canvasのスケール方式
+	enum class FALU_GRAPHICS_API CanvasScaleMode
+	{
+		ConstatPixelSize, // 実ピクセルでそのままレイアウト
+		ScaleWithScreenSize, // referenceResolutionを基準に画面サイズへ拡縮
+	};
+
 	struct FALU_GRAPHICS_API RectTransformComponent
 	{
 		glm::vec2 anchorMin = { 0.5f,0.5f };
@@ -23,6 +30,7 @@ namespace FaluEngine
 
 		glm::vec2 computedPosition = { 0.0f,0.0f };
 		glm::vec2 computedSize = { 100.0f,100.0f };
+		float computedRotation = 0.0f; // 親の回転を含む累計回転
 	};
 
 	struct FALU_GRAPHICS_API CanvasComponent
@@ -31,6 +39,13 @@ namespace FaluEngine
 		glm::vec2 referenceResolution = { 1920.0f,1080.0f };
 		int sortOrder = 0;
 		bool enabled = true;
+
+		CanvasScaleMode scaleMode = CanvasScaleMode::ConstatPixelSize;
+		float matchWidthOrHeight = 0.5f; // 0:幅基準 1:高さ基準
+
+		// ランタイム値
+		glm::vec2 computedSize = { 0.0f,0.0f }; // レイアウト空間のサイズ
+		float scaleFactor = 1.0f; // レイアウト空間->実ピクセル
 	};
 
 }

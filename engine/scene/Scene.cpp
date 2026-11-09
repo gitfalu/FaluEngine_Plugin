@@ -5,6 +5,7 @@
 #include "FaluEngine/InputManager.h"
 #include "FaluEngine/ActionEventSystem.h"
 #include "FaluEngine/SpriteAnimationSystem.h"
+#include "UILayout.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "asset/AssetManager.h"
@@ -561,74 +562,61 @@ void Scene::renderSky(DX11Renderer* renderer)
 
 void Scene::renderUI(DX11Renderer* renderer)
 {
-    auto canvasView = m_registry.view<CanvasComponent>();
-    bool anyCanvas = false;
-    for (auto entity : canvasView)
+    // CanvasをSorrOrder昇順に配下を階層順に描画。後ろほど手前
+    const auto canvases = UILayout::collectCanvases(m_registry);
+    if (canvases.empty()) return;
+
+    std::vector<entt::entity> order;
+    for (auto canvasEntity : canvases)
     {
-        auto& canvas = canvasView.get<CanvasComponent>(entity);
-        if (canvas.enabled) {
-            anyCanvas = true; break; }
-    }
-    if (!anyCanvas) return;
+        const auto& canvas = m_registry.get<CanvasComponent>(canvasEntity);
+        if (canvas.computedSize.x <= 0.0f || canvas.computedSize.y <= 0.0f) continue;
+        
+        order.clear();
+        UILayout::collectDrawOrder(m_registry, canvasEntity, order);
 
-    uint32_t w = renderer->getActiveWidth();
-    uint32_t h = renderer->getActiveHeight();
-    renderer->beginUIPass(w, h);
+        // レイアウト空間をそのまま画面にマップする。拡縮は射影で行う
+        renderer->beginUIPass(canvas.computedSize);
 
-    auto imageView = m_registry.view<ImageComponent, RectTransformComponent>();
-
-    for (auto entity : imageView) {
-        auto& img = imageView.get<ImageComponent>(entity);
-        auto& rt = imageView.get<RectTransformComponent>(entity);
-        if (!img.visible) continue;
-
-        if (!img.texturePath.empty() && !img.cachedTexture)
+        for(auto entity : order)
         {
-            img.cachedTexture = AssetManager::get().load<TextureAsset>(img.texturePath);
-        }
+            auto* img = m_registry.try_get<ImageComponent>(entity);
+            if (!img || !img->visible) continue;
+            auto& rt = m_registry.get<RectTransformComponent>(entity);
+            
+            if (!img->texturePath.empty() && !img->cachedTexture)
+            {
+                img->cachedTexture = AssetManager::get().load<TextureAsset>(img->texturePath);
+            }
+            glm::vec4 finalColor = img->color;
+            // Button所有時
+            if (auto* btn = m_registry.try_get<ButtonComponent>(entity))
+            {
+                finalColor = btn->isPressed ? btn->pressedColor : btn->isHovered ?
+                    btn->hoveredColor : btn->normalColor;
+            }
 
-        glm::vec4 finalColor = img.color;
-        // Button所有時
-        if (m_registry.all_of<ButtonComponent>(entity))
-        {
-            auto& btn = m_registry.get<ButtonComponent>(entity);
-            finalColor = btn.isPressed ? btn.pressedColor : btn.isHovered ?
-                btn.hoveredColor : btn.normalColor;
+            // UIのコンポーネントを参照し位置やテクスチャを適用してドローコール
+            renderer->drawUIQuad(
+                rt.computedPosition, rt.computedSize, rt.computedRotation,
+                finalColor,
+                (img->cachedTexture && img->cachedTexture->srv) ? img->cachedTexture->srv.Get() : nullptr,
+                img->uvRect,img->pointFilter
+            );
         }
-
-        // UIのコンポーネントを参照し位置やテクスチャを適用してドローコール
-        renderer->drawUIQuad(
-            rt.computedPosition, rt.computedSize, rt.rotation,
-            finalColor,
-            (img.cachedTexture && img.cachedTexture->srv) ? img.cachedTexture->srv.Get() : nullptr,
-            img.uvRect,img.pointFilter
-        );
+        renderer->endUIPass();
     }
-
-    renderer->endUIPass();
 }
 
 void Scene::updateUILayout(DX11Renderer* renderer)
 {
-    glm::vec2 screenSize = {
+    const glm::vec2 screenSize = {
         static_cast<float>(renderer->getActiveWidth()),
         static_cast<float>(renderer->getActiveHeight())
     };
 
-    auto canvasView = m_registry.view<CanvasComponent, RelationshipComponent>();
-    for (auto canvasEntity : canvasView)
-    {
-        auto& canvas = canvasView.get<CanvasComponent>(canvasEntity);
-        if (!canvas.enabled) continue;
-        if (canvas.renderMode == CanvasRenderMode::WorldSpace) continue;
-
-        glm::vec2 canvasSize = screenSize;
-        glm::vec2 canvasPos = { 0.0f,0.0f };
-
-        auto& rel = canvasView.get<RelationshipComponent>(canvasEntity);
-        for (auto child : rel.children)
-            computeRectTransform(child, canvasPos, canvasSize);
-    }
+    for (auto canvasEntity : UILayout::collectCanvases(m_registry))
+        UILayout::layoutCanvas(m_registry, canvasEntity, screenSize);
 }
 
 void Scene::updateUIInteraction()
@@ -636,110 +624,82 @@ void Scene::updateUIInteraction()
     auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer());
     if (!renderer)return;
     
-    glm::vec2 activeSize = { static_cast<float>(renderer->getActiveWidth()),
-                                static_cast<float>(renderer->getActiveHeight()) };
+    const glm::vec2 activeSize = { static_cast<float>(renderer->getActiveWidth()),
+                                    static_cast<float>(renderer->getActiveHeight()) };
 
-    glm::vec2 localPos = renderer->getUILocalMousePos();
-    glm::vec2 mousePos = localPos - activeSize * 0.5f;
-    mousePos.y = -mousePos.y;
+    const glm::vec2 localPos = renderer->getUILocalMousePos();
+    // ビュー中心原点・Y上向きの実ピクセル座標
+    glm::vec2 viewMouse = localPos - activeSize * 0.5f;
+    viewMouse.y = -viewMouse.y;
 
-    bool insideView = localPos.x >= 0.0f && localPos.x <= activeSize.x && 
-                        localPos.y >= 0.0f && localPos.y <= activeSize.y;
+    const bool insideView = localPos.x >= 0.0f && localPos.x <= activeSize.x &&
+        localPos.y >= 0.0f && localPos.y <= activeSize.y;
 
     auto& im = InputManager::get();
-    bool mouseDown = im.isMouseButtonDown(MouseButton::Left);
-    bool mouseUp = im.isMouseButtonReleased(MouseButton::Left);
-    
-    auto view = m_registry.view<RectTransformComponent, ButtonComponent>();
-    std::vector<entt::entity> entities(view.begin(), view.end());
+    const bool mouseDown = im.isMouseButtonDown(MouseButton::Left);
+    const bool mouseUp = im.isMouseButtonReleased(MouseButton::Left);
+
     bool consumed = false;
 
-    for (auto it = entities.rbegin(); it != entities.rend(); ++it)
+    // 手前から順に判定する
+    auto canvases = UILayout::collectCanvases(m_registry);
+    std::vector<entt::entity> order;
+
+    for (auto cit = canvases.rbegin(); cit != canvases.rend(); ++cit)
     {
-        auto entity = *it;
-        auto& rt = view.get<RectTransformComponent>(entity);
-        auto& btn = view.get<ButtonComponent>(entity);
-        if (!btn.interactable) { btn.isHovered = btn.isPressed = false; continue; }
+        const auto& canvas = m_registry.get<CanvasComponent>(*cit);
+        const float scale = canvas.scaleFactor > 0.0f ? canvas.scaleFactor : 1.0f;
+        const glm::vec2 mousePos = viewMouse / scale; // レイアウト空間へ変換
 
-        glm::vec2 halfSize = rt.computedSize * 0.5f;
-        glm::vec2 min = rt.computedPosition - halfSize;
-        glm::vec2 max = rt.computedPosition + halfSize;
+        order.clear();
+        UILayout::collectDrawOrder(m_registry, *cit, order);
 
-        bool hit = insideView  && !consumed &&
-            mousePos.x >= min.x && mousePos.x <= max.x &&
-            mousePos.y >= min.y && mousePos.y <= max.y;
-        
-        btn.isHovered = hit;
-
-        if (hit && mouseDown && !btn.isPressed)
+        for (auto it = order.rbegin(); it != order.rend(); ++it)
         {
-            btn.isPressed = true;
-            consumed = true;
-        }
-        else if (btn.isPressed && mouseUp)
-        {
-            btn.isPressed = false;
-            if (hit && m_registry.all_of<ScriptComponent>(entity))
+            const auto entity = *it;
+            auto* btn = m_registry.try_get<ButtonComponent>(entity);
+            if (!btn) continue;
+            auto& rt = m_registry.get<RectTransformComponent>(entity);
+
+            if (!btn->interactable) { btn->isHovered = btn->isPressed = false; continue; }
+
+            const bool hit = insideView && !consumed && UILayout::hitTest(rt, mousePos);
+
+            btn->isHovered = hit;
+
+            if(hit && mouseDown && !btn->isPressed)
             {
-                auto& sc = m_registry.get<ScriptComponent>(entity);
-                if (sc.instance)
-                {
-                    Entity e(entity, this);
-                    sc.instance->onClick(e);
-                }
+                btn->isPressed = true;
+                consumed = true;
             }
-            if (hit && m_registry.all_of<NativeScriptComponent>(entity))
+            else if(btn->isPressed && mouseUp)
             {
-                auto& nsc = m_registry.get<NativeScriptComponent>(entity);
-                if (nsc.instance)
+                btn->isPressed = false;
+                if(hit && m_registry.all_of<ScriptComponent>(entity))
                 {
-                    Entity e(entity, this);
-                    nsc.instance->onClick(e);
+                    auto& sc = m_registry.get<ScriptComponent>(entity);
+                    if (sc.instance)
+                    {
+                        Entity e(entity, this);
+                        sc.instance->onClick(e);
+                    }
                 }
+                if (hit && m_registry.all_of<NativeScriptComponent>(entity))
+                {
+                    auto& nsc = m_registry.get<NativeScriptComponent>(entity);
+                    if (nsc.instance)
+                    {
+                        Entity e(entity, this);
+                        nsc.instance->onClick(e);
+                    }
+                }
+                consumed = true;
             }
-            consumed = true;
+            else if (hit)
+            {
+                consumed = true;
+            }
         }
-        else if (hit)
-        {
-            consumed = true;
-        }
-
-    }
-}
-
-void Scene::computeRectTransform(entt::entity entity, const glm::vec2& parentPos, const glm::vec2& parentSize)
-{
-    if (!m_registry.all_of<RectTransformComponent>(entity)) return;
-    auto& rt = m_registry.get<RectTransformComponent>(entity);
-
-    glm::vec2 parentMin = parentPos - parentSize * 0.5f;
-    glm::vec2 anchorMinPx = parentMin + parentSize * rt.anchorMin;
-    glm::vec2 anchorMaxPx = parentMin + parentSize * rt.anchorMax;
-
-    glm::vec2 size;
-    glm::vec2 anchoredCenter;
-
-    if (rt.anchorMin == rt.anchorMax)
-    {
-        size = rt.sizeDelta;
-        anchoredCenter = anchorMinPx + rt.anchoredPos;
-    }
-    else
-    {
-        size = (anchorMaxPx - anchorMinPx) + rt.sizeDelta;
-        anchoredCenter = (anchorMinPx + anchorMaxPx) * 0.5f + rt.anchoredPos;
-    }
-    glm::vec2 pivotOffset = size * (rt.pivot - glm::vec2(0.5f, 0.5f));
-    glm::vec2 finalCenter = anchoredCenter - pivotOffset;
-
-    rt.computedPosition = finalCenter;
-    rt.computedSize = size * rt.scale;
-
-    if (m_registry.all_of<RelationshipComponent>(entity))
-    {
-        auto& rel = m_registry.get<RelationshipComponent>(entity);
-        for (auto child : rel.children)
-            computeRectTransform(child, rt.computedPosition, rt.computedSize);
     }
 }
 

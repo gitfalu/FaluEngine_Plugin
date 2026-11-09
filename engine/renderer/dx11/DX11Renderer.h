@@ -307,6 +307,9 @@ public:
         const glm::vec4& color, ID3D11ShaderResourceView* srv = nullptr,
         const glm::vec4& uvRect = { 0.0f,0.0f,1.0f,1.0f }, bool point = false);
     void beginUIPass(uint32_t screenWidth, uint32_t screenHeight);
+    /// @brief レイアウト空間のサイズでUIパスを開始する
+    /// @param lauoutSize 
+    void beginUIPass(const glm::vec2& layoutSize);
     void endUIPass();
     void setUILocalMousePos(const glm::vec2& pos) noexcept { m_uiLocalMousePos = pos; }
     [[nodiscard]] glm::vec2 getUILocalMousePos() const noexcept { return m_uiLocalMousePos; }

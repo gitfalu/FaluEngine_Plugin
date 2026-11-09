@@ -57,8 +57,6 @@ namespace FaluEngine {
         void renderUI(class DX11Renderer* renderer);
         void updateUILayout(DX11Renderer* renderer);
         void updateUIInteraction();
-        void computeRectTransform(entt::entity entity,
-            const glm::vec2& parentPos, const glm::vec2& parentSize);
     private:
         std::string    m_name;
         entt::registry m_registry;

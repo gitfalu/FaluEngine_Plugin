@@ -189,6 +189,8 @@ namespace FaluEngine
 					{"renderMode",static_cast<int>(canvas.renderMode)},
 					{"referenceResolution",vec2ToJson(canvas.referenceResolution)},
 					{"sortOrder",canvas.sortOrder},
+					{"scaleMode",static_cast<int>(canvas.scaleMode)},
+					{"matchWidthOrHeight",canvas.matchWidthOrHeight},
 					{"enabled",canvas.enabled}
 				};
 			}
@@ -468,6 +470,8 @@ namespace FaluEngine
 				canvas.renderMode = static_cast<CanvasRenderMode>(cj.value("renderMode",0));
 				canvas.referenceResolution = vec2FromJson(cj["referenceResolution"], { 1920.0f,1080.0f });
 				canvas.sortOrder = cj.value("sortOrder", 0);
+				canvas.scaleMode = static_cast<CanvasScaleMode>(cj.value("scaleMode", 0));
+				canvas.matchWidthOrHeight = cj.value("matchWidthOrHeight", 0.5f);
 				canvas.enabled = cj.value("enabled", true);
 			}
 

@@ -611,7 +611,14 @@ namespace Editor
 				ImGui::TextColored({ 1.0f,0.7f,0.2f,1.0f }, "World Space is not implemented yet.");// <--未実装メッセージ
 			}
 
+			const char* scaleModes[] = { "Constant Pixel Size","Scale With Screen Size" };
+			int currentScale = static_cast<int>(canvas.scaleMode);
+			if (ImGui::Combo(TR("Scale Mode"), &currentScale, scaleModes, 2))
+				canvas.scaleMode = static_cast<FaluEngine::CanvasScaleMode>(currentScale);
+
 			ImGui::DragFloat2(TR("Reference Resolution"), &canvas.referenceResolution.x, 1.0f, 1.0f, 8192.0f);
+			if (canvas.scaleMode == FaluEngine::CanvasScaleMode::ScaleWithScreenSize)
+				ImGui::SliderFloat(TR("Match Width/Height"), &canvas.matchWidthOrHeight, 0.0f, 1.0f);
 			ImGui::DragInt(TR("Sort Order"), &canvas.sortOrder);
 			ImGui::Checkbox(TR("Enabled"), &canvas.enabled);
 		}

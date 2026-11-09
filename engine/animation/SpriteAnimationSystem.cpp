@@ -107,7 +107,7 @@ namespace FaluEngine
 					{
 						const float start = (l == prevLoop) ? std::fmod(prev, total) : 0.0f;
 						const float end = (l == curLoop) ? std::fmod(cur, total) : total;
-						const float first = (l == prevLoop) && !sa.started;
+						const bool first = (l == prevLoop) && !sa.started;
 						publishEvents(registry, entity, clip, start, end, first);
 					}
 				}
@@ -124,7 +124,7 @@ namespace FaluEngine
 		}
 	}
 
-	void applySprteAnimatorFrame(entt::registry& registry, entt::entity entity)
+	void applySpriteAnimatorFrame(entt::registry& registry, entt::entity entity)
 	{
 		auto* sa = registry.try_get<SpriteAnimatorComponent>(entity);
 		auto* img = registry.try_get<ImageComponent>(entity);
