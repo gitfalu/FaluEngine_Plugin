@@ -132,10 +132,44 @@ namespace Editor
 
 	void SpriteEditorPanel::handleShortcuts()
 	{
+		if (ImGui::GetIO().WantTextInput) return;
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) save();
+		if (io.KeyCtrl && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)) undo();
+		if (io.KeyCtrl && (ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) redo();
+		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A))
+		{
+			m_selected.clear();
+			for (int i = 0; i < static_cast<int>(m_sheet.slices.size()); ++i) m_selected.insert(i);
+			m_primary = m_sheet.slices.empty() ? -1 : 0;
+		}
+		if (ImGui::IsKeyPressed(ImGuiKey_Delete)) deleteSelected();
+		if (ImGui::IsKeyPressed(ImGuiKey_F)) m_needFit = true;
 	}
 
 	void SpriteEditorPanel::drawUnsavedPopup()
 	{
+		if (m_askUnsaved)
+		{
+			ImGui::OpenPopup("Unsaved Changes##Sprite");
+			m_askUnsaved = false;
+		}
+
+		if (ImGui::BeginPopupModal("Unsaved Changes##Sprite", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("'%s' has unsaved changes.", m_path.c_str());
+			auto proceed = [&]() {
+				if (!m_pendingOpen.empty()) { const auto p = m_pendingOpen; m_pendingOpen.clear(); m_dirty = false; load(p); }
+				if (m_pendingClose) { m_pendingClose = false; m_visible = false; }
+				ImGui::CloseCurrentPopup();
+				};
+			if (ImGui::Button("Save", { 100.0f,0.0f })) { if (save()) proceed(); else ImGui::CloseCurrentPopup(); }
+			ImGui::SameLine();
+			if (ImGui::Button("Discard", { 100.0f,0.0f })) { m_dirty = false; proceed(); }
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", { 100.0f,0.0f })) { m_pendingOpen.clear(); m_pendingClose = false; ImGui::CloseCurrentPopup(); }
+			ImGui::EndPopup();
+		}
 	}
 
 }
