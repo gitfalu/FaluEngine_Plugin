@@ -10,6 +10,7 @@ add_library(FaluEditorModule SHARED
     panels/LLMDebugPanel.cpp
     panels/AnimationEventPanel.cpp
     panels/FocusAnalysisPanel.cpp
+    panels/SpriteEditorPanel.cpp
     EditorSettings.cpp
     EditorLocalization.cpp
 )

@@ -116,6 +116,7 @@ falu_add_engine_module(FaluGraphics
         asset/loaders/MeshLoader.cpp
         asset/loaders/ShaderLoader.cpp
         asset/loaders/SpriteAsset.cpp
+        asset/loaders/SpriteSlicer.cpp
         asset/loaders/TextureLoader.cpp
 
         platform/Window.cpp
