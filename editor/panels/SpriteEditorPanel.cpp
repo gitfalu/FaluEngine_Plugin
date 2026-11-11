@@ -39,24 +39,75 @@ namespace Editor
 	//======= 読み書き =============
 	void SpriteEditorPanel::open(const std::string& assetPath)
 	{
+		if (m_visible && m_dirty && assetPath != m_path)
+		{
+			m_pendingOpen = assetPath; // 未保存の変更があるので確認してから開く
+			m_askUnsaved = true;
+			return;
+		}
+		if (load(assetPath)) m_visible = true;
 	}
 
 	bool SpriteEditorPanel::load(const std::string& assetPath)
 	{
-		return false;
+		auto sheet = loadSpriteSheet(assetPath);
+		if (!sheet)
+		{
+			m_status = "Failed to load: " + assetPath;
+			LOG_ERROR("SpriteEditor: failed to load '{}'", assetPath);
+			return false;
+		}
+		m_path = assetPath;
+		m_sheet = *sheet;
+		m_selected.clear();
+		m_primary = -1;
+		m_undoStack.clear();
+		m_redoStack.clear();
+		m_dirty = false;
+		m_dragging = m_creating = false;
+		m_needFit = true;
+		m_loadedTexturePath.clear();
+		m_texture.reset();
+		m_status.clear();
+		refreshTexture();
+
+		return true;
 	}
 
 	bool SpriteEditorPanel::save()
 	{
-		return false;
+		if (m_path.empty()) return false;
+		if (m_texture && m_texture->width > 0)
+			m_sheet.textureSize = { static_cast<int>(m_texture->width),static_cast<int>(m_texture->height) };
+
+		if (!saveSpriteSheet(m_sheet, m_path))
+		{
+			m_status = "Save failed: " + m_path;
+			return false;
+		}
+		m_dirty = false;
+		m_status = "Saved: " + m_path;
+		return true;
 	}
 
 	void SpriteEditorPanel::revert()
 	{
+		if (!m_path.empty()) load(m_path);
 	}
 
 	void SpriteEditorPanel::refreshTexture()
 	{
+		if (m_sheet.texturePath == m_loadedTexturePath) return;
+		m_loadedTexturePath = m_sheet.texturePath;
+		m_texture.reset();
+		if (m_sheet.texturePath.empty()) return;
+
+		m_texture = AssetManager::get().load<TextureAsset>(m_sheet.texturePath);
+		if (m_texture && m_texture->width > 0)
+		{
+			m_sheet.textureSize = { static_cast<int>(m_texture->width),static_cast<int>(m_texture->height) };
+			m_needFit = true;
+		}
 	}
 
 	/*
@@ -66,14 +117,29 @@ namespace Editor
 	*/
 	void SpriteEditorPanel::pushUndo()
 	{
+		m_undoStack.push_back(m_sheet.slices);
+		if (m_undoStack.size() > kMaxUndo) m_undoStack.erase(m_undoStack.begin());
+		m_redoStack.clear();
 	}
 
 	void SpriteEditorPanel::undo()
 	{
+		if (m_undoStack.empty()) return;
+		m_redoStack.push_back(m_sheet.slices);
+		m_sheet.slices = std::move(m_undoStack.back());
+		m_undoStack.pop_back();
+		m_selected.clear(); m_primary = -1;
+		markDirty();
 	}
 
 	void SpriteEditorPanel::redo()
 	{
+		if (m_redoStack.empty()) return;
+		m_undoStack.push_back(m_sheet.slices);
+		m_sheet.slices = std::move(m_redoStack.back());
+		m_redoStack.pop_back();
+		m_selected.clear(); m_primary = -1;
+		markDirty();
 	}
 
 	/*
@@ -83,10 +149,46 @@ namespace Editor
 	*/
 	void SpriteEditorPanel::applyAutoSlice()
 	{
+		if (m_sheet.textureSize.x <= 0 || m_sheet.textureSize.y <= 0) { m_status = "Assign a texture first."; return; }
+
+		std::vector<SpriteSlice> made;
+		if (m_sliceMode == SliceMode::CellSize)
+		{
+			SS::CellGrid g;
+			g.cell = { m_cellSize[0],m_cellSize[1] };
+			g.offset = { m_offset[0],m_offset[1] };
+			g.padding = { m_padding[0],m_padding[1] };
+			made = SS::sliceByCellSize(m_sheet.textureSize, g, m_prefix);
+		}
+		else
+		{
+			made = SS::sliceByCount(m_sheet.textureSize, { m_count[0],m_count[1] }, { m_padding[0],m_padding[1] }, m_prefix);
+		}
+		if (made.empty()) { m_status = "No slices produced. Check the parameters."; return; }
+
+		pushUndo();
+		if (m_replaceOnSlice) m_sheet.slices.clear();
+		for (auto& s : made)
+		{
+			s.name = SS::makeUniqueName(m_sheet.slices, s.name);
+			m_sheet.slices.push_back(std::move(s));
+		}
+
+		m_selected.clear(); m_primary = -1;
+		markDirty();
+		m_status = std::to_string(made.size()) + " slices created.";
 	}
 
 	void SpriteEditorPanel::deleteSelected()
 	{
+		if (m_selected.empty()) return;
+		pushUndo();
+		// 後ろから消してインデックスのずれを避ける
+		for (auto it = m_selected.rbegin(); it != m_selected.rend(); ++it)
+			m_sheet.slices.erase(m_sheet.slices.begin() + *it);
+		m_selected.clear(); m_primary = -1;
+		markDirty();
+		m_status = "Deleted. Clips reference slices by index: re-check clips that used this sheet.";
 	}
 
 
@@ -97,12 +199,12 @@ namespace Editor
 	*/
 	ImVec2 SpriteEditorPanel::texToScreen(const ImVec2& origin, const glm::vec2& t) const
 	{
-		return ImVec2();
+		return { origin.x + m_pan.x + t.x * m_zoom,origin.y + m_pan.y + t.y * m_zoom };
 	}
 
 	glm::vec2 SpriteEditorPanel::screenToTex(const ImVec2& origin, const ImVec2& s) const
 	{
-		return glm::vec2();
+		return { (s.x - origin.x - m_pan.x) / m_zoom, (s.y - origin.y - m_pan.y) / m_zoom };
 	}
 
 	void SpriteEditorPanel::fitToView(const ImVec2& viewSize)
