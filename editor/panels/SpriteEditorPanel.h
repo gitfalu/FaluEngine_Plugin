@@ -99,6 +99,10 @@ namespace Editor
 		bool m_replaceOnSlice = true;
 
 		// クリップ作成
+		float m_clipFps = 12.0f;
+		bool m_clipLoop = true;
+
+		// 未保存確認
 		float m_askUnsaved = false;
 		std::string m_pendingOpen;
 		bool m_pendingClose = false;
