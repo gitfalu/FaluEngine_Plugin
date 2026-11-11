@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 #include <entt/entt.hpp>
 
@@ -23,6 +24,8 @@ namespace Editor {
 		Folder, 
 		Material,// .mat
 		NativeScript, // .h/.hpp/.cpp
+		SpriteSheet, // .fsprite
+		SpriteClip, // .fanim2d
 	};
 
 	struct ContentEntry {
@@ -40,6 +43,10 @@ namespace Editor {
 		[[nodiscard]] const std::string& getDraggedPath() const noexcept { return m_draggedPath; }
 		[[nodiscard]] AssetType getDraggedAssetType() const noexcept { return m_draggedType; }
 		void clearDragged() { m_draggedPath.clear(); }
+
+		/// @brief ダブルクリックされた.fspriteのアセットパスを取り出す(無ければ空)。取り出すと消える
+		/// @return 
+		[[nodiscard]] std::string takeSpriteEditorRequest() { return std::move(std::exchange(m_openSpriteRequest, {})); }
 
 	private:
 		//= 左ペイン：フォルダツリー
@@ -87,5 +94,12 @@ namespace Editor {
 		bool m_openScriptPopup = false;
 		char m_newScriptName[128] = {};
 		std::string m_scriptError;
+
+		// アセット作成(.fsprite/.fanim2d)
+		int m_createAssetKind = 0;
+		bool m_openAssetPopup = false;
+		char m_newAssetName[128] = {};
+		std::string m_assetError;
+		std::string m_openSpriteRequest;
 	};
 }

@@ -1,4 +1,5 @@
 ﻿#include "ContentBrowserPanel.h"
+#include "asset/loaders/SpriteAsset.h"
 #include <FaluEngine/Localization.h>
 #include "asset/loaders/AnimationCache.h"
 #include "FaluEngine/Scene.h"
@@ -326,6 +327,8 @@ namespace Editor{
 					FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 					sceneChanged = true;
 				}
+				else if (entry.type == AssetType::SpriteSheet)
+					m_openSpriteRequest = FaluEngine::PathResolver::toAssetPath(entry.path);
 				else
 					applyToEntity(entry, scene, selected);
 			}
@@ -369,6 +372,10 @@ namespace Editor{
 						const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 						FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 						sceneChanged = true;
+					}
+					else if (entry.type == AssetType::SpriteSheet)
+					{
+						m_openSpriteRequest = FaluEngine::PathResolver::toAssetPath(entry.path);
 					}
 					else
 					{
@@ -435,7 +442,8 @@ namespace Editor{
 		if (ext == ".h" || ext == ".hpp" || ext == ".cpp" || ext == ".hxx" || ext == ".inl" ||
 			ext == ".cpp" || ext == ".cc" || ext == ".cxx")
 			return AssetType::NativeScript;
-
+		if (ext == ".fsprite") return AssetType::SpriteSheet;
+		if (ext == ".fanim2d") return AssetType::SpriteClip;
 		return AssetType::Unknown;
 	}
 
@@ -451,6 +459,8 @@ namespace Editor{
 		case Editor::AssetType::Scene:		return "[SCN]";
 		case Editor::AssetType::Script:		return "[LUA]";
 		case Editor::AssetType::NativeScript: return "[C++]";
+		case Editor::AssetType::SpriteSheet: return "[SPR]";
+		case Editor::AssetType::SpriteClip: return "[ANM]";
 		default: return "[   ]";
 		}
 	}
@@ -467,6 +477,8 @@ namespace Editor{
 		case Editor::AssetType::Scene: return { 1.0f,1.0f,0.4f,1.0f };
 		case Editor::AssetType::Script: return { 0.4f,1.0f,0.8f,1.0f };
 		case Editor::AssetType::NativeScript: return { 0.5f,0.7f,1.0f,1.0f };
+		case Editor::AssetType::SpriteSheet: return { 1.0f,0.6f,0.8f,1.0f };
+		case Editor::AssetType::SpriteClip: return { 1.0f,0.8f,0.5f,1.0f };
 		default: return { 0.7f,0.7f,0.7f,1.0f };
 		}
 
@@ -523,28 +535,42 @@ namespace Editor{
 	void ContentBrowserPanel::drawContextMenu()
 	{
 		auto& gen = FaluEngine::ScriptProjectGenerator::get();
-		if (!gen.isInitialized()) return;
+		const bool hasGen = gen.isInitialized(); // C++ プロジェクト未初期化でも、アセット作成メニューは使えるように
 
 		if (ImGui::BeginPopupContextWindow("##ContentContext", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::BeginMenu("Create"))
 			{
-				if (ImGui::MenuItem("C++ Script"))
+				if (hasGen && ImGui::MenuItem("C++ Script"))
 				{
 					m_openScriptPopup = true;
 					m_newScriptName[0] = '\0';
 					m_scriptError.clear();
 				}
+				if (ImGui::MenuItem("Sprite Sheet (.fsprite)"))
+				{
+					m_createAssetKind = 1;
+					m_openAssetPopup = true;
+					m_newAssetName[0] = '\0';
+					m_assetError.clear();
+				}
+				if (ImGui::MenuItem("Sprite Clip (.fanim2d)"))
+				{
+					m_createAssetKind = 2;
+					m_openAssetPopup = true;
+					m_newAssetName[0] = '\0';
+					m_assetError.clear();
+				}
 				ImGui::EndMenu();
 			}
-			ImGui::Separator();
-			if (ImGui::MenuItem("Open C++ Project"))
+			if (hasGen) ImGui::Separator();
+			if (hasGen && ImGui::MenuItem("Open C++ Project"))
 			{
 				gen.regenerate();
 				if (!gen.openSolution())
 					LOG_ERROR("ContentBrowser: failed to open C++ project");
 			}
-			if (ImGui::MenuItem("Regenerate C++ Project"))
+			if (hasGen && ImGui::MenuItem("Regenerate C++ Project"))
 			{
 				const auto r = gen.regenerate();
 				if (r.changed) FaluEngine::HotReloadManager::get().requestRebuild();
@@ -586,6 +612,65 @@ namespace Editor{
 				else
 				{
 					m_scriptError = err;
+				}
+			}
+			ImGui::EndPopup();
+		}
+
+		//=== アセット作成 =====
+		if (m_openAssetPopup)
+		{
+			ImGui::OpenPopup("Create Asset");
+			m_openAssetPopup = false;
+		}
+
+		if (ImGui::BeginPopupModal("Create Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			const char* ext = (m_createAssetKind == 1) ? ".fsprite" : ".faim2d";
+			ImGui::TextDisabled("%s", FaluEngine::PathResolver::toUtf8(m_currentPath).c_str());
+			ImGui::SetNextItemWidth(260.0f);
+			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+			const bool enter = ImGui::InputText("##AssetName", m_newAssetName, sizeof(m_newAssetName),
+				ImGuiInputTextFlags_EnterReturnsTrue);
+			ImGui::SameLine();
+			ImGui::TextDisabled("%s", ext);
+
+			if (!m_assetError.empty())
+				ImGui::TextColored({ 1.0f,0.4f,0.4f,1.0f }, "%s", m_assetError.c_str());
+
+			const bool create = ImGui::Button("Create", { 100.0f,0.0f }) || enter;
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", { 100.0f,0.0f })) ImGui::CloseCurrentPopup();
+
+			if (create)
+			{
+				const std::string name = m_newAssetName;
+				if (name.empty() || name.find_first_of("\\/:*?\"<>|") != std::string::npos)
+				{
+					m_assetError = "Invalid file name.";
+				}
+				else
+				{
+					const auto path = m_currentPath / (name + ext);
+					if (std::filesystem::exists(path))
+					{
+						m_assetError = "File already exists.";
+					}
+					else
+					{
+						const std::string assetPath = FaluEngine::PathResolver::toAssetPath(path);
+						bool ok = false;
+						if (m_createAssetKind == 1) { FaluEngine::SpriteSheetAsset s; ok = FaluEngine::saveSpriteSheet(s, assetPath); }
+						else { FaluEngine::SpriteClipAsset c; ok = FaluEngine::saveSpriteClip(c, assetPath); }
+
+						if (ok)
+						{
+							refresh();
+							if (m_createAssetKind == 1) m_openSpriteRequest = assetPath; // 作成後そのままエディタで開く
+							ImGui::CloseCurrentPopup();
+						}
+						else m_assetError = "Failed to create file.";
+					}
 				}
 			}
 			ImGui::EndPopup();

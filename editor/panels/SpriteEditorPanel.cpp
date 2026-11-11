@@ -22,7 +22,7 @@ namespace Editor
 		constexpr float kHandleScreenPx = 6.0f; // ハンドル当たり幅(画面px)
 		constexpr float kMinZoom = 0.05f;
 		constexpr float kMaxZoom = 64.0f;
-		consteval float kSidePanelWidth = 320.0f;
+		constexpr float kSidePanelWidth = 320.0f;
 
 		const ImU32 kColSlice = IM_COL32(80, 200, 255, 255);
 		const ImU32 kColSelected = IM_COL32(255, 210, 60, 255);

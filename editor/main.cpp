@@ -29,6 +29,7 @@
 #include "panels/GameViewPanel.h"
 #include "panels/LLMDebugPanel.h"
 #include "panels/AnimationEventPanel.h"
+#include "panels/SpriteEditorPanel.h"
 #include "panels/FocusAnalysisPanel.h"
 #include "EditorSettings.h"
 #include "EditorLocalization.h"
@@ -726,6 +727,11 @@ public:
 
         m_animEventPanel.draw(scene, m_hierarchy.getSelected());
 
+        //==== SpriteEditor ====
+        if (auto req = m_contentBrowser.takeSpriteEditorRequest(); !req.empty())
+            m_spriteEditorPanel.open(req);
+        m_spriteEditorPanel.draw();
+
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
         if (scene)
@@ -783,6 +789,7 @@ private:
     Editor::GameViewPanel m_gameView;
     Editor::LLMDebugPanel m_llmDebugPanel;
     Editor::AnimationEventPanel m_animEventPanel;
+    Editor::SpriteEditorPanel m_spriteEditorPanel;
     Editor::FocusAnalysisPanel m_focusPanel;
     FaluEngine::Camera m_editorCamera;
 
