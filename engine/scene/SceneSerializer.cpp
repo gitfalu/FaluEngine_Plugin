@@ -495,8 +495,8 @@ namespace FaluEngine
 				auto& ij = entityJson["image"];
 				auto& img = entity.addComponent<ImageComponent>();
 				img.texturePath = ij.value("texturePath", "");
-				img.color = vec4FromJson(ij["color"]);
-				img.uvRect = vec4FromJson(ij["uvRect"]);
+				img.color = vec4FromJson(ij["color"],{1.0f,1.0f,1.0f,1.0f});
+				img.uvRect = vec4FromJson(ij["uvRect"],{0.0f,0.0f,1.0f,1.0f});
 				img.pointFilter = ij.value("pointFilter", false);
 				img.visible = ij.value("visible", true);
 			}
