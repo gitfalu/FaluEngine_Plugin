@@ -6,7 +6,7 @@
 namespace FaluEngine
 {
 	AudioEngine& AudioEngine::get()
-	{
+	{// シングルトンインスタンスを生成
 		static AudioEngine instance;
 		return instance;
 	}
@@ -14,21 +14,21 @@ namespace FaluEngine
 	bool AudioEngine::init()
 	{
 		if (m_initialized) return true;
-
+		// このスレッドで使用するCOMライブラリの初期化
 		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 		if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 		{
 			LOG_ERROR("AudioEngine: CoInitializeEx failed (hr={:#x})", static_cast<unsigned>(hr));
 			return false;
 		}
-
+		// XAudio2の参照を作成
 		hr = XAudio2Create(&m_xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
 		if (FAILED(hr))
 		{
 			LOG_ERROR("AudioEngine: XAudio2Create failed (hr={:#x})", static_cast<unsigned>(hr));
 			return false;
 		}
-
+		// マスタリング音声を作成してポインタを受け取る
 		hr = m_xaudio2->CreateMasteringVoice(&m_masteringVoice);
 		if (FAILED(hr))
 		{

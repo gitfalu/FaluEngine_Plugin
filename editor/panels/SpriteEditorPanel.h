@@ -103,7 +103,7 @@ namespace Editor
 		bool m_clipLoop = true;
 
 		// 未保存確認
-		float m_askUnsaved = false;
+		bool m_askUnsaved = false;
 		std::string m_pendingOpen;
 		bool m_pendingClose = false;
 	};

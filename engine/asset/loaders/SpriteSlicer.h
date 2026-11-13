@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "SpriteAsset.h"
 #include <glm/glm.hpp>
+#include <cstddef>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <FaluEngine/EngineExport.h>
 
@@ -47,6 +49,23 @@ namespace FaluEngine::SpriteSlicer
 	/// @return 
 	FALU_GRAPHICS_API std::string makeUniqueName(const std::vector<SpriteSlice>& slices,
 		const std::string& base, int ignoreIndex = -1);
+
+	/// @brief 一回の分割・1　シートで扱うスライス数の上限
+	inline constexpr size_t kMaxSlices = 8192;
+
+	/// @brief セルサイズ分割で作られるスライス数
+	/// @param texSize 
+	/// @param grid 
+	/// @return 
+	FALU_GRAPHICS_API size_t countCellGrid(const glm::ivec2& texSize, const CellGrid& grid);
+
+	/// @brief 分割結果をdstの後ろに追加する。名前の重複は集合を使って　O(n)で解消する
+	/// １件ずつmakeUniqueNameを呼ぶと　O(n^2)になり大量分割で固まる
+	/// @param dst 
+	/// @param add 
+	/// @return 
+	FALU_GRAPHICS_API void appendSlicesUnique(std::vector<SpriteSlice>& dst,
+		std::vector<SpriteSlice>&& add);
 
 	enum class Handle
 	{

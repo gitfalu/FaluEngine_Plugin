@@ -20,18 +20,24 @@ namespace Editor
 	namespace
 	{
 		constexpr float kHandleScreenPx = 6.0f; // ハンドル当たり幅(画面px)
-		constexpr float kMinZoom = 0.05f;
-		constexpr float kMaxZoom = 64.0f;
-		constexpr float kSidePanelWidth = 320.0f;
+		constexpr float kMinZoom = 0.05f; // 拡大表示の最低値
+		constexpr float kMaxZoom = 64.0f; // 拡大表示の最大値
+		constexpr float kSidePanelWidth = 320.0f; // 横に表示するパネルの幅
 
-		const ImU32 kColSlice = IM_COL32(80, 200, 255, 255);
-		const ImU32 kColSelected = IM_COL32(255, 210, 60, 255);
-		const ImU32 kColPrimart = IM_COL32(255, 255, 255, 255);
+		const ImU32 kColSlice = IM_COL32(80, 200, 255, 255); // スライス線の色
+		const ImU32 kColSelected = IM_COL32(255, 210, 60, 255); // 選択時の表示色
+		const ImU32 kColPrimary = IM_COL32(255, 255, 255, 255); // 元の色
 
+		/// @brief  テクスチャのファイルが正規か確認する関数
+		/// @param path テクスチャパス
+		/// @return 
 		bool isTextureExt(const std::string& path)
 		{
+			// 確認するファイルの拡張子を抽出
 			std::string ext = std::filesystem::path(path).extension().string();
+			// すべての文字を小文字にする
 			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			// 拡張子を比較し不正ではない/読み込み可能拡張子かを確認
 			return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tga" || ext == ".bmp" || ext == ".dds";
 		}
 	} // Helper
@@ -42,14 +48,16 @@ namespace Editor
 		if (m_visible && m_dirty && assetPath != m_path)
 		{
 			m_pendingOpen = assetPath; // 未保存の変更があるので確認してから開く
-			m_askUnsaved = true;
-			return;
+			m_askUnsaved = true; // 確認画面表示フラグを立てる
+			return; // 確認画面を表示するために一度リターン
 		}
+		// 未保存がない且つアセットを読み込めたら表示
 		if (load(assetPath)) m_visible = true;
 	}
 
 	bool SpriteEditorPanel::load(const std::string& assetPath)
 	{
+		// スプライトシートを読み込み
 		auto sheet = loadSpriteSheet(assetPath);
 		if (!sheet)
 		{
@@ -59,17 +67,19 @@ namespace Editor
 		}
 		m_path = assetPath;
 		m_sheet = *sheet;
-		m_selected.clear();
+		m_selected.clear();// 選択情報を
 		m_primary = -1;
+		// 編集履歴を削除
 		m_undoStack.clear();
 		m_redoStack.clear();
-		m_dirty = false;
-		m_dragging = m_creating = false;
-		m_needFit = true;
-		m_loadedTexturePath.clear();
-		m_texture.reset();
-		m_status.clear();
-		refreshTexture();
+
+		m_dirty = false;// 更新要求
+		m_dragging = m_creating = false; // 編集操作
+		m_needFit = true; // 拡大リセット
+		m_loadedTexturePath.clear(); // 読み込まれたテクスチャ動的配列
+		m_texture.reset(); // テクスチャ情報
+		m_status.clear(); // ステータス情報の初期化
+		refreshTexture();// テクスチャファイルの更新
 
 		return true;
 	}
@@ -79,12 +89,13 @@ namespace Editor
 		if (m_path.empty()) return false;
 		if (m_texture && m_texture->width > 0)
 			m_sheet.textureSize = { static_cast<int>(m_texture->width),static_cast<int>(m_texture->height) };
-
+		// テクスチャの中身情報を入れてから保存
 		if (!saveSpriteSheet(m_sheet, m_path))
 		{
 			m_status = "Save failed: " + m_path;
 			return false;
 		}
+		// 未保存情報をなくす
 		m_dirty = false;
 		m_status = "Saved: " + m_path;
 		return true;
@@ -101,7 +112,7 @@ namespace Editor
 		m_loadedTexturePath = m_sheet.texturePath;
 		m_texture.reset();
 		if (m_sheet.texturePath.empty()) return;
-
+		// ファイルを読込
 		m_texture = AssetManager::get().load<TextureAsset>(m_sheet.texturePath);
 		if (m_texture && m_texture->width > 0)
 		{
@@ -125,11 +136,13 @@ namespace Editor
 	void SpriteEditorPanel::undo()
 	{
 		if (m_undoStack.empty()) return;
+
 		m_redoStack.push_back(m_sheet.slices);
 		m_sheet.slices = std::move(m_undoStack.back());
 		m_undoStack.pop_back();
+		// 選択解除
 		m_selected.clear(); m_primary = -1;
-		markDirty();
+		markDirty();// 未保存状態に変更
 	}
 
 	void SpriteEditorPanel::redo()
@@ -139,7 +152,7 @@ namespace Editor
 		m_sheet.slices = std::move(m_redoStack.back());
 		m_redoStack.pop_back();
 		m_selected.clear(); m_primary = -1;
-		markDirty();
+		markDirty();// 未保存状態に変更
 	}
 
 	/*
@@ -150,6 +163,30 @@ namespace Editor
 	void SpriteEditorPanel::applyAutoSlice()
 	{
 		if (m_sheet.textureSize.x <= 0 || m_sheet.textureSize.y <= 0) { m_status = "Assign a texture first."; return; }
+
+		// 生成する前に件数を見積もり、上限を超える指定は実行しない(かたまり防止)
+		{
+			size_t predicted = 0;
+			if (m_sliceMode == SliceMode::CellSize)
+			{
+				SS::CellGrid pg;
+				pg.cell = { m_cellSize[0],m_cellSize[1] };
+				pg.offset = { m_offset[0],m_offset[1] };
+				pg.padding = { m_padding[0],m_padding[1] };
+				predicted = SS::countCellGrid(m_sheet.textureSize, pg);
+			}
+			else
+			{
+				predicted = static_cast<size_t>((std::max)(m_count[0], 0)) * static_cast<size_t>((std::max)(m_count[1], 0));
+			}
+			const size_t total = predicted + (m_replaceOnSlice ? 0 : m_sheet.slices.size());
+			if (total > SS::kMaxSlices)
+			{
+				m_status = "Too many slices (" + std::to_string(total) + "). Max is " +
+					std::to_string(SS::kMaxSlices) + ". Increase the cell size.";
+				return;
+			}
+		}
 
 		std::vector<SpriteSlice> made;
 		if (m_sliceMode == SliceMode::CellSize)
@@ -168,15 +205,12 @@ namespace Editor
 
 		pushUndo();
 		if (m_replaceOnSlice) m_sheet.slices.clear();
-		for (auto& s : made)
-		{
-			s.name = SS::makeUniqueName(m_sheet.slices, s.name);
-			m_sheet.slices.push_back(std::move(s));
-		}
+		const size_t madeCount = made.size();
+		SS::appendSlicesUnique(m_sheet.slices, std::move(made));
 
 		m_selected.clear(); m_primary = -1;
 		markDirty();
-		m_status = std::to_string(made.size()) + " slices created.";
+		m_status = std::to_string(madeCount) + " slices created.";
 	}
 
 	void SpriteEditorPanel::deleteSelected()
@@ -190,7 +224,6 @@ namespace Editor
 		markDirty();
 		m_status = "Deleted. Clips reference slices by index: re-check clips that used this sheet.";
 	}
-
 
 	/*
 	
@@ -329,7 +362,7 @@ namespace Editor
 			{
 				const std::string p = PathResolver::normalizeAssetPath(static_cast<const char*>(payload->Data));
 				if (isTextureExt(p))
-				{
+				{// ファイルの存在確認を行った後に更新
 					m_sheet.texturePath = p;
 					markDirty();
 					refreshTexture();
@@ -354,8 +387,8 @@ namespace Editor
 		{
 			const glm::vec2 before = screenToTex(origin, io.MousePos);
 			m_zoom = std::clamp(m_zoom * (io.MouseWheel > 0.0f ? 1.15f : 1.0f / 1.15f), kMinZoom, kMaxZoom);
-			m_pan.x = io.MousePos.x - origin.x - origin.x - before.x * m_zoom;
-			m_pan.y = io.MousePos.y - origin.y - origin.y - before.x * m_zoom;
+			m_pan.x = io.MousePos.x - origin.x - origin.x * m_zoom;
+			m_pan.y = io.MousePos.y - origin.y - origin.y * m_zoom;
 		}
 		// パン(中ボタン/右ボタン)
 		if (active && (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||
@@ -477,7 +510,7 @@ namespace Editor
 		if (m_creating)
 		{
 			const glm::vec2 a = (glm::min)(m_dragStartTex, mouseTex);
-			const glm::vec2 b = (glm::min)(m_dragStartTex, mouseTex);
+			const glm::vec2 b = (glm::max)(m_dragStartTex, mouseTex);
 			const glm::vec4 rect = SS::clampRect({ a.x,a.y,b.x - a.x,b.y - a.y },
 				m_sheet.textureSize);
 			dl->AddRect(texToScreen(origin, { rect.x,rect.y }),
@@ -509,7 +542,8 @@ namespace Editor
 			const bool sel = m_selected.count(i) > 0;
 			const ImVec2 a = texToScreen(origin, { s.rect.x,s.rect.y });
 			const ImVec2 b = texToScreen(origin, { s.rect.x + s.rect.z,s.rect.y + s.rect.w });
-			const ImU32 col = (i == m_primary) ? kColPrimart : sel ? kColSelected : kColSlice;
+			if (b.x < origin.x || a.x > canvasEnd.x || b.y < origin.y || a.y > canvasEnd.y) continue; // 場面外は描画しない
+			const ImU32 col = (i == m_primary) ? kColPrimary : sel ? kColSelected : kColSlice;
 			dl->AddRect(a, b, col, 0.0f, 0, sel ? 2.0f : 1.0f);
 			if (sel) dl->AddRectFilled(a, b, IM_COL32(255, 210, 60, 28));
 			if (m_zoom >= 2.0f && (b.x - a.x) > 30.0f)
@@ -526,7 +560,7 @@ namespace Editor
 			{
 				const float hs = 3.5f;
 				const ImVec2 pts[8] = { a, { (a.x + b.x) * 0.5f,a.y},{b.x,a.y},{a.x,(a.y + b.y) * 0.5f},
-					{b.x,(a.y + b.y) * 0.5f},{a.x,b.y},{(a.x,b.x) * 0.5f,b.y},b };
+					{b.x,(a.y + b.y) * 0.5f},{a.x,b.y},{(a.x + b.x) * 0.5f,b.y},b };
 				for (const auto& p : pts) dl->AddRectFilled({ p.x - hs,p.y - hs }, { p.x + hs,p.y + hs }, IM_COL32(255, 255, 255, 255));
 			}
 		}
@@ -693,14 +727,15 @@ namespace Editor
 	{
 		if (ImGui::GetIO().WantTextInput) return;
 		const ImGuiIO& io = ImGui::GetIO();
-		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) save();
-		if (io.KeyCtrl && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)) undo();
-		if (io.KeyCtrl && (ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) redo();
-		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A))
+		// Ctrlキーコマンド
+		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) save(); // 保存
+		if (io.KeyCtrl && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)) undo(); // 一つもとに戻る
+		if (io.KeyCtrl && (ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) redo(); // 一つやり直す
+		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A)) // 全選択
 		{
-			m_selected.clear();
-			for (int i = 0; i < static_cast<int>(m_sheet.slices.size()); ++i) m_selected.insert(i);
-			m_primary = m_sheet.slices.empty() ? -1 : 0;
+			m_selected.clear();// 一度すべての選択をなくす
+			for (int i = 0; i < static_cast<int>(m_sheet.slices.size()); ++i) m_selected.insert(i); // 一つずつ選択リストに登録
+			m_primary = m_sheet.slices.empty() ? -1 : 0; // 
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_Delete)) deleteSelected();
 		if (ImGui::IsKeyPressed(ImGuiKey_F)) m_needFit = true;
@@ -713,15 +748,16 @@ namespace Editor
 			ImGui::OpenPopup("Unsaved Changes##Sprite");
 			m_askUnsaved = false;
 		}
-
+		// 未保存項目があることを知らせるポップアップ
 		if (ImGui::BeginPopupModal("Unsaved Changes##Sprite", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			ImGui::Text("'%s' has unsaved changes.", m_path.c_str());
-			auto proceed = [&]() {
+			auto proceed = [&]() { // 
 				if (!m_pendingOpen.empty()) { const auto p = m_pendingOpen; m_pendingOpen.clear(); m_dirty = false; load(p); }
 				if (m_pendingClose) { m_pendingClose = false; m_visible = false; }
 				ImGui::CloseCurrentPopup();
 				};
+			// ポップアップの選択項目
 			if (ImGui::Button("Save", { 100.0f,0.0f })) { if (save()) proceed(); else ImGui::CloseCurrentPopup(); }
 			ImGui::SameLine();
 			if (ImGui::Button("Discard", { 100.0f,0.0f })) { m_dirty = false; proceed(); }

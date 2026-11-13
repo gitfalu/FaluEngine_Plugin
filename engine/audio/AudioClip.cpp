@@ -7,15 +7,21 @@
 namespace FaluEngine
 {
 	namespace {
+		/// @brief タグの一致確認
+		/// @param a 
+		/// @param b 
+		/// @return 
 		bool matchTag(const char* a, const char* b) {
+			// 文字一致確認
 			return std::memcmp(a, b, 4) == 0;
 		}
-	}
+	} // Helper
 
 	std::shared_ptr<AudioClip> AudioClip::load(const std::string& path)
 	{
 
 		const auto fullPath = PathResolver::resolve(path);
+		// 音声ファイルをバイナリで開く
 		std::ifstream file(fullPath, std::ios::binary);
 		if (!file)
 		{
@@ -23,6 +29,7 @@ namespace FaluEngine
 			return nullptr;
 		}
 
+		// タグを抽出して比較
 		char riffTag[4];
 		file.read(riffTag, 4);
 		if (!matchTag(riffTag, "RIFF"))
@@ -34,6 +41,7 @@ namespace FaluEngine
 		uint32_t riffSize = 0;
 		file.read(reinterpret_cast<char*>(&riffSize), 4);
 
+		// タグを抽出して比較
 		char waveTag[4];
 		file.read(waveTag, 4);
 		if (!matchTag(waveTag, "WAVE"))
@@ -45,7 +53,7 @@ namespace FaluEngine
 		auto clip = std::make_shared<AudioClip>();
 		bool hasFmt = false;
 		bool hasData = false;
-
+		// 
 		while (file && !(hasFmt && hasData))
 		{
 			char chunkId[4];
@@ -53,7 +61,7 @@ namespace FaluEngine
 			file.read(chunkId, 4);
 			file.read(reinterpret_cast<char*>(&chunkSize), 4);
 			if (!file) break;
-
+			// タグ比較
 			if (matchTag(chunkId, "fmt "))
 			{
 				std::vector<uint32_t> fmtBuf(chunkSize);
@@ -64,6 +72,7 @@ namespace FaluEngine
 					std::min<size_t>(sizeof(WAVEFORMATEX), fmtBuf.size()));
 				hasFmt = true;
 			}
+			// タグ比較
 			else if (matchTag(chunkId,"data"))
 			{
 				clip->pcmData.resize(chunkSize);
