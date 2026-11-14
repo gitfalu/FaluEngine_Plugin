@@ -23,7 +23,7 @@ PSInput VS(VSInput vin)
 {
     PSInput vout;
     
-    // 先にサイズをかけてから回転を行う
+    // 蜈医↓繧ｵ繧､繧ｺ繧偵°縺代※縺九ｉ蝗櫁ｻ｢繧定｡後≧
     float2 scalePos = vin.localPos * size;
     
     float cosR = cos(rotation);

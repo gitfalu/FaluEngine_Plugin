@@ -154,4 +154,173 @@ namespace FaluEngine::UILayout
 		return std::fabs(lx) <= half.x && std::fabs(ly) <= half.y;
 	}
 
+	/*
+	* 
+	* エディタ編集
+	* 
+	*/
+	
+	ParentFrame parentFrameOf(entt::registry& registry, entt::entity entity)
+	{
+		ParentFrame pf;
+		auto* rel = registry.try_get<RelationshipComponent>(entity);
+		if (!rel || rel->parent == entt::null || !registry.valid(rel->parent)) return pf;
+
+		if (auto* prt = registry.try_get<RectTransformComponent>(rel->parent))
+		{// 親の情報を取得して適用する
+			pf.pos = prt->computedPosition;
+			pf.size = prt->computedSize;
+			pf.rotation = prt->computedRotation;
+		}
+		else if (auto* canvas = registry.try_get<CanvasComponent>(rel->parent))
+		{
+			pf.size = canvas->computedSize;
+		}
+
+		return pf;
+	}
+
+	void relayout(entt::registry& registry, entt::entity entity)
+	{
+		const ParentFrame pf = parentFrameOf(registry, entity);
+		computeRect(registry, entity, pf.pos, pf.size, pf.rotation);
+		
+	}
+
+	void setWorldRect(entt::registry& registry, entt::entity entity, 
+		const glm::vec2& center, const glm::vec2& scaledSize, 
+		float totalRotationDeg)
+	{
+		auto* rtp = registry.try_get<RectTransformComponent>(entity);
+		if (!rtp) return;
+		auto& rt = *rtp;
+		const ParentFrame pf = parentFrameOf(registry, entity);
+
+		rt.rotation = totalRotationDeg - pf.rotation;
+
+		const glm::vec2 sc = {
+			std::fabs(rt.scale.x) < 1e-4f ? 1e-4f : rt.scale.x,
+			std::fabs(rt.scale.y) < 1e-4f ? 1e-4f : rt.scale.y
+		};
+		const glm::vec2 size = scaledSize / sc;
+
+		const glm::vec2 parentMin = pf.pos - pf.size * 0.5f;
+		const glm::vec2 aMin = parentMin + pf.size * rt.anchorMin;
+		const glm::vec2 aMax = parentMin + pf.size * rt.anchorMax;
+
+		glm::vec2 base;
+		if (rt.anchorMin == rt.anchorMax)
+		{
+			rt.sizeDelta = size;
+			base = aMin;
+		}
+		else
+		{
+			rt.sizeDelta = size - (aMax - aMin);
+			base = (aMin + aMax) * 0.5f;
+		}
+
+		// 中心 = pivot + R(total) * scaleSize*(0.5f - pivot) を逆に解く
+		const glm::vec2 pivotWorld = center - rotate(scaledSize * (glm::vec2(0.5f, 0.5f) - rt.pivot), totalRotationDeg);
+		const glm::vec2 pivotPoint = pf.pos + rotate(pivotWorld - pf.pos, -pf.rotation);
+		rt.anchoredPos = pivotPoint - base;
+
+		relayout(registry, entity);
+	}
+
+	void applyAnchorPress(entt::registry& registry, entt::entity entity, HAlign h, VAlign v)
+	{
+		auto* rtp = registry.try_get<RectTransformComponent>(entity);
+		if (!rtp) return;
+		auto& rt = *rtp;
+
+		relayout(registry, entity); // 現在の見た目を確定させてから変更を行う
+		const glm::vec2 center = rt.computedPosition;
+		const glm::vec2 size = rt.computedSize;
+		const float rot = rt.computedRotation;
+
+		switch (h)
+		{
+		case HAlign::Left: 
+			rt.anchorMin.x = rt.anchorMax.x = 0.0f; rt.pivot.x = 0.0f;
+			break;
+		case HAlign::Center: 
+			rt.anchorMin.x = rt.anchorMax.x = 0.5f; rt.pivot.x = 0.5f;
+			break;
+		case HAlign::Right: 
+			rt.anchorMin.x = rt.anchorMax.x = 1.0f; rt.pivot.x = 1.0f;
+			break;
+		case HAlign::Stretch:
+			rt.anchorMin.x = 0.0f; rt.anchorMax.x = 1.0f; rt.pivot.x = 0.5f;
+			break;
+		}
+		switch (v)
+		{
+		case VAlign::Top:
+			rt.anchorMin.y = rt.anchorMax.y = 1.0f; rt.pivot.y = 1.0f;
+			break;
+		case VAlign::Middle:
+			rt.anchorMin.y = rt.anchorMax.y = 0.5f; rt.pivot.y = 0.5f;
+			break;
+		case VAlign::Bottom:
+			rt.anchorMin.y = rt.anchorMax.y = 0.0f; rt.pivot.y = 0.0f;
+			break;
+		case VAlign::Stretch:
+			rt.anchorMin.y = 0.0f; rt.anchorMax.y = 1.0f; rt.pivot.y = 0.5f;
+			break;
+		}
+
+		setWorldRect(registry, entity, center, size, rot);
+	}
+
+	RectGeom resizeRect(const RectGeom& orig, HandleDir h, const glm::vec2& deltaWorld, bool symmetric, bool keepAspect, float minSize)
+	{
+		const glm::vec2 d = rotate(deltaWorld, -orig.rotation); // 矩形のローカル軸へ
+		const glm::vec2 half = orig.size * 0.5f;
+		glm::vec2 lo = -half, hi = half;
+
+		if (h.sx > 0) { hi.x += d.x; if (symmetric) lo.x -= d.x; }
+		if (h.sx < 0) { lo.x += d.x; if (symmetric) hi.x -= d.x; }
+		if (h.sy > 0) { hi.y += d.y; if (symmetric) lo.y -= d.y; }
+		if (h.sy < 0) { lo.y += d.y; if (symmetric) hi.y -= d.y; }
+
+		if (keepAspect && h.sx != 0 && h.sy != 0 && orig.size.x > 0.0f && orig.size.y > 0.0f)
+		{
+			const float sx = (hi.x - lo.x) / orig.size.x;
+			const float sy = (hi.y - lo.y) / orig.size.y;
+			const float s = (std::max)(sx, sy);
+			const glm::vec2 ns = orig.size * s;
+			if (symmetric)
+			{
+				lo = -ns * 0.5f; hi = ns * 0.5f;
+			}
+			else
+			{
+				const glm::vec2 fixedCorner = { -static_cast<float>(h.sx) * half.x,-static_cast<float>(h.sy) * half.y };
+				if (h.sx > 0)	{ lo.x = fixedCorner.x; hi.x = fixedCorner.x + ns.x; }
+				else			{ hi.x = fixedCorner.x; lo.x = fixedCorner.x - ns.x; }
+				if (h.sy > 0)	{ lo.y = fixedCorner.y; hi.y = fixedCorner.y + ns.y; }
+				else			{ hi.y = fixedCorner.y; lo.y = fixedCorner.y - ns.y; }
+			}
+		}
+
+		if (hi.x - lo.x < minSize)
+		{
+			if (symmetric) { lo.x = -minSize * 0.5f; hi.x = minSize * 0.5f; }
+			else if (h.sx > 0) hi.x = lo.x + minSize; else lo.x = hi.x - minSize;
+		}
+		if (hi.y - lo.y < minSize)
+		{
+			if (symmetric) { lo.y = -minSize * 0.5f; hi.y = minSize * 0.5f; }
+			else if (h.sy > 0) hi.y = lo.y + minSize; else lo.y = hi.y - minSize;
+		}
+
+		return RectGeom();
+	}
+
+	SnapResult computeSnapOffset(const glm::vec2& rectMin, const glm::vec2& size, const glm::vec2& parentMin, const glm::vec2& parentSize, float gridSize, float threshold)
+	{
+		return SnapResult();
+	}
+
 }

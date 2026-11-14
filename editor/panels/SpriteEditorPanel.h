@@ -30,29 +30,59 @@ namespace Editor
 		enum class SliceMode { CellSize, Count };
 
 		//===== 読み書き ======
+		/// @brief 
+		/// @param assetPath 
+		/// @return 
 		bool load(const std::string& assetPath);
+		/// @brief 
+		/// @return 
 		bool save();
+		/// @brief 
 		void revert();
+		/// @brief 
 		void refreshTexture();
 
 		//==== 編集操作(すべてpushUndoを経由する) ====
+		/// @brief 
 		void pushUndo();
+		/// @brief 
 		void undo();
+		/// @brief 
 		void redo();
+		/// @brief 
 		void applyAutoSlice();
+		/// @brief 
 		void deleteSelected();
+		/// @brief 
 		void markDirty() { m_dirty = true; }
 
 		//==== 描画 =====
+		/// @brief 
 		void drawToolbar();
+		/// @brief 
+		/// @param size 
 		void drawCanvas(const ImVec2& size);
+		/// @brief 
+		/// @param size 
 		void drawSidePanel(const ImVec2& size);
+		/// @brief 
 		void drawUnsavedPopup();
+		/// @brief 
 		void handleShortcuts();
+		/// @brief 
+		/// @param viewSize 
 		void fitToView(const ImVec2& viewSize);
 
 		//==== 座標変換 =====
+		/// @brief 
+		/// @param origin 
+		/// @param t 
+		/// @return 
 		ImVec2 texToScreen(const ImVec2& origin, const glm::vec2& t) const;
+		/// @brief 
+		/// @param origin 
+		/// @param s 
+		/// @return 
 		glm::vec2 screenToTex(const ImVec2& origin, const ImVec2& s) const;
 
 		//==== 状態 =====

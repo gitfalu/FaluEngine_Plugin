@@ -1,4 +1,4 @@
-#include "FocusMapPass.h"
+ï»¿#include "FocusMapPass.h"
 #include "core/Logger.h"
 #include "FaluEngine/Component.h"
 #include "asset/loaders/MeshLoader.h"
@@ -391,7 +391,7 @@ namespace FaluEngine
 			if (reg.get<CanvasComponent>(e).enabled) { anyCanvas = true; break; }
 		if (!anyCanvas) return;
 
-		// ScaleWithScreenSize‚ÌCanvas‚Í‰¼‘zƒsƒNƒZƒ‹‹óŠÔ‚ÅƒŒƒCƒAƒEƒg‚³‚ê‚é‚Ì‚Å‚»‚Ì‹óŠÔ‚ğŠî€‚É‚·‚é
+		// ScaleWithScreenSizeã®Canvasã¯ä»®æƒ³ãƒ”ã‚¯ã‚»ãƒ«ç©ºé–“ã§ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã•ã‚Œã‚‹ã®ã§ãã®ç©ºé–“ã‚’åŸºæº–ã«ã™ã‚‹
 		float w = static_cast<float>(uiRefW), h = static_cast<float>(uiRefH);
 		for (auto e : reg.view<CanvasComponent>())
 		{

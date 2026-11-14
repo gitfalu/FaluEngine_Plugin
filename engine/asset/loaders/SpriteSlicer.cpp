@@ -26,10 +26,11 @@ namespace FaluEngine::SpriteSlicer
 	{
 		std::vector<SpriteSlice> out;
 		if (texSize.x <= 0 || texSize.y <= 0 || grid.cell.x <= 0 || grid.cell.y <= 0) return out;
-		
+		// 最低値保障
 		const int padX = (std::max)(grid.padding.x, 0);
 		const int padY = (std::max)(grid.padding.y, 0);
 		int index = 0;
+		// セルを配置した際にはみ出して配置されないようにループを回す
 		for (int y = (std::max)(grid.offset.y, 0); y + grid.cell.y <= texSize.y; y += grid.cell.y + padY)
 		{
 			for (int x = (std::max)(grid.offset.x, 0); x + grid.cell.x <= texSize.x; x += grid.cell.x + padX)

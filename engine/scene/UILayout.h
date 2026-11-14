@@ -58,4 +58,86 @@ namespace FaluEngine::UILayout
 	/// @param p 
 	/// @return 
 	FALU_SCENE_API bool hitTest(const RectTransformComponent& rt, const glm::vec2& p);
+
+	//==== エディタ編集用(逆変換・アンカープリセット・リサイズ・スナップ) =====
+	/// @brief 親の矩形。Canvas直下なら中心(0,0)・Canvasサイズ・回転 0
+	struct ParentFrame
+	{
+		glm::vec2 pos = { 0.0f,0.0f };
+		glm::vec2 size = { 0.0f,0.0f };
+		float rotation = 0.0f;
+	};
+
+	/// @brief 
+	/// @param registry 
+	/// @param entity 
+	/// @return 
+	FALU_SCENE_API ParentFrame parentFrameOf(entt::registry& registry, entt::entity entity);
+
+	/// @brief 
+	/// @param registry 
+	/// @param entity 
+	/// @return 
+	FALU_SCENE_API void relayout(entt::registry& registry, entt::entity entity);
+
+	/// @brief 
+	/// @param registry 
+	/// @param entity 
+	/// @param center 
+	/// @param scaledSize 
+	/// @param totalRotationDeg 
+	/// @return 
+	FALU_SCENE_API void setWorldRect(entt::registry& registry, entt::entity entity,
+		const glm::vec2& center, const glm::vec2& scaledSize,
+		float totalRotationDeg);
+
+	//======  =======
+	enum class HAlign { Left, Center, Right, Stretch };
+	enum class VAlign { Top, Middle, Bottom, Stretch };
+
+	/// @brief 
+	/// @param registry 
+	/// @param entity 
+	/// @param h 
+	/// @param v 
+	/// @return 
+	FALU_SCENE_API void applyAnchorPress(entt::registry& registry, entt::entity entity, HAlign h, VAlign v);
+
+	/// @brief 回転を持つ矩形
+	struct RectGeom
+	{
+		glm::vec2 center = { 0.0f,0.0f };
+		glm::vec2 size = { 0.0f,0.0f };
+		float rotation = 0.0f; // Degree
+	};
+
+	/// @brief ハンドルの向き。sx/syは-1(左/下)・0・+1(右/上)。レイアウト空間はY上向き
+	struct HandleDir { int sx = 0; int sy = 0; };
+
+	/// @brief 
+	/// @param orig 
+	/// @param h 
+	/// @param deltaWorld 
+	/// @return 
+	FALU_SCENE_API RectGeom resizeRect(const RectGeom& orig, HandleDir h, const glm::vec2& deltaWorld,
+		bool symmetric,bool keepAspect,float minSize = 1.0f);
+
+	struct SnapResult
+	{
+		glm::vec2 offset = { 0.0f,0.0f }; // 矩形に足すと吸着する量
+		bool snappedX = false, snappedY = false;
+		float guideX = 0.0f, guideY = 0.0f; // 吸着した目標座標
+	};
+
+	/// @brief 軸平行な矩形(左下 rectMin・size)を、親の端/中心=>グリッドの純で吸着させるオフセットを求める
+	/// @param rectMin 
+	/// @param size 
+	/// @param parentMin 
+	/// @param parentSize 
+	/// @param gridSize 
+	/// @param threshold 
+	/// @return 
+	FALU_SCENE_API SnapResult computeSnapOffset(const glm::vec2& rectMin, const glm::vec2& size,
+		const glm::vec2& parentMin, const glm::vec2& parentSize,
+		float gridSize, float threshold);
 }
