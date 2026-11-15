@@ -10,12 +10,16 @@ namespace FaluEngine::UILayout
 	{
 		constexpr int kMaxDepth = 64; // 親子ループ等での無限再帰ガード
 
+		/// @brief 矩形の形を変えずに回転を行うための計算
+		/// @param v 
+		/// @param deg 
+		/// @return 
 		glm::vec2 rotate(const glm::vec2& v, float deg)
 		{
 			if (deg == 0.0f) return v;
-			const float r = glm::radians(deg);
-			const float c = std::cos(r), s = std::sin(r);
-			return { v.x * c - v.y * s,v.x + v.y * c };
+			const float r = glm::radians(deg); // 回転角を度数法から弧度法に変換
+			const float c = std::cos(r), s = std::sin(r); // 回転角に応じた座標計算用の三角関数
+			return { v.x * c - v.y * s,v.x + v.y * c }; // 計算して返す
 		}
 
 		void computeRectImpl(entt::registry& registry, entt::entity entity,
@@ -315,12 +319,43 @@ namespace FaluEngine::UILayout
 			else if (h.sy > 0) hi.y = lo.y + minSize; else lo.y = hi.y - minSize;
 		}
 
-		return RectGeom();
+		// 出力データを作成
+		RectGeom out;
+		out.size = hi - lo; // 大きさを再計算
+		out.center = orig.center + rotate((lo + hi) * 0.5f, orig.rotation);// 形を変えずに回転を行い位置を計算
+		out.rotation = orig.rotation; // 回転角
+
+		return out;
 	}
 
 	SnapResult computeSnapOffset(const glm::vec2& rectMin, const glm::vec2& size, const glm::vec2& parentMin, const glm::vec2& parentSize, float gridSize, float threshold)
 	{
-		return SnapResult();
+		SnapResult r;
+
+		auto snapAxis = [&](float minV, float sizeV, float pMin, float pSize, bool& snapped, float& guide, float& offset)
+			{
+				const float cands[3] = { minV,minV + sizeV * 0.5f,minV + sizeV };
+				const float targets[3] = { pMin,pMin + pSize * 0.5f,pMin + pSize };
+
+				float best = threshold + 1.0f;
+				for (float c : cands)
+				{
+					for (float t : targets)
+					{
+						const float dist = std::fabs(t - c);
+						if (dist <= threshold && dist < best) { best = dist; offset = t - c; guide = t; snapped = true; }
+					}
+
+					if (!snapped && gridSize > 0.0f)
+						offset = std::round(minV / gridSize) * gridSize - minV;
+				}
+			};
+
+		// 作成したラムダ式を使用して移動後の位置を計算
+		snapAxis(rectMin.x, size.x, parentMin.x, parentSize.x, r.snappedX, r.guideX, r.offset.x);
+		snapAxis(rectMin.y, size.y, parentMin.y, parentSize.y, r.snappedY, r.guideY, r.offset.y);
+
+		return r;
 	}
 
 }

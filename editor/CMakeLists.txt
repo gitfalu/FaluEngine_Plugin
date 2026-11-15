@@ -11,6 +11,7 @@ add_library(FaluEditorModule SHARED
     panels/AnimationEventPanel.cpp
     panels/FocusAnalysisPanel.cpp
     panels/SpriteEditorPanel.cpp
+    panels/UILayoutPanel.cpp
     EditorSettings.cpp
     EditorLocalization.cpp
 )

@@ -626,7 +626,7 @@ namespace Editor{
 
 		if (ImGui::BeginPopupModal("Create Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			const char* ext = (m_createAssetKind == 1) ? ".fsprite" : ".faim2d";
+			const char* ext = (m_createAssetKind == 1) ? ".fsprite" : ".fanim2d";
 			ImGui::TextDisabled("%s", FaluEngine::PathResolver::toUtf8(m_currentPath).c_str());
 			ImGui::SetNextItemWidth(260.0f);
 			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
