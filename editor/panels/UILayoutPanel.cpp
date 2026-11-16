@@ -62,30 +62,396 @@ namespace Editor
 		}
 	}
 
+	/*
+	
+	描画
+	
+	*/
 
 	void UILayoutPanel::draw(FaluEngine::Scene* scene, entt::entity& selected)
 	{
+		ImGui::SetNextWindowSize({ 960.0f,620.0f }, ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("UI Layout"))
+		{
+			ImGui::End();
+			return;
+		}
+		if (!scene)
+		{
+			ImGui::TextDisabled("No scene");
+			ImGui::End();
+			return;
+		}
+
+		if (scene != m_scene)
+		{
+			m_scene = scene;
+			m_reg = &scene->registry();
+			m_canvas = entt::null;
+			m_undo.clear(); m_redo.clear();
+			m_drag = DragMode::None;
+			m_needFit = true;
+		}
+
+		// 選択中の要素が属するCanvasに追従
+		if (isUIElement(selected))
+		{
+			const entt::entity c = findCanvasOf(selected);
+			if (c != entt::null && c != m_canvas) { m_canvas = c; m_needFit = true; }
+		}
+		if (m_canvas == entt::null || !m_reg->valid(m_canvas) || !m_reg->all_of<CanvasComponent>(m_canvas))
+		{
+			m_canvas = entt::null;
+			for (auto e : m_reg->view<CanvasComponent>()) { m_canvas = e; break; }
+			m_needFit = true;
+		}
+
+		drawToolbar(scene, selected);
+
+		if (m_canvas == entt::null)
+		{
+			ImGui::Separator();
+			ImGui::TextDisabled("This scene has no Canvas");
+			if (ImGui::Button("Create Canvas")) selected = createElement(scene, ElementKind::Canvas, entt::null);
+			ImGui::End();
+			return;
+		}
+
+		// 編集用レイアウト
+		auto& canvas = m_reg->get<CanvasComponent>(m_canvas);
+		UILayout::layoutCanvas(*m_reg, m_canvas, previewSize(canvas));
+		m_layoutSize = canvas.computedSize;
+
+		const ImVec2 avail = ImGui::GetContentRegionAvail();
+		drawView(scene, selected, { avail.x,(std::max)(avail.y,50.0f) });
+
+		ImGui::End();
 	}
 
 	void UILayoutPanel::drawToolbar(FaluEngine::Scene* scene, entt::entity& selected)
 	{
+		//==== Select Canvas ====
+		std::vector<entt::entity> canvases;
+		for (auto e : m_reg->view<CanvasComponent>()) canvases.push_back(e);
+
+		auto nameOf = [&](entt::entity e) ->std::string {
+			if (auto* tag = m_reg->try_get<TagComponent>(e)) return tag->name;
+			return "Canvas";
+			};
+
+		ImGui::SetNextItemWidth(140.0f);
+		if (ImGui::BeginCombo("##Canvas", m_canvas != entt::null ? nameOf(m_canvas).c_str() : "(none)"))
+		{
+			for (auto c : canvases)
+			{
+				ImGui::PushID(static_cast<int>(entt::to_integral(c)));
+				if (ImGui::Selectable(nameOf(c).c_str(), c == m_canvas)) { m_canvas = c; m_needFit = true; }
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::SameLine();
+		const char* previews[] = { "Reference","1920x720","1280x720","1080x1920","Custom" };
+		ImGui::SetNextItemWidth(110.0f);
+		if (ImGui::Combo("##Preview", &m_previewMode, previews, 5)) m_needFit = true;
+		if (m_previewMode == 4)
+		{
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(120.0f);
+			if (ImGui::DragInt2("##Custom", m_customSize, 1.0f, 1, 16384)) m_needFit = true;
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Fit")) m_needFit = true;
+		ImGui::SameLine();
+		ImGui::Text("%.0f", m_zoom * 100.0f);
+
+		ImGui::SameLine();
+		ImGui::TextDisabled("|");
+		ImGui::SameLine();
+		ImGui::Checkbox("Snap", &m_snap);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(60.0f);
+		ImGui::DragInt("##Grid", &m_grid, 0.2f, 1, 256);
+		ImGui::SameLine();
+		ImGui::Checkbox("Names", &m_showNames);
+		ImGui::SameLine();
+		ImGui::Checkbox("Bounds", &m_showBounds);
+		ImGui::SameLine();
+		ImGui::Checkbox("Anchors", &m_showAnchors);
+
+		//===== 2段目:作成/アンカー/Undo =====
+		if (ImGui::Button("Create"))
+			ImGui::OpenPopup("##CreateUI");
+		if (ImGui::BeginPopup("##CreateUI"))
+		{
+			if (ImGui::MenuItem("Canvas")) selected = createElement(scene, ElementKind::Canvas, selected);
+			if (ImGui::MenuItem("Panel")) selected = createElement(scene, ElementKind::Panel, selected);
+			if (ImGui::MenuItem("Image")) selected = createElement(scene, ElementKind::Image, selected);
+			if (ImGui::MenuItem("Button")) selected = createElement(scene, ElementKind::Button, selected);
+			ImGui::EndPopup();
+		}
+
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!isUIElement(selected));
+		if (ImGui::Button("Anchor")) ImGui::OpenPopup("##AnchorPreset");
+		ImGui::EndDisabled();
+		drawAnchorPopup(selected);
+
+		ImGui::SameLine();
+		ImGui::BeginDisabled(m_undo.empty());
+		if (ImGui::Button("Undo")) undo();
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::BeginDisabled(m_redo.empty());
+		if (ImGui::Button("Redo")) redo();
+		ImGui::EndDisabled();
+
+		if (m_canvas != entt::null && m_reg->valid(m_canvas))
+		{
+			const auto& c = m_reg->get<CanvasComponent>(m_canvas);
+			ImGui::SameLine();
+			ImGui::TextDisabled("Layout %.0fx%.0f scale %.2f%s", c.computedSize.x, c.computedSize.y, c.scaleFactor,
+				c.enabled ? "" : " {Canvas disabled)");
+		}
+		if (!m_status.empty()) ImGui::TextColored({ 0.7f,0.9f,1.0f,1.0f }, "%s", m_status.c_str());
+
 	}
 
 	void UILayoutPanel::drawView(FaluEngine::Scene* scene, entt::entity& selected, const ImVec2& size)
 	{
+		(void)scene;
+		ImGui::BeginChild("##UIView", size, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+		m_viewOrigin = ImGui::GetCursorScreenPos();
+		m_viewSize = ImGui::GetContentRegionAvail();
+		if (m_viewSize.x < 8.0f || m_viewSize.y < 8.0f) { ImGui::EndChild(); return; }
+		if (m_needFit) { fitToView(m_viewSize); m_needFit = false; }
+
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		const ImVec2 viewEnd = { m_viewOrigin.x + m_viewSize.x,m_viewOrigin.y + m_viewSize.y };
+		dl->PushClipRect(m_viewOrigin, viewEnd, true);
+		dl->AddRectFilled(m_viewOrigin, viewEnd, IM_COL32(24, 24, 26, 255));
+
+		//=== 入力候補 ====
+		ImGui::InvisibleButton("##UIViewInput", m_viewSize,
+			ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle | ImGuiButtonFlags_MouseButtonRight);
+		const bool hovered = ImGui::IsItemHovered();
+		const bool active = ImGui::IsItemActive();
+		ImGuiIO& io = ImGui::GetIO();
+
+		// ズーム
+		if (hovered && io.MouseWheel != 0.0f)
+		{
+			const glm::vec2 before = toLayout(io.MousePos);
+			m_zoom = std::clamp(m_zoom * (io.MouseWheel > 0.0f ? 1.1f : 1.0f / 1.1f), kMinZoom, kMaxZoom);
+			// toLayout == beforeになるようにpanを補正
+			const float cx0 = m_viewOrigin.x + m_viewSize.x * 0.5f;
+			const float cy0 = m_viewOrigin.y + m_viewSize.y * 0.5f;
+			m_pan.x = io.MousePos.x - cx0 - before.x * m_zoom;
+			m_pan.y = io.MousePos.y - cy0 - before.y * m_zoom;
+		}
+		// パン
+		if (active && (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
+			(ImGui::IsKeyDown(ImGuiKey_Space) && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f))))
+		{
+			m_pan.x += io.MouseDelta.x;
+			m_pan.y += io.MouseDelta.y;
+		}
+
+		//===== Canvas =======
+		{
+			const glm::vec2 half = m_layoutSize * 0.5f;
+			const ImVec2 a = toScreen({ -half.x,half.y });
+			const ImVec2 b = toScreen({ half.x,-half.y });
+			dl->AddRectFilled(a, b, IM_COL32(40, 40, 46, 255));
+
+			if (m_snap && m_grid * m_zoom >= 8.0f)
+			{
+				const float g = static_cast<float>(m_grid);
+				for (float x = std::ceil(-half.x / g) * g; x <= half.x; x += g)
+					dl->AddLine(toScreen({ x,half.y }), toScreen({ x,-half.y }), IM_COL32(255, 255, 255, 10));
+				for (float y = std::ceil(-half.y / g) * g; y <= half.y; y += g)
+					dl->AddLine(toScreen({ -half.x,y }), toScreen({ half.x,y }), IM_COL32(255, 255, 255, 10));
+			}
+			dl->AddLine(toScreen({ 0.0f,half.y }), toScreen({ 0.0f,-half.y }), IM_COL32(255, 255, 255, 28));
+			dl->AddLine(toScreen({ -half.x,0.0f }), toScreen({ half.x,0.0f }), IM_COL32(255, 255, 255, 28));
+			dl->AddLine(a, b, IM_COL32(150, 150, 160, 255));
+		}
+
+		//===== 要素の描画 =======
+		std::vector<entt::entity> order;
+		UILayout::collectDrawOrder(*m_reg, m_canvas, order);
+
+		auto quadScreen = [&](const RectTransformComponent& rt, ImVec2 out[4]) {
+			const glm::vec2 h = rt.computedSize * 0.5f;
+			const glm::vec2 local[4] = { {-h.x,h.y},{h.x,h.y},{h.x,-h.y},{-h.x,-h.y} }; // TL TR BR BL
+			for (int i = 0; i < 4; ++i)
+				out[i] = toScreen(rt.computedPosition + rotateDeg(local[i], rt.computedRotation));
+			};
+
+		for (auto e : order)
+		{
+			const auto& rt = m_reg->get<RectTransformComponent>(e);
+			ImVec2 q[4];
+			quadScreen(rt, q);
+
+			if (auto* img = m_reg->try_get<ImageComponent>(e))
+			{
+				if (img->visible)
+				{
+					if (!img->texturePath.empty() && !img->cachedTexture)
+						img->cachedTexture = AssetManager::get().load<TextureAsset>(img->texturePath);
+
+					glm::vec4 col = img->color;
+					if (auto* btn = m_reg->try_get<ButtonComponent>(e)) col = btn->normalColor; // 実行時の通常状態と同じ色
+
+					if (img->cachedTexture && img->cachedTexture->srv)
+					{
+						const glm::vec4 uv = img->uvRect; // x,y,w,h
+						dl->AddImageQuad(reinterpret_cast<ImTextureID>(img->cachedTexture->srv.Get()), q[0], q[1], q[2], q[3],
+							{ uv.x,uv.y }, { uv.x + uv.z,uv.y }, { uv.x + uv.z,uv.y + uv.w }, { uv.x,uv.y + uv.w }, toU32(col));
+					}
+					else
+					{
+						dl->AddQuadFilled(q[0], q[1], q[2], q[3], toU32(col));
+					}
+				}
+			}
+
+			if (auto* tc = m_reg->try_get<TextComponent>(e))
+			{
+				const ImVec2 ts = ImGui::CalcTextSize(tc->text.c_str());
+				const ImVec2 c = toScreen(rt.computedPosition);
+				dl->AddText({ c.x - ts.x * 0.5f,c.y - ts.y * 0.5f }, toU32(tc->color), tc->text.c_str());
+			}
+
+			if (m_showBounds) dl->AddQuad(q[0], q[1], q[2], q[3], IM_COL32(255, 255, 255, 40));
+			if (m_showNames && (q[2].x - q[0].x) > 24.0f)
+			{
+				if (auto* tag = m_reg->try_get<TagComponent>(e))
+					dl->AddText({ (std::min)(q[0].x,q[3].x) + 3.0f,(std::min)(q[0].y,q[1].y) + 2.0f }, IM_COL32(200, 220, 255, 170), tag->name.c_str());
+			}
+		}
+
+		//==== 選択要素
 	}
 
 	void UILayoutPanel::drawAnchorPopup(entt::entity selected)
 	{
+		if (!ImGui::BeginPopup("##AnchorPreset")) return;
+
+		ImGui::TextDisabled("Anchor / Pivot preset (keeps the rect)");
+		const char* rowNames[4] = { "Top","Middle","Bottom","Stretch" };
+		const char* colNames[4] = { "Left","Center","Right","Stretch" };
+		const UILayout::VAlign vs[4] = { UILayout::VAlign::Top,UILayout::VAlign::Middle,UILayout::VAlign::Bottom,UILayout::VAlign::Stretch };
+		const UILayout::HAlign hs[4] = { UILayout::HAlign::Left,UILayout::HAlign::Center,UILayout::HAlign::Right,UILayout::HAlign::Stretch };
+
+		for (int r = 0; r < 4; ++r)
+		{
+			for (int c = 0; c < 4; ++c)
+			{
+				if (c > 0) ImGui::SameLine();
+				char label[48];
+				std::snprintf(label, sizeof(label), "%c%c##a%d_%d", rowNames[r][0], colNames[c][0], r, c);
+				if (ImGui::Button(label, { 34.0f,28.0f }) && isUIElement(selected))
+				{
+					const RectTransformComponent before = m_reg->get<RectTransformComponent>(selected);
+					UILayout::applyAnchorPress(*m_reg, selected, hs[c], vs[r]);
+					pushEdit(selected, before);
+					ImGui::CloseCurrentPopup();
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s / %s", rowNames[r], colNames[c]);
+			}
+		}
+		ImGui::EndPopup();
 	}
+
 
 	void UILayoutPanel::handlwKeyboard(entt::entity selected)
 	{
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.WantTextInput) return;
+
+		if (io.KeyCtrl && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)) { undo(); return; }
+		if (io.KeyCtrl && (ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) { redo(); return; }
+		if (ImGui::IsKeyPressed(ImGuiKey_F)) m_needFit = true;
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape) && m_drag != DragMode::None) { endDrag(true); return; }
+
+		// 矢印キーで微調整。ドラッグ中は無効
+		if (m_drag == DragMode::None && isUIElement(selected))
+		{
+			glm::vec2 d(0.0f);
+			if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) d.x -= 1.0f;
+			if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) d.x += 1.0f;
+			if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) d.y += 1.0f;
+			if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) d.y -= 1.0f;
+			if (d != glm::vec2(0.0f))
+			{
+				if (io.KeyShift) d *= 10.0f;
+				const RectTransformComponent before = m_reg->get<RectTransformComponent>(selected);
+				const auto g = geomOf(before);
+				UILayout::setWorldRect(*m_reg, selected, g.center + d, g.size, g.rotation);
+				pushEdit(selected, before);
+			}
+		}
 	}
+
+	/*
+	
+	要素の作成
+
+	*/
 
 	entt::entity UILayoutPanel::createElement(FaluEngine::Scene* scene, ElementKind kind, entt::entity selected)
 	{
-		return entt::entity();
+		if (!scene) return entt::null;
+
+		if (kind == ElementKind::Canvas)
+		{
+			Entity c = scene->createEntity("Canvas");
+			c.addComponent<CanvasComponent>();
+			m_canvas = c;
+			markSceneDirty();
+			return c;
+		}
+
+		// 親：選択中のUI要素/Canvas->無ければ現在のCanvas->無ければCavnasを新規作成
+		entt::entity parent = entt::null;
+		if (selected != entt::null && m_reg->valid(selected) &&
+			(m_reg->all_of<RectTransformComponent>(selected) || m_reg->all_of<CanvasComponent>(selected)))
+			parent = selected;
+		else if (m_canvas != entt::null && m_reg->valid(m_canvas))
+			parent = m_canvas;
+		else
+			parent = createElement(scene, ElementKind::Canvas, entt::null);
+
+		const char* name = kind == ElementKind::Panel ? "Panel" : kind == ElementKind::Image ? "Image" : "Button";
+		Entity e = scene->createEntity(name);
+		auto& rt = e.addComponent<RectTransformComponent>();
+		auto& img = e.addComponent<ImageComponent>();
+		switch (kind)
+		{
+		case Editor::UILayoutPanel::ElementKind::Canvas:
+			rt.sizeDelta = { 300.0f,200.0f };
+			img.color = { 0.1f,0.1f,0.12f,0.7f };
+			break;
+		case Editor::UILayoutPanel::ElementKind::Button:
+			rt.sizeDelta = { 160.0f,40.0f };
+			e.addComponent<ButtonComponent>();
+			break;
+		default:
+			rt.sizeDelta = { 100.0f,100.0f };
+			break;
+		}
+		e.setParent(Entity(parent, scene));
+
+		const entt::entity canvas = findCanvasOf(parent);
+		if (canvas != entt::null) m_canvas = canvas;
+		UILayout::relayout(*m_reg, e);
+		markSceneDirty();
+		return e;
 	}
 
 	/*
@@ -269,7 +635,7 @@ namespace Editor
 		
 	}
 
-	glm::vec2 UILayoutPanel::toLayout(const glm::vec2& screen) const
+	glm::vec2 UILayoutPanel::toLayout(const ImVec2& screen) const
 	{
 		const float cx = m_viewOrigin.x + m_viewSize.x * 0.5f + m_pan.x;
 		const float cy = m_viewOrigin.y + m_viewSize.y * 0.5f + m_pan.y;

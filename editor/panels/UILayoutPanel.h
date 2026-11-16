@@ -52,7 +52,7 @@ namespace Editor
 
 		//===== Helper =====
 		[[nodiscard]] ImVec2 toScreen(const glm::vec2& layout) const;
-		[[nodiscard]] glm::vec2 toLayout(const glm::vec2& screen) const;
+		[[nodiscard]] glm::vec2 toLayout(const ImVec2& screen) const;
 		[[nodiscard]] bool isUIElement(entt::entity e) const;
 		[[nodiscard]] entt::entity findCanvasOf(entt::entity e) const;
 		[[nodiscard]] glm::vec2 previewSize(const FaluEngine::CanvasComponent& canvas) const;
