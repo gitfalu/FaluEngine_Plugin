@@ -88,24 +88,171 @@ namespace Editor
 		return entt::entity();
 	}
 
+	/*
+	
+	ドラッグ
+
+	*/
+
 	void UILayoutPanel::beginDrag(DragMode mode, UILayout::HandleDir handle, entt::entity e, const glm::vec2& mouseLayout)
 	{
+		m_drag = mode;
+		m_handle = handle;
+		// ドラック開始時の情報をそれぞれのメンバに格納
+		m_dragEntity = e;
+		m_startRT = m_reg->get<RectTransformComponent>(e);
+		m_startGeom = geomOf(m_startRT); // 初期ジオメトリ情報
+		m_startMouse = mouseLayout; // マウス初期座標	
+		m_startScreen = ImGui::GetIO().MousePos; // 初期マウスレイアウト内座標
+
+		m_dragActive = false;
+		m_startAngle = std::atan2(
+			mouseLayout.y - m_startGeom.center.y, 
+			mouseLayout.x - m_startGeom.center.x);
+		m_guideX = m_guideY = false;
 	}
 
 	void UILayoutPanel::updateDrag(const glm::vec2& mouseLayout)
 	{
+		if (m_drag == DragMode::None || !isUIElement(m_dragEntity)) return; // 変更状態出なければ実行しない
+		const ImGuiIO& io = ImGui::GetIO();
+
+		// 単なるクリックで移動が発生しないように４ｐｘの閾値を作る
+		if (!m_dragActive)
+		{
+			if (std::hypot(io.MousePos.x - m_startScreen.x, io.MousePos.y - m_startScreen.y) < 4.0f) return;
+			m_dragActive = true;
+		}
+
+		const bool snapOn = m_snap && !io.KeyCtrl; // Ctrl:一時的にスナップ無効
+		const float grid = static_cast<float>((std::max)(m_grid, 1));
+		const bool unrotated = std::fabs(std::remainder(m_startGeom.rotation, 360.0f)) < 1e-3f;
+		glm::vec2 delta = mouseLayout - m_startMouse;
+		m_guideX = m_guideY = false;
+
+		if (m_drag == DragMode::Move)
+		{
+			// ＸかＹどちらかの軸のみで移動を行うようにする
+			if (io.KeyShift) { if (std::fabs(delta.x) > std::fabs(delta.y)) delta.y = 0.0f; else delta.x = 0.0f; } // 軸固定
+			glm::vec2 center = m_startGeom.center + delta;
+
+			if (snapOn && unrotated)
+			{
+				const auto pf = UILayout::parentFrameOf(*m_reg, m_dragEntity);
+				const bool parentAxisAligned = std::fabs(std::remainder(pf.rotation, 360.0f)) < 1e-3f;
+				const glm::vec2 rectMin = center - m_startGeom.size * 0.5f;
+				// 親が回転している場合親の端には吸着できない(閾値を負の値にして無効化、グリッドのみ)
+				const auto sr = UILayout::computeSnapOffset(rectMin, m_startGeom.size, pf.pos - pf.size * 0.5f, pf.size,
+					grid, parentAxisAligned ? kSnapThresholdPx / m_zoom : -1.0f);
+				center += sr.offset;
+				m_guideX = sr.snappedX; m_guideXVal = sr.guideX;
+				m_guideY = sr.snappedY; m_guideYVal = sr.guideY;
+			}
+			UILayout::setWorldRect(*m_reg, m_dragEntity, center, m_startGeom.size, m_startGeom.rotation);
+		}
+		else if(m_drag == DragMode::Resize)
+		{
+			const bool corner = m_handle.sx != 0 && m_handle.sy != 0;
+			UILayout::RectGeom g = UILayout::resizeRect(m_startGeom, m_handle, delta, io.KeyAlt, io.KeyShift && corner, 1.0f);
+
+			if (snapOn && unrotated && !io.KeyAlt)
+			{
+				// 動かしている辺だけをグリッドに吸着
+				glm::vec2  lo = g.center - g.size * 0.5f, hi = g.center + g.size * 0.5f;
+				auto snap = [&](float v) { return std::round(v / grid) * grid; };
+				if (m_handle.sx > 0) hi.x = snap(hi.x); if (m_handle.sx < 0)lo.x = snap(lo.x);
+				if (m_handle.sy > 0) hi.y = snap(hi.y); if (m_handle.sy < 0)lo.y = snap(lo.y);
+				if (hi.x - lo.x >= 1.0f && hi.y - lo.y >= 1.0f)
+				{
+					g.size = hi - lo;
+					g.center = (lo + hi) * 0.5f;
+				}
+			}
+			UILayout::setWorldRect(*m_reg, m_dragEntity, g.center, g.size, g.rotation);
+		}
+		else if (m_drag == DragMode::Rotate)
+		{
+			const float angle = std::atan2(mouseLayout.y - m_startGeom.center.y, mouseLayout.x - m_startGeom.center.x);
+			float rot = m_startGeom.rotation + glm::degrees(angle - m_startAngle);
+			if (io.KeyShift) rot = std::round(rot / 15.0f) * 15.0f; // Shift:15度刻み
+			UILayout::setWorldRect(*m_reg, m_dragEntity, m_startGeom.center, m_startGeom.size, rot);
+		}
 	}
 
 	void UILayoutPanel::endDrag(bool cancel)
 	{
+		if (m_drag == DragMode::None) return;
+		const entt::entity e = m_dragEntity;
+		if (isUIElement(e))
+		{
+			if (cancel)
+			{// 操作をキャンセルして開始時の情報に戻す
+				applyFields(e,m_startRT);
+			}
+			else
+			{
+				const auto& now = m_reg->get<RectTransformComponent>(e);
+				const bool changed = now.anchoredPos != m_startRT.anchoredPos || now.sizeDelta != m_startRT.sizeDelta ||
+					now.rotation != m_startRT.rotation;
+				if (changed) pushEdit(e, m_startRT); // 変更履歴を追加
+			}
+		}
+		m_drag = DragMode::None;
+		m_dragActive = false;
+		m_dragEntity = entt::null;
+		m_guideX = m_guideY = false;
 	}
+
+	/*
+	
+	Undo/Redo
+
+	*/
 
 	void UILayoutPanel::pushEdit(entt::entity e, const FaluEngine::RectTransformComponent& before)
 	{
+		if (!isUIElement(e)) return;
+		// 編集情報を移す
+		Edit ed;
+		ed.entity = e;
+		ed.before = before;
+		ed.after = m_reg->get<RectTransformComponent>(e);
+		// 戻しリストに登録
+		m_undo.push_back(ed);
+		// 戻し回数の最大値を超えている場合一番古い変更を削除
+		if (m_undo.size() > kMaxUndo) m_undo.erase(m_undo.begin());
+		m_redo.clear();// やり直しリストを初期化
+		markSceneDirty(); // 更新待ち状態に移行
 	}
 
 	void UILayoutPanel::applyFields(entt::entity e, const FaluEngine::RectTransformComponent& src)
 	{
+		if (!isUIElement(e)) return;
+		// RectTransformに保持していた情報を適用
+		auto& rt = m_reg->get<RectTransformComponent>(e);
+		rt.anchorMin = src.anchorMin; rt.anchorMax = src.anchorMax;
+		rt.anchoredPos = src.anchoredPos; rt.sizeDelta = src.sizeDelta;
+		rt.pivot = src.pivot; rt.rotation = src.rotation; rt.scale = src.scale;
+		UILayout::relayout(*m_reg, e); // 再レイアウト計算
+		markSceneDirty(); // 更新待ち状態に移行
+	}
+
+	void UILayoutPanel::undo()
+	{
+		if (m_undo.empty()) return;
+		// 変更履歴リストから最新の変更を抽出
+		Edit ed = m_undo.back(); m_undo.pop_back();
+		applyFields(ed.entity, ed.before); // 変更対象に変更前情報を適用
+		m_redo.push_back(ed);// やり直しリストに戻した変更を追加
+	}
+
+	void UILayoutPanel::redo()
+	{
+		if (m_redo.empty()) return;
+		// やり直しリストから最新の追加を抽出
+		Edit ed = m_redo.back(); m_redo.pop_back();
+		applyFields(ed.entity, ed.after); // 変更対象にやり直し情報を適用
+		m_undo.push_back(ed); // 戻しリストに追加しなおす
 	}
 
 	/*
