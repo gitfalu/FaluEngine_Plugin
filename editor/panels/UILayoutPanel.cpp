@@ -21,7 +21,7 @@ namespace Editor
 	namespace
 	{
 		constexpr float kHandlePx = 8.0f;
-		constexpr float kROtationHandleOffsetPx = 28.0f;
+		constexpr float kRotationHandleOffsetPx = 28.0f;
 		constexpr float kMinZoom = 0.05f;
 		constexpr float kMaxZoom = 8.0f;
 		constexpr float kSnapThresholdPx = 6.0f;
@@ -331,11 +331,132 @@ namespace Editor
 			if (m_showNames && (q[2].x - q[0].x) > 24.0f)
 			{
 				if (auto* tag = m_reg->try_get<TagComponent>(e))
-					dl->AddText({ (std::min)(q[0].x,q[3].x) + 3.0f,(std::min)(q[0].y,q[1].y) + 2.0f }, IM_COL32(200, 220, 255, 170), tag->name.c_str());
+					dl->AddText({ (std::min)(q[0].x,q[3].x) + 3.0f,(std::min)(q[0].y,q[1].y) + 2.0f }, 
+						IM_COL32(200, 220, 255, 170), tag->name.c_str());
 			}
 		}
 
-		//==== 選択要素
+		//==== 選択要素 =======
+		const bool selValid = isUIElement(selected);
+		if (selValid && m_reg->valid(selected))
+		{
+			const auto& rt = m_reg->get<RectTransformComponent>(selected);
+			ImVec2 q[4];
+			quadScreen(rt, q);
+			dl->AddQuad(q[0], q[1], q[2], q[3], IM_COL32(255, 210, 60, 255), 2.0f);
+
+			const glm::vec2 half = rt.computedSize * 0.5f;
+			for (const auto& h : kHandles)
+			{
+				const ImVec2 p = toScreen(rt.computedPosition + rotateDeg({ half.x * h.sx,half.y * h.sy }, rt.computedRotation));
+				dl->AddRectFilled({ p.x - 4.0f,p.y - 4.0f }, { p.x + 4.0f,p.y + 4.0f }, IM_COL32(255, 255, 255, 255));
+				dl->AddRect({ p.x - 4.0f,p.y - 4.0f }, { p.x + 4.0f,p.y + 4.0f }, IM_COL32(0, 0, 0, 255));
+			}
+			// 回転ハンドル
+			const ImVec2 topMid = toScreen(rt.computedPosition + rotateDeg({ 0.0f,half.y }, rt.computedRotation));
+			const ImVec2 rotH = toScreen(rt.computedPosition + rotateDeg({ 0.0f,half.y + kRotationHandleOffsetPx / m_zoom }, rt.computedRotation));
+			dl->AddLine(topMid, rotH, IM_COL32(255, 210, 60, 200));
+			dl->AddCircle(rotH, 5.0f, IM_COL32(255, 210, 60, 255));
+
+			// pivot(=見た目の基準点) 
+			const glm::vec2 pivotWorld = rt.computedPosition + rotateDeg(rt.computedSize * (glm::vec2(0.5f, 0.5f) - rt.pivot) * -1.0f, rt.computedRotation);
+			const ImVec2 pv = toScreen(pivotWorld);
+			dl->AddCircleFilled(pv, 3.5f, IM_COL32(255, 80, 80, 255));
+
+			// アンカー
+			if (m_showAnchors)
+			{
+				const auto pf = UILayout::parentFrameOf(*m_reg, selected);
+				const glm::vec2 pMin = pf.pos - pf.size * 0.5f;
+				const float xs[2] = { rt.anchorMin.x,rt.anchorMax.x };
+				const float ys[2] = { rt.anchorMin.y,rt.anchorMax.y };
+				for (float ax : xs) for (float ay : ys)
+				{
+					const glm::vec2 w = pf.pos + rotateDeg(pMin + pf.size * glm::vec2(ax, ay) - pf.pos, pf.rotation);
+					const ImVec2 p = toScreen(w);
+					dl->AddQuadFilled({ p.x,p.y - 5.0f }, { p.x + 5.0f, p.y }, { p.x,p.y + 5.0f }, { p.x - 5.0f,p.y }, IM_COL32(90, 200, 255, 255));
+				}
+			}
+		}
+
+		// スナップのガイド線
+		if (m_guideX)dl->AddLine(toScreen({ m_guideXVal,m_layoutSize.y }), toScreen({ m_guideXVal,-m_layoutSize.y }), IM_COL32(255, 60, 200, 200));
+		if (m_guideX)dl->AddLine(toScreen({ -m_layoutSize.x,m_guideYVal }), toScreen({ m_layoutSize.x,m_guideYVal }), IM_COL32(255, 60, 200, 200));
+
+		//==== クリック/ドラッグ =======
+		const glm::vec2 mouse = toLayout(io.MousePos);
+
+		if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsKeyDown(ImGuiKey_Space) && m_drag == DragMode::None)
+		{
+			bool started = false;
+			if (selValid)
+			{
+				const auto& rt = m_reg->get<RectTransformComponent>(selected);
+				const glm::vec2 half = rt.computedSize * 0.5f;
+
+				// 回転ハンドル
+				const ImVec2 rotH = toScreen(rt.computedPosition + rotateDeg({ 0.0f,half.y + kRotationHandleOffsetPx / m_zoom }, rt.computedRotation));
+				if (std::hypot(io.MousePos.x - rotH.x, io.MousePos.y - rotH.y) <= kHandlePx + 2.0f)
+				{
+					beginDrag(DragMode::Rotate, {}, selected, mouse);
+					started = true;
+				}
+				// リサイズハンドル
+				for (const auto& h : kHandles)
+				{
+					if (started) break;
+					const ImVec2 p = toScreen(rt.computedPosition + rotateDeg({ half.x * h.sx,half.y * h.sy }, rt.computedRotation));
+					if (std::hypot(io.MousePos.x - p.x, io.MousePos.y - p.y) < kHandlePx)
+					{
+						beginDrag(DragMode::Resize, h, selected, mouse);
+						started = true;
+					}
+				}
+			}
+			if (!started)
+			{
+				const entt::entity picked = pickAt(mouse);
+				if (picked != entt::null)
+				{
+					selected = picked;
+					beginDrag(DragMode::Move, {}, picked, mouse);
+				}
+				else
+				{
+					selected = entt::null;
+				}
+			}
+		}
+
+		if (m_drag != DragMode::None)
+		{
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) updateDrag(mouse);
+			else endDrag(false);
+		}
+
+		// テクスチャのドロップ
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+			{
+				const std::string path = PathResolver::normalizeAssetPath(static_cast<const char*>(payload->Data));
+				const entt::entity target = pickAt(mouse);
+				if (isTextureExt(path) && target != entt::null && m_reg->all_of<ImageComponent>(target))
+				{
+					auto& img = m_reg->get<ImageComponent>(target);
+					img.texturePath = path;
+					img.cachedTexture.reset();
+					selected = target;
+					markSceneDirty();
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		dl->PopClipRect();
+		ImGui::EndChild();
+
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) handlwKeyboard(selected);
 	}
 
 	void UILayoutPanel::drawAnchorPopup(entt::entity selected)
