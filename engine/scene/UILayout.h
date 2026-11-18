@@ -101,7 +101,7 @@ namespace FaluEngine::UILayout
 	/// @param h 
 	/// @param v 
 	/// @return 
-	FALU_SCENE_API void applyAnchorPress(entt::registry& registry, entt::entity entity, HAlign h, VAlign v);
+	FALU_SCENE_API void applyAnchorPreset(entt::registry& registry, entt::entity entity, HAlign h, VAlign v);
 
 	/// @brief 回転を持つ矩形
 	struct RectGeom

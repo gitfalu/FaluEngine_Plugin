@@ -37,7 +37,7 @@ namespace Editor
 		void drawToolbar(FaluEngine::Scene* scene, entt::entity& selected);
 		void drawView(FaluEngine::Scene* scene, entt::entity& selected, const ImVec2& size);
 		void drawAnchorPopup(entt::entity selected);
-		void handlwKeyboard(entt::entity selected);
+		void handleKeyboard(entt::entity selected);
 
 		//===== 編集 ======
 		entt::entity createElement(FaluEngine::Scene* scene, ElementKind kind, entt::entity selected);

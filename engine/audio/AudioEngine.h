@@ -1,6 +1,6 @@
-/*****************************************************************//**
+ï»¿/*****************************************************************//**
  * \file   AudioEngine.h
- * \brief  ‰¹º‚ÌÄ¶‚â’â~‚È‚Ç‰¹ºÄ¶‚ÉŠÖ‚·‚éˆ—‚ğs‚¤ƒXƒNƒŠƒvƒgƒwƒbƒ_
+ * \brief  éŸ³å£°ã®å†ç”Ÿã‚„åœæ­¢ãªã©éŸ³å£°å†ç”Ÿã«é–¢ã™ã‚‹å‡¦ç†ã‚’è¡Œã†ã‚¹ã‚¯ãƒªãƒ—ãƒˆãƒ˜ãƒƒãƒ€
  * 
  * \author tsunn
  * \date   November 2026
@@ -17,18 +17,18 @@
 
 namespace FaluEngine
 {
-	using Microsoft::WRL::ComPtr; // QÆ‚ª‚È‚­‚È‚Á‚½‚É©“®“I‚É‰ğ•ú‚³‚ê‚éƒXƒ}[ƒgƒ|ƒCƒ“ƒ^
+	using Microsoft::WRL::ComPtr; // å‚ç…§ãŒãªããªã£ãŸæ™‚ã«è‡ªå‹•çš„ã«è§£æ”¾ã•ã‚Œã‚‹ã‚¹ãƒãƒ¼ãƒˆãƒã‚¤ãƒ³ã‚¿
 
-	/// @brief ƒI[ƒfƒBƒI‚ÌÄ¶‚â’â~‚È‚Ç‚ÌÀsó‘Ô‚ğŠÇ—‚·‚éŠÖ”
+	/// @brief ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªã®å†ç”Ÿã‚„åœæ­¢ãªã©ã®å®Ÿè¡ŒçŠ¶æ…‹ã‚’ç®¡ç†ã™ã‚‹é–¢æ•°
 	class FALU_AUDIO_API AudioEngine
 	{
 	private:
-		/// @brief XAudio2‚ğŒp³‚µ‚½ƒI[ƒfƒBƒIƒf[ƒ^@Fhttps://learn.microsoft.com/ja-jp/windows/win32/xaudio2/xaudio2-introduction
+		/// @brief XAudio2ã‚’ç¶™æ‰¿ã—ãŸã‚ªãƒ¼ãƒ‡ã‚£ã‚ªãƒ‡ãƒ¼ã‚¿ã€€ï¼šhttps://learn.microsoft.com/ja-jp/windows/win32/xaudio2/xaudio2-introduction
 		struct ActiveVoice : public IXAudio2VoiceCallback
 		{
 			IXAudio2SourceVoice* voice = nullptr;
 			bool finished = false;
-			// DLLo—Í‚É•W€o—Í‚ğ•Û‚Â‚½‚ß‚É•W€ŒÄ‚Ño‚µ‹K–ñ‚ğg—p‚·‚é
+			// DLLå‡ºåŠ›æ™‚ã«æ¨™æº–å‡ºåŠ›ã‚’ä¿ã¤ãŸã‚ã«æ¨™æº–å‘¼ã³å‡ºã—è¦ç´„ã‚’ä½¿ç”¨ã™ã‚‹
 			void __stdcall OnStreamEnd() noexcept override { finished = true; }
 			void __stdcall OnVoiceProcessingPassEnd() noexcept override {}
 			void __stdcall OnVoiceProcessingPassStart(UINT32) noexcept override {}
@@ -50,47 +50,47 @@ namespace FaluEngine
 
 	public:
 		static AudioEngine& get();
-		/// @brief ƒRƒs[‹Ö~ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+		/// @brief ã‚³ãƒ”ãƒ¼ç¦æ­¢ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 		/// @param  
 		AudioEngine(const AudioEngine&) = delete;
 		AudioEngine& operator=(const AudioEngine&) = delete;
 
-		/// @brief ‰Šú‰»ˆ—
-		/// @return ‰Šú‰»¬Œ÷ƒtƒ‰ƒO
+		/// @brief åˆæœŸåŒ–å‡¦ç†
+		/// @return åˆæœŸåŒ–æˆåŠŸãƒ•ãƒ©ã‚°
 		bool init();
-		/// @brief I—¹ˆ—
+		/// @brief çµ‚äº†å‡¦ç†
 		void shutdown();
-		/// @brief XVˆ—
+		/// @brief æ›´æ–°å‡¦ç†
 		void update();
 
-		/// @brief ‰¹º‚ğƒtƒ@ƒCƒ‹ƒpƒX‚©‚çÄ¶‚·‚éŠÖ”
-		/// @param path ƒtƒ@ƒCƒ‹ƒpƒX
-		/// @param volume ‰¹—Ê(ƒfƒtƒHƒ‹ƒg‚Å‚Í1.0f(100%))
-		/// @param loop ƒ‹[ƒvƒtƒ‰ƒO
+		/// @brief éŸ³å£°ã‚’ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‹ã‚‰å†ç”Ÿã™ã‚‹é–¢æ•°
+		/// @param path ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹
+		/// @param volume éŸ³é‡(ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§ã¯1.0f(100%))
+		/// @param loop ãƒ«ãƒ¼ãƒ—ãƒ•ãƒ©ã‚°
 		/// @return 
 		AudioVoiceHandle play(const std::string& path, float volume = 1.0f, bool loop = false);
 
 		void stop(AudioVoiceHandle& handle);
 
-		/// @brief  ‰¹º‚²‚Æ‚Ì‰¹—Ê‚ğİ’è‚·‚é
-		/// @param handle ‰¹º‚Ìƒnƒ“ƒhƒ‹
-		/// @param volume ‰¹—Ê(0.0f~1.0f)
+		/// @brief  éŸ³å£°ã”ã¨ã®éŸ³é‡ã‚’è¨­å®šã™ã‚‹
+		/// @param handle éŸ³å£°ã®ãƒãƒ³ãƒ‰ãƒ«
+		/// @param volume éŸ³é‡(0.0f~1.0f)
 		void setVolume(AudioVoiceHandle& handle, float volume);
 
-		/// @brief ‘S‘Ì‚Ì‰¹—Ê‚ğİ’è‚·‚é
-		/// @param volume ‰¹—Ê
+		/// @brief å…¨ä½“ã®éŸ³é‡ã‚’è¨­å®šã™ã‚‹
+		/// @param volume éŸ³é‡
 		void setMasterVolume(float volume);
 
 	private:
-		/// @brief ƒfƒtƒHƒ‹ƒgƒRƒ“ƒXƒgƒ‰ƒNƒ^
+		/// @brief ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 		AudioEngine() = default;
-		/// @brief ƒfƒXƒgƒ‰ƒNƒ^
+		/// @brief ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 		~AudioEngine() { shutdown(); }
 
 		ComPtr<IXAudio2> m_xaudio2;
-		/// @brief å‰¹º
+		/// @brief ä¸»éŸ³å£°
 		IXAudio2MasteringVoice* m_masteringVoice = nullptr;
-		/// @brief Ä¶’†‚Ì‰¹º‚Ì“®“I”z—ñ
+		/// @brief å†ç”Ÿä¸­ã®éŸ³å£°ã®å‹•çš„é…åˆ—
 		std::vector<std::unique_ptr<ActiveVoice>> m_activeVoice;
 
 		bool m_initialized = false;

@@ -152,7 +152,7 @@ namespace Editor
 		}
 
 		ImGui::SameLine();
-		const char* previews[] = { "Reference","1920x720","1280x720","1080x1920","Custom" };
+		const char* previews[] = { "Reference","1920x1080","1280x720","1080x1920","Custom" };
 		ImGui::SetNextItemWidth(110.0f);
 		if (ImGui::Combo("##Preview", &m_previewMode, previews, 5)) m_needFit = true;
 		if (m_previewMode == 4)
@@ -165,7 +165,7 @@ namespace Editor
 		ImGui::SameLine();
 		if (ImGui::Button("Fit")) m_needFit = true;
 		ImGui::SameLine();
-		ImGui::Text("%.0f", m_zoom * 100.0f);
+		ImGui::Text("%.0f%%", m_zoom * 100.0f);
 
 		ImGui::SameLine();
 		ImGui::TextDisabled("|");
@@ -213,7 +213,7 @@ namespace Editor
 			const auto& c = m_reg->get<CanvasComponent>(m_canvas);
 			ImGui::SameLine();
 			ImGui::TextDisabled("Layout %.0fx%.0f scale %.2f%s", c.computedSize.x, c.computedSize.y, c.scaleFactor,
-				c.enabled ? "" : " {Canvas disabled)");
+				c.enabled ? "" : "  (Canvas disabled)");
 		}
 		if (!m_status.empty()) ImGui::TextColored({ 0.7f,0.9f,1.0f,1.0f }, "%s", m_status.c_str());
 
@@ -250,7 +250,7 @@ namespace Editor
 			const float cx0 = m_viewOrigin.x + m_viewSize.x * 0.5f;
 			const float cy0 = m_viewOrigin.y + m_viewSize.y * 0.5f;
 			m_pan.x = io.MousePos.x - cx0 - before.x * m_zoom;
-			m_pan.y = io.MousePos.y - cy0 - before.y * m_zoom;
+			m_pan.y = io.MousePos.y - cy0 + before.y * m_zoom;
 		}
 		// パン
 		if (active && (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
@@ -277,7 +277,7 @@ namespace Editor
 			}
 			dl->AddLine(toScreen({ 0.0f,half.y }), toScreen({ 0.0f,-half.y }), IM_COL32(255, 255, 255, 28));
 			dl->AddLine(toScreen({ -half.x,0.0f }), toScreen({ half.x,0.0f }), IM_COL32(255, 255, 255, 28));
-			dl->AddLine(a, b, IM_COL32(150, 150, 160, 255));
+			dl->AddRect(a, b, IM_COL32(150, 150, 160, 255));
 		}
 
 		//===== 要素の描画 =======
@@ -356,7 +356,7 @@ namespace Editor
 			const ImVec2 topMid = toScreen(rt.computedPosition + rotateDeg({ 0.0f,half.y }, rt.computedRotation));
 			const ImVec2 rotH = toScreen(rt.computedPosition + rotateDeg({ 0.0f,half.y + kRotationHandleOffsetPx / m_zoom }, rt.computedRotation));
 			dl->AddLine(topMid, rotH, IM_COL32(255, 210, 60, 200));
-			dl->AddCircle(rotH, 5.0f, IM_COL32(255, 210, 60, 255));
+			dl->AddCircleFilled(rotH, 5.0f, IM_COL32(255, 210, 60, 255));
 
 			// pivot(=見た目の基準点) 
 			const glm::vec2 pivotWorld = rt.computedPosition + rotateDeg(rt.computedSize * (glm::vec2(0.5f, 0.5f) - rt.pivot) * -1.0f, rt.computedRotation);
@@ -381,7 +381,7 @@ namespace Editor
 
 		// スナップのガイド線
 		if (m_guideX)dl->AddLine(toScreen({ m_guideXVal,m_layoutSize.y }), toScreen({ m_guideXVal,-m_layoutSize.y }), IM_COL32(255, 60, 200, 200));
-		if (m_guideX)dl->AddLine(toScreen({ -m_layoutSize.x,m_guideYVal }), toScreen({ m_layoutSize.x,m_guideYVal }), IM_COL32(255, 60, 200, 200));
+		if (m_guideY)dl->AddLine(toScreen({ -m_layoutSize.x,m_guideYVal }), toScreen({ m_layoutSize.x,m_guideYVal }), IM_COL32(255, 60, 200, 200));
 
 		//==== クリック/ドラッグ =======
 		const glm::vec2 mouse = toLayout(io.MousePos);
@@ -456,7 +456,7 @@ namespace Editor
 		dl->PopClipRect();
 		ImGui::EndChild();
 
-		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) handlwKeyboard(selected);
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) handleKeyboard(selected);
 	}
 
 	void UILayoutPanel::drawAnchorPopup(entt::entity selected)
@@ -479,7 +479,7 @@ namespace Editor
 				if (ImGui::Button(label, { 34.0f,28.0f }) && isUIElement(selected))
 				{
 					const RectTransformComponent before = m_reg->get<RectTransformComponent>(selected);
-					UILayout::applyAnchorPress(*m_reg, selected, hs[c], vs[r]);
+					UILayout::applyAnchorPreset(*m_reg, selected, hs[c], vs[r]);
 					pushEdit(selected, before);
 					ImGui::CloseCurrentPopup();
 				}
@@ -490,7 +490,7 @@ namespace Editor
 	}
 
 
-	void UILayoutPanel::handlwKeyboard(entt::entity selected)
+	void UILayoutPanel::handleKeyboard(entt::entity selected)
 	{
 		const ImGuiIO& io = ImGui::GetIO();
 		if (io.WantTextInput) return;
@@ -554,7 +554,7 @@ namespace Editor
 		auto& img = e.addComponent<ImageComponent>();
 		switch (kind)
 		{
-		case Editor::UILayoutPanel::ElementKind::Canvas:
+		case Editor::UILayoutPanel::ElementKind::Panel:
 			rt.sizeDelta = { 300.0f,200.0f };
 			img.color = { 0.1f,0.1f,0.12f,0.7f };
 			break;
@@ -752,7 +752,7 @@ namespace Editor
 	{
 		const float cx = m_viewOrigin.x + m_viewSize.x * 0.5f + m_pan.x;
 		const float cy = m_viewOrigin.y + m_viewSize.y * 0.5f + m_pan.y;
-		return { (layout.x - cx) / m_zoom,-(layout.y - cy) / m_zoom };
+		return { cx + layout.x * m_zoom,cy - layout.y * m_zoom };
 		
 	}
 

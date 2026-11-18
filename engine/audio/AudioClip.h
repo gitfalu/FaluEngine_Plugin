@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -11,10 +11,10 @@ namespace FaluEngine
 {
 	struct FALU_AUDIO_API AudioClip : public Asset
 	{
-		WAVEFORMATEX format{}; // Waveƒf[ƒ^
-		std::vector<uint8_t> pcmData;// ƒpƒ‹ƒX•„†•Ï’²‚Ì“®“I”z—ñ
-		/// @brief ‰¹ºƒtƒ@ƒCƒ‹‚ğƒtƒ@ƒCƒ‹ƒpƒX‚©‚ç“Ç‚İ‚İ
-		/// @param path ‰¹ºƒtƒ@ƒCƒ‹ƒpƒX
+		WAVEFORMATEX format{}; // Waveãƒ‡ãƒ¼ã‚¿
+		std::vector<uint8_t> pcmData;// ãƒ‘ãƒ«ã‚¹ç¬¦å·å¤‰èª¿ã®å‹•çš„é…åˆ—
+		/// @brief éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‹ã‚‰èª­ã¿è¾¼ã¿
+		/// @param path éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹
 		/// @return 
 		static std::shared_ptr<AudioClip> load(const std::string& path);
 	};

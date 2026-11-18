@@ -190,7 +190,7 @@ namespace FaluEngine::SpriteSlicer
 		r = std::clamp(std::round(r), l + 1.0f, static_cast<float>(texSize.x));
 		b = std::clamp(std::round(b), t + 1.0f, static_cast<float>(texSize.y));
 
-		return { l,t,r - 1 ,b - t };
+		return { l,t,r - 1,b - t };
 	}
 
 	SpriteClipAsset makeClipFromSlices(const std::string& sheetPath, 
@@ -199,7 +199,7 @@ namespace FaluEngine::SpriteSlicer
 		SpriteClipAsset clip;
 		clip.sheetPath = sheetPath;
 		clip.loop = loop;
-		const float dur = 1.0 / (std::max)(fps, 0.001f);
+		const float dur = 1.0f / (std::max)(fps, 0.001f);
 		for (int i : sliceIndices) clip.frames.push_back({ i,dur });
 		return clip;
 	}

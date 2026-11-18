@@ -19,7 +19,7 @@ namespace FaluEngine::UILayout
 			if (deg == 0.0f) return v;
 			const float r = glm::radians(deg); // 回転角を度数法から弧度法に変換
 			const float c = std::cos(r), s = std::sin(r); // 回転角に応じた座標計算用の三角関数
-			return { v.x * c - v.y * s,v.x + v.y * c }; // 計算して返す
+			return { v.x * c - v.y * s,v.x * s + v.y * c }; // 計算して返す
 		}
 
 		void computeRectImpl(entt::registry& registry, entt::entity entity,
@@ -232,7 +232,7 @@ namespace FaluEngine::UILayout
 		relayout(registry, entity);
 	}
 
-	void applyAnchorPress(entt::registry& registry, entt::entity entity, HAlign h, VAlign v)
+	void applyAnchorPreset(entt::registry& registry, entt::entity entity, HAlign h, VAlign v)
 	{
 		auto* rtp = registry.try_get<RectTransformComponent>(entity);
 		if (!rtp) return;

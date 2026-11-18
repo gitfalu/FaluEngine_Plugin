@@ -1,4 +1,4 @@
-#include "AudioClip.h"
+ï»¿#include "AudioClip.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include <fstream>
@@ -7,12 +7,12 @@
 namespace FaluEngine
 {
 	namespace {
-		/// @brief ƒ^ƒO‚Ìˆê’vŠm”F
+		/// @brief ã‚¿ã‚°ã®ä¸€è‡´ç¢ºèª
 		/// @param a 
 		/// @param b 
 		/// @return 
 		bool matchTag(const char* a, const char* b) {
-			// •¶šˆê’vŠm”F
+			// æ–‡å­—ä¸€è‡´ç¢ºèª
 			return std::memcmp(a, b, 4) == 0;
 		}
 	} // Helper
@@ -21,7 +21,7 @@ namespace FaluEngine
 	{
 
 		const auto fullPath = PathResolver::resolve(path);
-		// ‰¹ºƒtƒ@ƒCƒ‹‚ğƒoƒCƒiƒŠ‚ÅŠJ‚­
+		// éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ãƒã‚¤ãƒŠãƒªã§é–‹ã
 		std::ifstream file(fullPath, std::ios::binary);
 		if (!file)
 		{
@@ -29,7 +29,7 @@ namespace FaluEngine
 			return nullptr;
 		}
 
-		// ƒ^ƒO‚ğ’Šo‚µ‚Ä”äŠr
+		// ã‚¿ã‚°ã‚’æŠ½å‡ºã—ã¦æ¯”è¼ƒ
 		char riffTag[4];
 		file.read(riffTag, 4);
 		if (!matchTag(riffTag, "RIFF"))
@@ -41,7 +41,7 @@ namespace FaluEngine
 		uint32_t riffSize = 0;
 		file.read(reinterpret_cast<char*>(&riffSize), 4);
 
-		// ƒ^ƒO‚ğ’Šo‚µ‚Ä”äŠr
+		// ã‚¿ã‚°ã‚’æŠ½å‡ºã—ã¦æ¯”è¼ƒ
 		char waveTag[4];
 		file.read(waveTag, 4);
 		if (!matchTag(waveTag, "WAVE"))
@@ -61,7 +61,7 @@ namespace FaluEngine
 			file.read(chunkId, 4);
 			file.read(reinterpret_cast<char*>(&chunkSize), 4);
 			if (!file) break;
-			// ƒ^ƒO”äŠr
+			// ã‚¿ã‚°æ¯”è¼ƒ
 			if (matchTag(chunkId, "fmt "))
 			{
 				std::vector<uint32_t> fmtBuf(chunkSize);
@@ -72,7 +72,7 @@ namespace FaluEngine
 					std::min<size_t>(sizeof(WAVEFORMATEX), fmtBuf.size()));
 				hasFmt = true;
 			}
-			// ƒ^ƒO”äŠr
+			// ã‚¿ã‚°æ¯”è¼ƒ
 			else if (matchTag(chunkId,"data"))
 			{
 				clip->pcmData.resize(chunkSize);

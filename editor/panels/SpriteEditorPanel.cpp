@@ -387,8 +387,8 @@ namespace Editor
 		{
 			const glm::vec2 before = screenToTex(origin, io.MousePos);
 			m_zoom = std::clamp(m_zoom * (io.MouseWheel > 0.0f ? 1.15f : 1.0f / 1.15f), kMinZoom, kMaxZoom);
-			m_pan.x = io.MousePos.x - origin.x - origin.x * m_zoom;
-			m_pan.y = io.MousePos.y - origin.y - origin.y * m_zoom;
+			m_pan.x = io.MousePos.x - origin.x - before.x * m_zoom;
+			m_pan.y = io.MousePos.y - origin.y - before.y * m_zoom;
 		}
 		// パン(中ボタン/右ボタン)
 		if (active && (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||

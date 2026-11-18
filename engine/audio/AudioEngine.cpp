@@ -1,4 +1,4 @@
-#include "AudioEngine.h"
+ï»¿#include "AudioEngine.h"
 #include "asset/AssetManager.h"
 #include "core/Logger.h"
 #include <algorithm>
@@ -6,7 +6,7 @@
 namespace FaluEngine
 {
 	AudioEngine& AudioEngine::get()
-	{// ƒVƒ“ƒOƒ‹ƒgƒ“ƒCƒ“ƒXƒ^ƒ“ƒX‚ğ¶¬
+	{// ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ç”Ÿæˆ
 		static AudioEngine instance;
 		return instance;
 	}
@@ -14,21 +14,21 @@ namespace FaluEngine
 	bool AudioEngine::init()
 	{
 		if (m_initialized) return true;
-		// ‚±‚ÌƒXƒŒƒbƒh‚Åg—p‚·‚éCOMƒ‰ƒCƒuƒ‰ƒŠ‚Ì‰Šú‰»
+		// ã“ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã§ä½¿ç”¨ã™ã‚‹COMãƒ©ã‚¤ãƒ–ãƒ©ãƒªã®åˆæœŸåŒ–
 		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 		if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 		{
 			LOG_ERROR("AudioEngine: CoInitializeEx failed (hr={:#x})", static_cast<unsigned>(hr));
 			return false;
 		}
-		// XAudio2‚ÌQÆ‚ğì¬
+		// XAudio2ã®å‚ç…§ã‚’ä½œæˆ
 		hr = XAudio2Create(&m_xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
 		if (FAILED(hr))
 		{
 			LOG_ERROR("AudioEngine: XAudio2Create failed (hr={:#x})", static_cast<unsigned>(hr));
 			return false;
 		}
-		// ƒ}ƒXƒ^ƒŠƒ“ƒO‰¹º‚ğì¬‚µ‚Äƒ|ƒCƒ“ƒ^‚ğó‚¯æ‚é
+		// ãƒã‚¹ã‚¿ãƒªãƒ³ã‚°éŸ³å£°ã‚’ä½œæˆã—ã¦ãƒã‚¤ãƒ³ã‚¿ã‚’å—ã‘å–ã‚‹
 		hr = m_xaudio2->CreateMasteringVoice(&m_masteringVoice);
 		if (FAILED(hr))
 		{
