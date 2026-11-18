@@ -115,6 +115,8 @@ falu_add_engine_module(FaluGraphics
         asset/loaders/MaterialLoader.cpp
         asset/loaders/MeshLoader.cpp
         asset/loaders/ShaderLoader.cpp
+        asset/loaders/SpriteAsset.cpp
+        asset/loaders/SpriteSlicer.cpp
         asset/loaders/TextureLoader.cpp
 
         platform/Window.cpp
@@ -157,6 +159,7 @@ falu_add_engine_module(FaluScene
         animation/ActionEventLibrary.cpp
         animation/ActionEventSystem.cpp
         animation/ActionEventTrack.cpp
+        animation/SpriteAnimationSystem.cpp
 
         physics/PhysicsSystem.cpp
 
@@ -168,6 +171,7 @@ falu_add_engine_module(FaluScene
         scene/Scene.cpp
         scene/SceneManager.cpp
         scene/SceneSerializer.cpp
+        scene/UILayout.cpp
 
         script/ScriptEngine.cpp
         script/ScriptInstance.cpp
@@ -192,6 +196,7 @@ falu_add_module_headers(FaluScene
             include/FaluEngine/ActionEventLibrary.h
             include/FaluEngine/ActionEventSystem.h
             include/FaluEngine/ActionEventTrack.h
+            include/FaluEngine/SpriteAnimationSystem.h
 )
 
 # FaluEngine

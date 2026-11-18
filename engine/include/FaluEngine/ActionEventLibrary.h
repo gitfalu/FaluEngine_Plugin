@@ -1,4 +1,4 @@
-/*****************************************************************//**
+ï»¿/*****************************************************************//**
  * \file   ActionEventLibrary.h
  * \brief  
  * 
@@ -20,25 +20,25 @@ namespace FaluEngine
 	public:
 		static ActionEventLibrary& get();
 
-		/// @brief ƒ‰ƒ“ƒ^ƒCƒ€—pB‚È‚¯‚ê‚Înullptr
+		/// @brief ãƒ©ãƒ³ã‚¿ã‚¤ãƒ ç”¨ã€‚ãªã‘ã‚Œã°nullptr
 		/// @param meshPath 
 		/// @param clipName 
 		/// @return 
 		[[nodiscard]] std::shared_ptr<const ActionEventTrack> find(const std::string& meshPath, const std::string& clipName);
 
-		/// @brief ƒGƒfƒBƒ^—pB‚È‚¯‚ê‚Î‚©‚çƒgƒ‰ƒbƒN‚ğì‚éBŒÄ‚Ô‚½‚Ñ‚Érevision‚ªi‚İAƒ‰ƒ“ƒ^ƒCƒ€‘¤‚ªÄæ“¾‚·‚é
+		/// @brief ã‚¨ãƒ‡ã‚£ã‚¿ç”¨ã€‚ãªã‘ã‚Œã°ã‹ã‚‰ãƒˆãƒ©ãƒƒã‚¯ã‚’ä½œã‚‹ã€‚å‘¼ã¶ãŸã³ã«revisionãŒé€²ã¿ã€ãƒ©ãƒ³ã‚¿ã‚¤ãƒ å´ãŒå†å–å¾—ã™ã‚‹
 		/// @param meshPath 
 		/// @param clipName 
 		/// @return 
 		[[nodiscard]] std::shared_ptr<ActionEventTrack> edit(const std::string& meshPath, const std::string& clipName);
 
-		/// @brief •ÒWŒã‚ÉŒÄ‚Ô
+		/// @brief ç·¨é›†å¾Œã«å‘¼ã¶
 		/// @param meshPath 
 		void markEdited(const std::string& meshPath);
 
 		[[nodiscard]] bool isDirty(const std::string& meshPath) const;
 
-		/// @brief ƒTƒCƒhƒJ[‚Ö•Û‘¶(ˆêƒtƒ@ƒCƒ‹->ƒŠƒl[ƒ€‚Å“r’†¸”s‚µ‚Ä‚àŒ³ƒtƒ@ƒCƒ‹‚ğ‰ó‚³‚È‚¢)
+		/// @brief ã‚µã‚¤ãƒ‰ã‚«ãƒ¼ã¸ä¿å­˜(ä¸€æ™‚ãƒ•ã‚¡ã‚¤ãƒ«->ãƒªãƒãƒ¼ãƒ ã§é€”ä¸­å¤±æ•—ã—ã¦ã‚‚å…ƒãƒ•ã‚¡ã‚¤ãƒ«ã‚’å£Šã•ãªã„)
 		/// @param meshPath 
 		/// @param errorOut 
 		/// @return 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <FaluEngine/LLMClient.h>
 #include <FaluEngine/EngineExport.h>
@@ -17,15 +17,15 @@ namespace FaluEngine
 	class FALU_ENGINE_API FrameContextBuilder
 	{
 	public:
-		/// @brief ’èŠúƒXƒiƒbƒvƒVƒ‡ƒbƒgİ’è‚Ì•ÏX
+		/// @brief å®šæœŸã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆè¨­å®šã®å¤‰æ›´
 		/// @param enabled 
 		void setPeriodicSnapshotEnabled(bool enabled) noexcept { m_periodicSnapshotEnabled = enabled; }
 
-		/// @brief ’èŠúƒXƒiƒbƒvƒVƒ‡ƒbƒg‚Ì—L–³
+		/// @brief å®šæœŸã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆã®æœ‰ç„¡
 		/// @return 
 		[[nodiscard]] bool isPeriodicSnapshotEnabled() const noexcept { return m_periodicSnapshotEnabled; }
 
-		/// @brief Œ»İ‚Ì‰æ–Ê‚©‚ç‚©‚çƒŠƒNƒGƒXƒg‚ğ‘g‚İ—§‚Ä‚é
+		/// @brief ç¾åœ¨ã®ç”»é¢ã‹ã‚‰ã‹ã‚‰ãƒªã‚¯ã‚¨ã‚¹ãƒˆã‚’çµ„ã¿ç«‹ã¦ã‚‹
 		/// @param recorder 
 		/// @param scene 
 		/// @param fromFrame 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -77,7 +77,7 @@ public:
 	[[nodiscard]] Scene* getActive() const noexcept { return m_active.get(); }
 	[[nodiscard]] bool haActive() const noexcept { return m_active != nullptr; }
 
-	/// @brief ƒV[ƒ“ˆê——æ“¾
+	/// @brief ã‚·ãƒ¼ãƒ³ä¸€è¦§å–å¾—
 	/// @return 
 	[[nodiscard]] std::vector<std::string> getSceneNames() const
 	{

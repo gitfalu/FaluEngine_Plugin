@@ -1,4 +1,4 @@
-#include <FaluEngine/ActionEventTrack.h>
+ï»¿#include <FaluEngine/ActionEventTrack.h>
 
 #include <nlohmann/json.hpp>
 
@@ -181,7 +181,7 @@ namespace FaluEngine
 				}
 			}
 
-			// ƒ|ƒCƒ“ƒgƒCƒxƒ“ƒg
+			// ãƒã‚¤ãƒ³ãƒˆã‚¤ãƒ™ãƒ³ãƒˆ
 			if (!in.seek && (in.wrapped || in.curTime >= in.prevTime))
 			{
 				const bool inclusiveStart = in.clipChanged || !state.hasEvaluated;

@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #if defined(_WIN32) && !defined(FALU_STATIC)
 	#define FALU_DLL_EXPORT __declspec(dllexport)
 	#define FALU_DLL_IMPORT __declspec(dllimport)
@@ -31,7 +31,7 @@
 	#define FALU_SCENE_API FALU_DLL_IMPORT
 #endif
 
-// ç≈è„à ÉÇÉWÉÖÅ[Éã(Application/GameLoop/LLMÅ@Ç»Ç«)
+// ÊúÄ‰∏ä‰Ωç„É¢„Ç∏„É•„Éº„É´(Application/GameLoop/LLM„ÄÄ„Å™„Å©)
 #if defined(FALU_ENGINE_BUILD_DLL)
 	#define FALU_ENGINE_API FALU_DLL_EXPORT
 #else

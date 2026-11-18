@@ -1,4 +1,4 @@
-/*****************************************************************//**
+ï»¿/*****************************************************************//**
  * \file   launcher/main.cpp
  * \brief  
  * 
@@ -33,7 +33,7 @@
 static void fail(const std::wstring& message)
 {
 	std::fwprintf(stderr, L"%ls\n", message.c_str());
-	MessageBoxW(nullptr, message.c_str(), L"FaluEngine", MB_OK | MB_ICONERROR);
+	MessageBoxW(nullptr, message.c_str(),L"FaluEngine", MB_OK | MB_ICONERROR);
 }
 
 int main()
@@ -51,7 +51,7 @@ int main()
 	if (!module)
 	{
 		fail(L"Failed to load:\n" + modulePath.wstring() + L"\n\nWin32 error " + std::to_wstring(GetLastError()) +
-			+L"\n(modules/ ƒtƒHƒ‹ƒ_‚ª‚È‚¢A‚Ü‚½‚ÍˆË‘¶DLL‚ª•s‘«‚µ‚Ä‚¢‚é)");
+			+L"\n(modules/ ãƒ•ã‚©ãƒ«ãƒ€ãŒãªã„ã€ã¾ãŸã¯ä¾å­˜DLLãŒä¸è¶³ã—ã¦ã„ã‚‹)");
 		return 1;
 	}
 

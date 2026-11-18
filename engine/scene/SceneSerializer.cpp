@@ -1,4 +1,4 @@
-#include "SceneSerializer.h"
+Ôªø#include "SceneSerializer.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
@@ -189,6 +189,8 @@ namespace FaluEngine
 					{"renderMode",static_cast<int>(canvas.renderMode)},
 					{"referenceResolution",vec2ToJson(canvas.referenceResolution)},
 					{"sortOrder",canvas.sortOrder},
+					{"scaleMode",static_cast<int>(canvas.scaleMode)},
+					{"matchWidthOrHeight",canvas.matchWidthOrHeight},
 					{"enabled",canvas.enabled}
 				};
 			}
@@ -215,7 +217,22 @@ namespace FaluEngine
 				entityJson["image"] = {
 					{"texturePath",img.texturePath},
 					{"color",vec4ToJson(img.color)},
+					{"uvRect",vec4ToJson(img.uvRect)},
+					{"pointFilter",img.pointFilter},
 					{"visible",img.visible}
+				};
+			}
+
+			// SpriteAnimator
+			if (m_scene.registry().all_of<SpriteAnimatorComponent>(entity))
+			{
+				auto& sa = m_scene.registry().get<SpriteAnimatorComponent>(entity);
+				entityJson["spriteAnimator"] = {
+					{"clipPath",sa.clipPath},
+					{"time",sa.time},
+					{"speed",sa.speed},
+					{"playing",sa.playing},
+					{"pixelPerfect",sa.pixelPerfect}
 				};
 			}
 
@@ -453,6 +470,8 @@ namespace FaluEngine
 				canvas.renderMode = static_cast<CanvasRenderMode>(cj.value("renderMode",0));
 				canvas.referenceResolution = vec2FromJson(cj["referenceResolution"], { 1920.0f,1080.0f });
 				canvas.sortOrder = cj.value("sortOrder", 0);
+				canvas.scaleMode = static_cast<CanvasScaleMode>(cj.value("scaleMode", 0));
+				canvas.matchWidthOrHeight = cj.value("matchWidthOrHeight", 0.5f);
 				canvas.enabled = cj.value("enabled", true);
 			}
 
@@ -476,8 +495,22 @@ namespace FaluEngine
 				auto& ij = entityJson["image"];
 				auto& img = entity.addComponent<ImageComponent>();
 				img.texturePath = ij.value("texturePath", "");
-				img.color = vec4FromJson(ij["color"]);
+				img.color = vec4FromJson(ij["color"],{1.0f,1.0f,1.0f,1.0f});
+				img.uvRect = vec4FromJson(ij["uvRect"],{0.0f,0.0f,1.0f,1.0f});
+				img.pointFilter = ij.value("pointFilter", false);
 				img.visible = ij.value("visible", true);
+			}
+
+			// SpriteAnimator
+			if (entityJson.contains("spriteAnimator"))
+			{
+				auto& saj = entityJson["spriteAnimator"];
+				auto& sa = entity.addComponent<SpriteAnimatorComponent>();
+				sa.clipPath = saj.value("clipPath", "");
+				sa.time = saj.value("time",0.0f);
+				sa.speed = saj.value("speed", 1.0f);
+				sa.playing = saj.value("playing", false);
+				sa.pixelPerfect = saj.value("pixelPerfect", true);
 			}
 
 			// Button
@@ -550,7 +583,7 @@ namespace FaluEngine
 			}
 		}
 
-		// êeéqä÷åWÇÃïúå≥
+		// Ë¶™Â≠êÈñ¢‰øÇ„ÅÆÂæ©ÂÖÉ
 		for (const auto& entityJson : root["entities"])
 		{
 			if (!entityJson.contains("parent")) continue;

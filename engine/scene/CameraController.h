@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "FaluEngine/Camera.h"
 #include <glm/glm.hpp>
@@ -32,7 +32,7 @@ namespace FaluEngine {
 	private:
 		Camera& m_camera;
 
-		// ƒ}ƒEƒXƒ{ƒ^ƒ“
+		// ãƒã‚¦ã‚¹ãƒœã‚¿ãƒ³
 		bool m_rightDown = false;
 		bool m_middleDown = false;
 		bool m_altDown = false;
@@ -43,21 +43,21 @@ namespace FaluEngine {
 		float m_lastMouseY = 0.0f;
 		bool m_firstMouse = true;
 
-		//-ƒJ[ƒ\ƒ‹ƒƒbƒN
+		//-ã‚«ãƒ¼ã‚½ãƒ«ãƒ­ãƒƒã‚¯
 		bool m_cursorLocked = false;
 		int m_lockedCursorX = 0;
 		int m_lockedCursorY = 0;
 
-		// ƒI[ƒrƒbƒg
+		// ã‚ªãƒ¼ãƒ“ãƒƒãƒˆ
 		glm::vec3 m_orbitTarget = { 0.0f,0.0f,0.0f };
 		float m_orbitDistance = 5.0f;
 		float m_orbitYaw = 90.0f;
 		float m_orbitPitch = 20.0f;
 
-		//-ˆÚ“®‘¬“x
+		//-ç§»å‹•é€Ÿåº¦
 		float m_currentMoveSpeed = 5.0f;
 
-		//-SceneView‚Ì‹éŒ`
+		//-SceneViewã®çŸ©å½¢
 		float m_viewX = 0.0f, m_viewY = 0.0f;
 		float m_viewW = 1280.0f, m_viewH = 720.0f;
 

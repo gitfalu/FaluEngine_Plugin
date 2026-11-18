@@ -1,33 +1,33 @@
-#pragma once 
+ï»¿#pragma once 
 #include <vector>
 #include <cstdint>
 #include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
-	// ’nŒ`ƒRƒ“ƒ|[ƒlƒ“ƒg
-	// MeshComponent‚ÆRigidbodyComponent‚ğ‘g‚Æ‚µ‚Ä‚PƒGƒ“ƒeƒBƒeƒB‚É•t—^
+	// åœ°å½¢ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ
+	// MeshComponentã¨RigidbodyComponentã‚’çµ„ã¨ã—ã¦ï¼‘ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã«ä»˜ä¸
 	struct FALU_SCENE_API TerrainComponent
 	{
-		//-ƒOƒŠƒbƒh‚Ì•ªŠ„”
+		//-ã‚°ãƒªãƒƒãƒ‰ã®åˆ†å‰²æ•°
 		uint32_t resolutionX = 128;
 		uint32_t resolutionZ = 128;
 
-		//-ƒ[ƒ‹ƒh‹óŠÔ‚Å‚ÌƒTƒCƒY
+		//-ãƒ¯ãƒ¼ãƒ«ãƒ‰ç©ºé–“ã§ã®ã‚µã‚¤ã‚º
 		float sizeX = 100.0f;
 		float sizeZ = 100.0f;
 
-		//-‚‚³‚ÌƒXƒP[ƒ‹(o—Í‚É‚©‚¯‚é’l)
+		//-é«˜ã•ã®ã‚¹ã‚±ãƒ¼ãƒ«(å‡ºåŠ›ã«ã‹ã‘ã‚‹å€¤)
 		float heightScale = 20.0f;
 
-		//-fBmƒmƒCƒYƒpƒ‰ƒ[ƒ^
+		//-fBmãƒã‚¤ã‚ºãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
 		float noiseFrequency = 0.02f;
 		int octaves = 4;
-		float lacunarity = 2.0f; // ‹óŠÔ‚ÌŒ„ŠÔ
+		float lacunarity = 2.0f; // ç©ºé–“ã®éš™é–“
 		float persistence = 0.5f;
 		uint32_t seed = 1337;
 
-		//-¶¬‚³‚ê‚½‚‚³ƒf[ƒ^
+		//-ç”Ÿæˆã•ã‚ŒãŸé«˜ã•ãƒ‡ãƒ¼ã‚¿
 		std::vector<float> heights;
 
 		bool dirty = true;

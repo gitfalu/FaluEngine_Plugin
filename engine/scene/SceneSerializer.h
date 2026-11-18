@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <FaluEngine/EngineExport.h>
 
@@ -11,7 +11,7 @@ namespace FaluEngine
 	public:
 		explicit SceneSerializer(Scene& scene) : m_scene(scene) {}
 
-		/// @brief ƒVƒŠƒAƒ‰ƒCƒY
+		/// @brief ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 		/// @param path 
 		/// @return 
 		bool serialize(const std::string& path) const;

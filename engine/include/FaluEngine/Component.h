@@ -21,6 +21,8 @@ namespace FaluEngine {
     struct MeshAsset;
     struct MaterialAsset;
     struct TextureAsset;
+    struct SpriteSheetAsset;
+    struct SpriteClipAsset;
     struct ScriptInstance;
 
 
@@ -175,6 +177,8 @@ struct ImageComponent
 {
     std::string texturePath;
     glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+    glm::vec4 uvRect = { 0.0f,0.0f,1.0f,1.0f }; // UV座標とサイズ
+    bool pointFilter = false; // ドットの描画を鮮明化するための設定
     bool visible = true;
 
     std::shared_ptr<TextureAsset> cachedTexture;
@@ -196,6 +200,23 @@ struct TextComponent
     float fontSize = 24.0f;
     glm::vec4 color = { 1,1,1,1 };
     std::string fontPath;
+};
+
+/// @brief スプライトアニメーションを再生しImageComponentに現在情報を書き込む
+struct SpriteAnimatorComponent
+{
+    std::string clipPath; // .fanim2d
+    float time = 0.0f; // 
+    float speed = 1.0f;
+    bool playing = true;
+    bool pixelPerfect = true; // ポイントフィルターを有効にするか否か
+
+    //---- 以下はランタイム状態 ----
+    bool started = false;
+    int lastFrame = -1;
+    std::string cachedClipPath;
+    std::shared_ptr<SpriteClipAsset> cachedClip;
+    std::shared_ptr<SpriteSheetAsset> cachedSheet;
 };
 
 //======= Audio ========

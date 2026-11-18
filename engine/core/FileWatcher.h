@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 #include <chrono>
 #include <functional>
@@ -12,12 +12,12 @@
 class FALU_CORE_API FileWatcher
 {
 public:
-	/// @brief ŠÄ‹‘ÎÛƒpƒX‚ÆA•ÏXŒŸ’m‚ÌƒR[ƒ‹ƒoƒbƒN‚ğ“o˜^
+	/// @brief ç›£è¦–å¯¾è±¡ãƒ‘ã‚¹ã¨ã€å¤‰æ›´æ¤œçŸ¥æ™‚ã®ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’ç™»éŒ²
 	/// @param path 
 	/// @param onChanged 
 	void watch(const std::string& path, std::function<void()> onChanged);
 
-	/// @brief –ˆƒtƒŒ[ƒ€XV
+	/// @brief æ¯ãƒ•ãƒ¬ãƒ¼ãƒ æ›´æ–°
 	void poll();
 
 private:

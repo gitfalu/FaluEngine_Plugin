@@ -1,12 +1,12 @@
-#include "FaluEngine/Localization.h"
+ï»¿#include "FaluEngine/Localization.h"
 
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 /*
-* string_view:Š—LŒ ‚ğ‚½‚È‚¢•¶š—ñ(https://cpprefjp.github.io/reference/string_view.html)
-* equal_to   :“™’l”äŠr‚ğs‚¤ŠÖ”ƒIƒuƒWƒFƒNƒgB(https://cpprefjp.github.io/reference/functional/equal_to.html)
+* string_view:æ‰€æœ‰æ¨©ã‚’æŒãŸãªã„æ–‡å­—åˆ—(https://cpprefjp.github.io/reference/string_view.html)
+* equal_to   :ç­‰å€¤æ¯”è¼ƒã‚’è¡Œã†é–¢æ•°ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã€‚(https://cpprefjp.github.io/reference/functional/equal_to.html)
 */
 
 namespace FaluEngine::Loc

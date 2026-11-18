@@ -462,6 +462,14 @@ bool DX11Renderer::createShaders(const std::filesystem::path& vsPath, const std:
     sd.MaxLOD = D3D11_FLOAT32_MAX;
     m_device->CreateSamplerState(&sd, &m_samplerState);
 
+    // PointFilter用サンプラーステート作成
+    D3D11_SAMPLER_DESC psd = sd;
+    psd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    psd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    psd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    psd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    m_device->CreateSamplerState(&psd, &m_uiPointSampler);
+
     //===== Shadow Depth Shader =======
     //-パスを変換しファイルの存在確認
     std::filesystem::path shadowVSPath = PathResolver::resolve("assets/shaders/ShadowDepth.vert.hlsl");
@@ -1835,7 +1843,10 @@ void DX11Renderer::drawSkinnedSubMeshPBR(uint32_t indexOffset, uint32_t indexCou
 
 //======== UI ============
 
-void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const glm::vec4& color, ID3D11ShaderResourceView* srv)
+void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, float rotation, 
+    const glm::vec4& color, ID3D11ShaderResourceView* srv,
+    const glm::vec4& uvRect,bool point
+)
 {
     UITransformCB tcb;
     tcb.orthoProjection = glm::transpose(m_uiOrthoProjection);
@@ -1850,6 +1861,7 @@ void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, 
 
     UIMaterialCB mcb;
     mcb.color = color;
+    mcb.uvRect = uvRect;
     mcb.useTexture = srv ? 1 : 0;
 
     m_context->Map(m_uiMaterialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -1859,7 +1871,16 @@ void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, 
     if (srv) 
         m_context->PSSetShaderResources(0, 1, &srv);
 
+    // ポイントフィルタ指定時のみサンプラーを差し替え、描画後に戻す
+    const bool usePoint = point && m_uiPointSampler;
+    if (usePoint)
+        m_context->PSSetSamplers(0, 1, m_uiPointSampler.GetAddressOf());
+
     m_context->DrawIndexed(6, 0, 0);
+
+    if (usePoint)
+        m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+
 
     if (srv)
     {
@@ -1870,9 +1891,14 @@ void DX11Renderer::drawUIQuad(const glm::vec2& position, const glm::vec2& size, 
 
 void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
 {
+    beginUIPass(glm::vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+}
+
+void DX11Renderer::beginUIPass(const glm::vec2& layoutSize)
+{
     m_uiOrthoProjection = glm::orthoLH(
-        -static_cast<float>(screenWidth) * 0.5f, static_cast<float>(screenWidth) * 0.5f,
-        -static_cast<float>(screenHeight) * 0.5f, static_cast<float>(screenHeight) * 0.5f,
+        -layoutSize.x * 0.5f, layoutSize.x * 0.5f,
+        -layoutSize.y * 0.5f, layoutSize.y * 0.5f,
         -1.0f, 1.0f
     );
 
@@ -1897,6 +1923,7 @@ void DX11Renderer::beginUIPass(uint32_t screenWidth, uint32_t screenHeight)
     m_boundIB = nullptr;
     m_boundVS = nullptr;
     m_boundPS = nullptr;
+
 }
 
 void DX11Renderer::endUIPass()

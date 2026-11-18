@@ -90,13 +90,18 @@ private:
             auto loaderIt = m_loaders.find(key);
             if (loaderIt == m_loaders.end()) return;
 
+            // unload済みのアセットは再ロードしない
+            auto& typeCache = m_cache[key];
+            auto it = typeCache.find(path);
+            if (it == typeCache.end()) return;
+
             auto reloaded = loaderIt->second(path);
             if (!reloaded) return;
 
-            auto& typeCache = m_cache[key];
-            auto it = typeCache.find(path);
-            if (it != typeCache.end())
-                *std::static_pointer_cast<T>(it->second) = *std::static_pointer_cast<T>(reloaded);
+            // ローダーはpath/loadedを設定しないため、上書き前に補う
+            reloaded->path = it->second->path;
+            reloaded->loaded = true;
+            *std::static_pointer_cast<T>(it->second) = *std::static_pointer_cast<T>(reloaded);
             });
     }
 

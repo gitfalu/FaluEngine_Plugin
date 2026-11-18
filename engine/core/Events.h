@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 #include <cstdint>
 
 namespace FaluEngine
 {
 
-	//======= ƒEƒBƒ“ƒhƒEŒnƒCƒxƒ“ƒg =======
+	//======= ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ç³»ã‚¤ãƒ™ãƒ³ãƒˆ =======
 	struct WindowResizeEvent {
 		uint32_t width;
 		uint32_t height;
@@ -13,10 +13,10 @@ namespace FaluEngine
 	struct WindowCloseEvent {};
 
 	struct WindowFocusEvent {
-		bool focused; // true : ƒtƒH[ƒJƒXæ“¾ , false : ƒtƒH[ƒJƒX‘r¸
+		bool focused; // true : ãƒ•ã‚©ãƒ¼ã‚«ã‚¹å–å¾— , false : ãƒ•ã‚©ãƒ¼ã‚«ã‚¹å–ªå¤±
 	};
 
-	//======= ƒAƒvƒŠŒnƒCƒxƒ“ƒg ========
+	//======= ã‚¢ãƒ—ãƒªç³»ã‚¤ãƒ™ãƒ³ãƒˆ ========
 	struct AppUpdateEvent {
 		float deltaTime;
 	};

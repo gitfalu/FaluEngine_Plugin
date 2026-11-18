@@ -1,4 +1,4 @@
-#include "FaluEngine/Entity.h"
+ï»¿#include "FaluEngine/Entity.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Component.h"
 #include <algorithm>
@@ -17,7 +17,7 @@ void Entity::setParent(Entity parent)
 {
     if (!isValid() || !parent.isValid()) return;
 
-    // Šù‘¶‚Ìe‚©‚ç‚ÌØ‚è—£‚µ
+    // æ—¢å­˜ã®è¦ªã‹ã‚‰ã®åˆ‡ã‚Šé›¢ã—
     removeParent();
 
     auto& rel = getRegistry().get_or_emplace<RelationshipComponent>(m_handle);
@@ -38,7 +38,7 @@ void Entity::removeParent()
     auto& rel = getComponent<RelationshipComponent>();
     if (rel.parent == entt::null) return;
 
-    // e‚ÌchildrenƒŠƒXƒg‚©‚ç©•ª‚ğíœ
+    // è¦ªã®childrenãƒªã‚¹ãƒˆã‹ã‚‰è‡ªåˆ†ã‚’å‰Šé™¤
     auto& parentRel = getRegistry().get<RelationshipComponent>(rel.parent);
     parentRel.children.erase(
         std::remove(parentRel.children.begin(),

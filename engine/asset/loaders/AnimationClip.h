@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
@@ -15,7 +15,7 @@ namespace FaluEngine
 	struct RotationKey { float time; glm::quat value; };
 	struct ScaleKey { float time; glm::vec3 value; };
 
-	/// @brief 1ƒ{[ƒ“•ª‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ƒ`ƒƒƒ“ƒlƒ‹
+	/// @brief 1ãƒœãƒ¼ãƒ³åˆ†ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ£ãƒ³ãƒãƒ«
 	struct FALU_GRAPHICS_API BoneAnimChannel
 	{
 		std::string boneName;
@@ -32,7 +32,7 @@ namespace FaluEngine
 	};
 
 	//========= Animation Clip ==========
-	/// @brief 1‚Â‚ÌƒAƒjƒ[ƒVƒ‡ƒ“
+	/// @brief 1ã¤ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
 	struct AnimationClip : public Asset
 	{
 		std::string name;

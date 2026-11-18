@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
@@ -7,7 +7,7 @@
 
 namespace FaluEngine
 {
-	/// @brief ƒIƒuƒWƒFƒNƒgƒŒƒCƒ„[(Õ“Ë”»’è‚ÌƒOƒ‹[ƒv•ª‚¯)
+	/// @brief ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãƒ¬ã‚¤ãƒ¤ãƒ¼(è¡çªåˆ¤å®šã®ã‚°ãƒ«ãƒ¼ãƒ—åˆ†ã‘)
 	namespace Layers {
 		static constexpr JPH::ObjectLayer NON_MOVING = 0;
 		static constexpr JPH::ObjectLayer MOVING = 1;

@@ -1,4 +1,4 @@
-#include "EditorStateManager.h"
+ï»¿#include "EditorStateManager.h"
 #include "FaluEngine/Scene.h"
 #include "scene/SceneSerializer.h"
 #include "physics/PhysicsSystem.h"
@@ -55,7 +55,7 @@ namespace FaluEngine
 	{
 		if (m_state == PlayState::Editing) return;
 
-		// Entity‘I‘ğ‚Ì‰ğœ
+		// Entityé¸æŠã®è§£é™¤
 		if (m_onBeforeShop) m_onBeforeShop();
 
 		if (!m_snapshotJson.empty())

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <filesystem>
 #include <string>
@@ -20,7 +20,7 @@ namespace FaluEngine {
 	public:
 		static void Init(const std::filesystem::path& exePath = getExePath());
 
-		/// @brief Engine root ‚©‚ç‚Ì‘Š‘ÎƒpƒX->â‘ÎƒpƒX
+		/// @brief Engine root ã‹ã‚‰ã®ç›¸å¯¾ãƒ‘ã‚¹->çµ¶å¯¾ãƒ‘ã‚¹
 		/// @param path 
 		/// @return 
 		[[nodiscard]] static std::filesystem::path resolve(const std::string_view path);
@@ -45,7 +45,7 @@ namespace FaluEngine {
 		/// @return 
 		[[nodiscard]] static std::string fromWide(std::wstring_view wide);
 
-		/// @brief filesystemâ‘Îpath -> asset path
+		/// @brief filesystemçµ¶å¯¾path -> asset path
 		/// @param absolutePath 
 		/// @return 
 		[[nodiscard]] static std::string toAssetPath(const std::filesystem::path& absolutePath);

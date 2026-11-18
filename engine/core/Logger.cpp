@@ -1,4 +1,4 @@
-#include "Logger.h"
+ï»¿#include "Logger.h"
 
 namespace FaluEngine {
 
@@ -6,7 +6,7 @@ std::shared_ptr<spdlog::logger> Logger::s_engineLogger;
 std::shared_ptr<spdlog::logger> Logger::s_gameLogger;
 
 void Logger::init(const std::filesystem::path& logDir) {
-    // logs/ ƒfƒBƒŒƒNƒgƒŠ‚ª–³‚¯‚ê‚Îì¬
+    // logs/ ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªãŒç„¡ã‘ã‚Œã°ä½œæˆ
     std::filesystem::create_directories(logDir);
 
     s_engineLogger = createLogger("Engine", logDir / "engine.log");
@@ -25,17 +25,17 @@ std::shared_ptr<spdlog::logger> Logger::createLogger(
     const std::filesystem::path& logFile, 
     spdlog::color_mode colorMode)
 {
-    // ƒRƒ“ƒ\[ƒ‹ƒVƒ“ƒN(F•t‚«)
+    // ã‚³ãƒ³ã‚½ãƒ¼ãƒ«ã‚·ãƒ³ã‚¯(è‰²ä»˜ã)
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>(colorMode);
     consoleSink->set_pattern("%^[%H:%M:%S] [%n] [%l]%$ %v");
 
-    // ƒtƒ@ƒCƒ‹ƒVƒ“ƒN(F‚È‚µE’Ç‹Lƒ‚[ƒh)
+    // ãƒ•ã‚¡ã‚¤ãƒ«ã‚·ãƒ³ã‚¯(è‰²ãªã—ãƒ»è¿½è¨˜ãƒ¢ãƒ¼ãƒ‰)
     auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
         logFile.string(), false
     );
     fileSink->set_pattern("[%Y-%m-%d %H:%M:%S] [%n] [%l] %v");
 
-    // —¼•û‚É“¯o—Í‚·‚é
+    // ä¸¡æ–¹ã«åŒæ™‚å‡ºåŠ›ã™ã‚‹
     auto distSink = std::make_shared<spdlog::sinks::dist_sink_mt>();
     distSink->add_sink(consoleSink);
     distSink->add_sink(fileSink);

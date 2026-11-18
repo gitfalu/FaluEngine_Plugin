@@ -74,6 +74,7 @@ namespace Editor
 		drawRectTransformComponent(scene, selected);
 		drawCanvasComponent(scene, selected);
 		drawImageComponent(scene, selected);
+		drawSpriteAnimatorComponent(scene, selected);
 		drawButtonComponent(scene, selected);
 
 		ImGui::Spacing();
@@ -93,6 +94,14 @@ namespace Editor
 	void InspectorPanel::drawTransformComponent(FaluEngine::Scene* scene, entt::entity entity)
 	{
 		if (!scene->registry().all_of<FaluEngine::TransformComponent>(entity)) return;
+
+		// UIはTransformを使わない。編集しても反映されないため案内だけを出す
+		if (scene->registry().all_of<FaluEngine::RectTransformComponent>(entity))
+		{
+			ImGui::TextDisabled("UI element: Transform is not used. Edit 'RectTransform' below");
+			ImGui::Spacing();
+			return;
+		}
 
 		if(ImGui::CollapsingHeader("Transform",ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -610,7 +619,14 @@ namespace Editor
 				ImGui::TextColored({ 1.0f,0.7f,0.2f,1.0f }, "World Space is not implemented yet.");// <--未実装メッセージ
 			}
 
+			const char* scaleModes[] = { "Constant Pixel Size","Scale With Screen Size" };
+			int currentScale = static_cast<int>(canvas.scaleMode);
+			if (ImGui::Combo(TR("Scale Mode"), &currentScale, scaleModes, 2))
+				canvas.scaleMode = static_cast<FaluEngine::CanvasScaleMode>(currentScale);
+
 			ImGui::DragFloat2(TR("Reference Resolution"), &canvas.referenceResolution.x, 1.0f, 1.0f, 8192.0f);
+			if (canvas.scaleMode == FaluEngine::CanvasScaleMode::ScaleWithScreenSize)
+				ImGui::SliderFloat(TR("Match Width/Height"), &canvas.matchWidthOrHeight, 0.0f, 1.0f);
 			ImGui::DragInt(TR("Sort Order"), &canvas.sortOrder);
 			ImGui::Checkbox(TR("Enabled"), &canvas.enabled);
 		}
@@ -658,8 +674,57 @@ namespace Editor
 			}
 
 			ImGui::ColorEdit4(TR("Color"), &img.color.x);
+			ImGui::ColorEdit4(TR("UV Rect"), &img.uvRect.x);
+			ImGui::Checkbox(TR("Point Filter"), &img.pointFilter);
 			ImGui::Checkbox(TR("Visible"), &img.visible);
 		}
+	}
+
+	void InspectorPanel::drawSpriteAnimatorComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::SpriteAnimatorComponent>("Sprite Animator", scene, entity)) return;
+
+		auto& sa = scene->registry().get<FaluEngine::SpriteAnimatorComponent>(entity);
+
+		char buf[512];
+		strncpy_s(buf, sa.clipPath.c_str(), sizeof(buf));
+		if (ImGui::InputText(TR("Clip Path"), buf, sizeof(buf)))
+		{
+			sa.clipPath = buf;
+			sa.cachedClip.reset();
+			sa.started = false;
+		}
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+			{
+				const char* payloadPath = static_cast<const char*>(payload->Data);
+				const std::string assetPath = FaluEngine::PathResolver::normalizeAssetPath(payloadPath);
+				if (std::filesystem::path(assetPath).extension() == ".fanim2d" &&
+					std::filesystem::exists(FaluEngine::PathResolver::resolve(assetPath)))
+				{
+					sa.clipPath = assetPath;
+					sa.cachedClip.reset();
+					sa.started = false;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		if (!sa.clipPath.empty() &&
+			!std::filesystem::exists(FaluEngine::PathResolver::resolve(sa.clipPath)))
+		{
+			ImGui::TextColored({ 1.0f,0.3f,0.3f,1.0f }, "File not found");
+		}
+
+		ImGui::DragFloat(TR("Speed"), &sa.speed, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat(TR("Time"), &sa.time, 0.01f, 0.0f, 3600.0f);
+		ImGui::Checkbox(TR("Playing"), &sa.playing);
+		ImGui::Checkbox(TR("Pixel Perfect"), &sa.pixelPerfect);
+
+		if (!scene->registry().all_of<FaluEngine::ImageComponent>(entity))
+			ImGui::TextColored({ 1.0f,0.8f,0.2f,1.0f }, "Required an Image component");
 	}
 
 	void InspectorPanel::drawButtonComponent(FaluEngine::Scene* scene, entt::entity entity)
@@ -1000,6 +1065,19 @@ namespace Editor
 						e.addComponent<FaluEngine::RectTransformComponent>();
 						FaluEngine::SceneManager::get().markDirty();
 					}
+				}
+			}
+
+			if (!scene->registry().all_of<FaluEngine::SpriteAnimatorComponent>(entity))
+			{
+				if (ImGui::MenuItem(TR("Sprite Animator Component")))
+				{
+					e.addComponent<FaluEngine::SpriteAnimatorComponent>();
+					if (!e.hasComponent<FaluEngine::ImageComponent>())
+						e.addComponent<FaluEngine::ImageComponent>();
+					if (!e.hasComponent<FaluEngine::RectTransformComponent>())
+						e.addComponent<FaluEngine::RectTransformComponent>();
+					FaluEngine::SceneManager::get().markDirty();
 				}
 			}
 

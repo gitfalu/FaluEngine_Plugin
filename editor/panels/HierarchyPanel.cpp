@@ -1,4 +1,4 @@
-#include "HierarchyPanel.h"
+ï»¿#include "HierarchyPanel.h"
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Entity.h"
 #include "FaluEngine/Component.h"
@@ -56,7 +56,7 @@ namespace Editor
 			m_selected = entt::null;
 		}
 
-		// ƒhƒ‰ƒbƒO•ƒhƒƒbƒv‚É‚æ‚éeq‰»‰ğœ
+		// ãƒ‰ãƒ©ãƒƒã‚°ï¼†ãƒ‰ãƒ­ãƒƒãƒ—ã«ã‚ˆã‚‹è¦ªå­åŒ–è§£é™¤
 		ImVec2 remaining = ImGui::GetContentRegionAvail();
 		if (remaining.y < 10.0f) remaining.y = 10.0f;
 		ImGui::InvisibleButton("##HierarchyDrop", remaining);
@@ -103,7 +103,7 @@ namespace Editor
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 			m_selected = entity;
 
-		// ƒhƒ‰ƒbƒOƒ\[ƒX
+		// ãƒ‰ãƒ©ãƒƒã‚°ã‚½ãƒ¼ã‚¹
 		if (ImGui::BeginDragDropSource())
 		{
 			ImGui::SetDragDropPayload("ENTITY_DRAG", &entity, sizeof(entt::entity));
@@ -111,7 +111,7 @@ namespace Editor
 			ImGui::EndDragDropSource();
 		}
 
-		// ƒhƒƒbƒvƒ^[ƒQƒbƒg
+		// ãƒ‰ãƒ­ãƒƒãƒ—ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload =
@@ -119,7 +119,7 @@ namespace Editor
 			{
 				entt::entity dragged = *static_cast<const entt::entity*>(payload->Data);
 
-				// ©•ª©g‚Í–³‹
+				// è‡ªåˆ†è‡ªèº«ã¯ç„¡è¦–
 				if (dragged != entity && !isDescendantOf(scene,dragged,entity))
 				{
 					FaluEngine::Entity child(dragged, scene);
@@ -132,7 +132,7 @@ namespace Editor
 		}
 
 		
-		// ‰EƒNƒŠƒbƒNƒƒjƒ…[
+		// å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼
 		if (ImGui::BeginPopupContextItem())
 		{
 			if (ImGui::MenuItem(TR("Create Child Entity")))

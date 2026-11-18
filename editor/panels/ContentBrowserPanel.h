@@ -1,7 +1,8 @@
-#pragma once
+ï»¿#pragma once
 #include <imgui.h>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 #include <entt/entt.hpp>
 
@@ -23,6 +24,8 @@ namespace Editor {
 		Folder, 
 		Material,// .mat
 		NativeScript, // .h/.hpp/.cpp
+		SpriteSheet, // .fsprite
+		SpriteClip, // .fanim2d
 	};
 
 	struct ContentEntry {
@@ -41,11 +44,15 @@ namespace Editor {
 		[[nodiscard]] AssetType getDraggedAssetType() const noexcept { return m_draggedType; }
 		void clearDragged() { m_draggedPath.clear(); }
 
+		/// @brief ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸ.fspriteã®ã‚¢ã‚»ãƒƒãƒˆãƒ‘ã‚¹ã‚’å–ã‚Šå‡ºã™(ç„¡ã‘ã‚Œã°ç©º)ã€‚å–ã‚Šå‡ºã™ã¨æ¶ˆãˆã‚‹
+		/// @return 
+		[[nodiscard]] std::string takeSpriteEditorRequest() { return std::move(std::exchange(m_openSpriteRequest, {})); }
+
 	private:
-		//= ¶ƒyƒCƒ“FƒtƒHƒ‹ƒ_ƒcƒŠ[
+		//= å·¦ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ„ãƒªãƒ¼
 		void drawFolderTree(const std::filesystem::path& path);
 
-		//= ‰EƒyƒCƒ“FƒtƒHƒ‹ƒ_ƒcƒŠ[
+		//= å³ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ„ãƒªãƒ¼
 		bool drawFilePanel(FaluEngine::Scene* scene, entt::entity selected);
 		bool drawGridView(FaluEngine::Scene* scene, entt::entity selected);
 		bool drawListView(FaluEngine::Scene* scene, entt::entity selected);
@@ -53,7 +60,7 @@ namespace Editor {
 			FaluEngine::Scene* scene, entt::entity selected,
 			bool isGrid);
 
-		// ‰EƒNƒŠƒbƒNƒƒjƒ…[
+		// å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼
 		void drawContextMenu();
 
 		void refresh();
@@ -83,9 +90,16 @@ namespace Editor {
 		std::filesystem::path m_pendingNavigate;
 		bool m_hasPendingNavigate = false;
 
-		// C++ ƒXƒNƒŠƒvƒgì¬ƒ_ƒCƒAƒƒO
+		// C++ ã‚¹ã‚¯ãƒªãƒ—ãƒˆä½œæˆãƒ€ã‚¤ã‚¢ãƒ­ã‚°
 		bool m_openScriptPopup = false;
 		char m_newScriptName[128] = {};
 		std::string m_scriptError;
+
+		// ã‚¢ã‚»ãƒƒãƒˆä½œæˆ(.fsprite/.fanim2d)
+		int m_createAssetKind = 0;
+		bool m_openAssetPopup = false;
+		char m_newAssetName[128] = {};
+		std::string m_assetError;
+		std::string m_openSpriteRequest;
 	};
 }

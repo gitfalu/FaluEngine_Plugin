@@ -1,4 +1,4 @@
-/*****************************************************************//**
+ï»¿/*****************************************************************//**
  * \file   ActionEventTrack.h
  * \brief  
  * 
@@ -18,15 +18,15 @@ namespace FaluEngine
 {
 	enum class ActionWindowType : uint8_t
 	{
-		Parry = 0,     // ƒpƒŠƒBó•t
-		JustDodge,     // ƒWƒƒƒXƒg‰ñ”ğ(ƒMƒŠƒMƒŠ‰ñ”ğ)ó•t
-		JustGuard,     // ƒWƒƒƒXƒgƒK[ƒhó•t
-		Invincible,    // –³“G
-		SuperArmor,    // ƒX[ƒp[ƒA[ƒ}[(‹¯‚Ü‚È‚¢)
-		HitActive,     // UŒ‚”»’è‚ª—LŒø‚È‹æŠÔ
-		CancelWindow,  // Ÿ‚Ìs“®‚ÖƒLƒƒƒ“ƒZƒ‹‰Â”\‚È‹æŠÔ
-		InputBuffer,   // æs“ü—Í‚ğó‚¯•t‚¯‚é‹æŠÔ
-		Custom,        // ƒ†[ƒU[’è‹`(tag ‚Å‹æ•Ê)
+		Parry = 0,     // ãƒ‘ãƒªã‚£å—ä»˜
+		JustDodge,     // ã‚¸ãƒ£ã‚¹ãƒˆå›é¿(ã‚®ãƒªã‚®ãƒªå›é¿)å—ä»˜
+		JustGuard,     // ã‚¸ãƒ£ã‚¹ãƒˆã‚¬ãƒ¼ãƒ‰å—ä»˜
+		Invincible,    // ç„¡æ•µ
+		SuperArmor,    // ã‚¹ãƒ¼ãƒ‘ãƒ¼ã‚¢ãƒ¼ãƒãƒ¼(æ€¯ã¾ãªã„)
+		HitActive,     // æ”»æ’ƒåˆ¤å®šãŒæœ‰åŠ¹ãªåŒºé–“
+		CancelWindow,  // æ¬¡ã®è¡Œå‹•ã¸ã‚­ãƒ£ãƒ³ã‚»ãƒ«å¯èƒ½ãªåŒºé–“
+		InputBuffer,   // å…ˆè¡Œå…¥åŠ›ã‚’å—ã‘ä»˜ã‘ã‚‹åŒºé–“
+		Custom,        // ãƒ¦ãƒ¼ã‚¶ãƒ¼å®šç¾©(tag ã§åŒºåˆ¥)
 		Count
 	};
 
@@ -44,10 +44,10 @@ namespace FaluEngine
 	struct ActionWindow
 	{
 		ActionWindowType type = ActionWindowType::Parry;
-		float startFrame = 0.0f; // ŠÜ‚Ş
-		float endFrame = 1.0f; // ŠÜ‚Ü‚È‚¢
-		std::string tag; // Custom‚Ì¯•Ê–¼
-		float param = 0.0f; // ”CˆÓƒpƒ‰ƒ[ƒ^[
+		float startFrame = 0.0f; // å«ã‚€
+		float endFrame = 1.0f; // å«ã¾ãªã„
+		std::string tag; // Customã®è­˜åˆ¥å
+		float param = 0.0f; // ä»»æ„ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
 	};
 
 	struct ActionPointEvent
@@ -74,7 +74,7 @@ namespace FaluEngine
 		[[nodiscard]] FALU_SCENE_API std::vector<std::string> validate(float clipDurationSec) const;
 	};
 
-	//================ ƒ‰ƒ“ƒ^ƒCƒ€ó‘Ô
+	//================ ãƒ©ãƒ³ã‚¿ã‚¤ãƒ çŠ¶æ…‹
 	struct ActionFiredPoint
 	{
 		std::string name;
@@ -82,23 +82,23 @@ namespace FaluEngine
 		float timeSeconds = 0.0f;
 	};
 
-	/// @brief Entity‚²‚Æ‚Ìƒ‰ƒ“ƒ^ƒCƒ€ó‘Ô(ECSƒRƒ“ƒ|[ƒlƒ“ƒg‚Æ‚µ‚Äˆµ‚¤)BƒV[ƒ“•Û‘¶‚Í‚µ‚È‚¢B
+	/// @brief Entityã”ã¨ã®ãƒ©ãƒ³ã‚¿ã‚¤ãƒ çŠ¶æ…‹(ECSã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã¨ã—ã¦æ‰±ã†)ã€‚ã‚·ãƒ¼ãƒ³ä¿å­˜ã¯ã—ãªã„ã€‚
 	struct ActionStateComponent
 	{
-		//==== Œ»İ‚Ìó‘Ô =====
-		uint32_t activeMask = 0; // Œ»İŠÔ‚ÉƒAƒNƒeƒBƒu‚È‘‹
-		uint32_t stepMask = 0; // ’¼‹ß‚ÌXVƒXƒeƒbƒv’†‚É‚P“x‚Å‚àd‚È‚Á‚½‘‹
-		uint32_t enteredMask = 0; // ¡ƒtƒŒ[ƒ€‚ÅŠJ‚¢‚½‘‹
-		uint32_t exitedMask = 0; // ¡ƒtƒŒ[ƒ€‚Å•Â‚¶‚½‘‹
+		//==== ç¾åœ¨ã®çŠ¶æ…‹ =====
+		uint32_t activeMask = 0; // ç¾åœ¨æ™‚é–“ã«ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ãªçª“
+		uint32_t stepMask = 0; // ç›´è¿‘ã®æ›´æ–°ã‚¹ãƒ†ãƒƒãƒ—ä¸­ã«ï¼‘åº¦ã§ã‚‚é‡ãªã£ãŸçª“
+		uint32_t enteredMask = 0; // ä»Šãƒ•ãƒ¬ãƒ¼ãƒ ã§é–‹ã„ãŸçª“
+		uint32_t exitedMask = 0; // ä»Šãƒ•ãƒ¬ãƒ¼ãƒ ã§é–‰ã˜ãŸçª“
 
-		// í—Ş‚²‚Æ‚Ì‘‹“àis“x
+		// ç¨®é¡ã”ã¨ã®çª“å†…é€²è¡Œåº¦
 		float elapsedSec[kActionWindowTypeCount] = {};
 		float remainingSec[kActionWindowTypeCount] = {};
 		float normalized[kActionWindowTypeCount] = {};
 
 		std::vector<ActionFiredPoint> firedPoints;
 
-		//======== ƒLƒƒƒbƒVƒ… =======
+		//======== ã‚­ãƒ£ãƒƒã‚·ãƒ¥ =======
 		std::shared_ptr<const ActionEventTrack> track;
 		std::string cachedMeshPath;
 		std::string cachedClipName;
@@ -112,14 +112,14 @@ namespace FaluEngine
 		[[nodiscard]] bool justExited(ActionWindowType t) const noexcept { return (exitedMask & actionWindowBit(t)) != 0; }
 	};
 
-	//===== •]‰¿Ší ============-
+	//===== è©•ä¾¡å™¨ ============-
 	struct ActionStepInput
 	{
-		float prevTime = 0.0f; // XV‘O‚ÌÄ¶ŠÔ(•b)
-		float curTime = 0.0f; // XVŒã‚ÌÄ¶ŠÔ(•b)
-		float duration = 0.0f; // ƒNƒŠƒbƒv(•b)
-		bool wrapped = false; // ƒ‹[ƒv‚ÅÜ‚è•Ô‚µ‚½
-		bool seek = false; // •s˜A‘±ƒWƒƒƒ“ƒv(ƒŠƒvƒŒƒCŠª‚«–ß‚µ“™) : ó‘Ô‚Ì‚İÄŒvZAƒCƒxƒ“ƒg‹q‰Æ‚Í‚µ‚È‚¢
+		float prevTime = 0.0f; // æ›´æ–°å‰ã®å†ç”Ÿæ™‚é–“(ç§’)
+		float curTime = 0.0f; // æ›´æ–°å¾Œã®å†ç”Ÿæ™‚é–“(ç§’)
+		float duration = 0.0f; // ã‚¯ãƒªãƒƒãƒ—(ç§’)
+		bool wrapped = false; // ãƒ«ãƒ¼ãƒ—ã§æŠ˜ã‚Šè¿”ã—ãŸ
+		bool seek = false; // ä¸é€£ç¶šã‚¸ãƒ£ãƒ³ãƒ—(ãƒªãƒ—ãƒ¬ã‚¤å·»ãæˆ»ã—ç­‰) : çŠ¶æ…‹ã®ã¿å†è¨ˆç®—ã€ã‚¤ãƒ™ãƒ³ãƒˆå®¢å®¶ã¯ã—ãªã„
 		bool  clipChanged = false;
 	};
 
@@ -129,7 +129,7 @@ namespace FaluEngine
 		static void step(ActionStateComponent& state, const ActionEventTrack* track, const ActionStepInput& in);
 	};
 
-	//========== –hŒä”»’è ============
+	//========== é˜²å¾¡åˆ¤å®š ============
 	enum class DefenseResult : uint8_t
 	{
 		None = 0,

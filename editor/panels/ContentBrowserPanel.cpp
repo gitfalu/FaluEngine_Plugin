@@ -1,4 +1,5 @@
-#include "ContentBrowserPanel.h"
+ï»¿#include "ContentBrowserPanel.h"
+#include "asset/loaders/SpriteAsset.h"
 #include <FaluEngine/Localization.h>
 #include "asset/loaders/AnimationCache.h"
 #include "FaluEngine/Scene.h"
@@ -92,13 +93,13 @@ namespace Editor{
 
 		ImGui::Separator();
 
-		//==== ¶‰EƒyƒCƒ“ =======
-		//-¶ƒyƒCƒ“FƒtƒHƒ‹ƒ_ƒcƒŠ[
+		//==== å·¦å³ãƒšã‚¤ãƒ³ =======
+		//-å·¦ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ„ãƒªãƒ¼
 		ImGui::BeginChild("##FolderTree", { m_leftPaneWidth,0 }, true);
 		drawFolderTree(m_rootPath);
 		ImGui::EndChild();
 
-		// ƒŠƒTƒCƒU[
+		// ãƒªã‚µã‚¤ã‚¶ãƒ¼
 		ImGui::SameLine();
 		ImGui::PushStyleColor(ImGuiCol_Button, { 0.3f,0.3f,0.3f,1.0f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f,0.5f,0.5f,1.0f });
@@ -110,7 +111,7 @@ namespace Editor{
 			m_leftPaneWidth = std::clamp(m_leftPaneWidth,80.0f,400.0f);
 		}
 
-		//-‰EƒyƒCƒ“Fƒtƒ@ƒCƒ‹ˆê——
+		//-å³ãƒšã‚¤ãƒ³ï¼šãƒ•ã‚¡ã‚¤ãƒ«ä¸€è¦§
 		ImGui::SameLine();
 		ImGui::BeginChild("FilePanel", { 0,0 }, false);
 		sceneChanged = drawFilePanel(scene,selected);
@@ -135,7 +136,7 @@ namespace Editor{
 
 		if (!std::filesystem::exists(m_currentPath)) return;
 
-		//-ƒtƒHƒ‹ƒ_‚ğæ‚ÉAƒtƒ@ƒCƒ‹‚ğŒã‚É•À‚×‚é
+		//-ãƒ•ã‚©ãƒ«ãƒ€ã‚’å…ˆã«ã€ãƒ•ã‚¡ã‚¤ãƒ«ã‚’å¾Œã«ä¸¦ã¹ã‚‹
 		std::vector<ContentEntry> dirs, files;
 		std::error_code ec;
 
@@ -176,7 +177,7 @@ namespace Editor{
 			}
 		}
 
-		//-ƒAƒ‹ƒtƒ@ƒxƒbƒg‡‚Éƒ\[ƒg
+		//-ã‚¢ãƒ«ãƒ•ã‚¡ãƒ™ãƒƒãƒˆé †ã«ã‚½ãƒ¼ãƒˆ
 		auto sortFn = [](const ContentEntry& a, const ContentEntry& b) {
 			return a.name < b.name;
 			};
@@ -326,11 +327,13 @@ namespace Editor{
 					FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 					sceneChanged = true;
 				}
+				else if (entry.type == AssetType::SpriteSheet)
+					m_openSpriteRequest = FaluEngine::PathResolver::toAssetPath(entry.path);
 				else
 					applyToEntity(entry, scene, selected);
 			}
 
-			//-ƒhƒ‰ƒbƒN‘€ì
+			//-ãƒ‰ãƒ©ãƒƒã‚°æ“ä½œ
 			const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 
 			if (!entry.isDirectory && ImGui::BeginDragDropSource()) {
@@ -354,7 +357,7 @@ namespace Editor{
 		}
 		else
 		{
-			//=== ƒŠƒXƒg•\¦ ======
+			//=== ãƒªã‚¹ãƒˆè¡¨ç¤º ======
 			ImGui::TextColored(color, "%s", icon);
 			ImGui::SameLine();
 
@@ -369,6 +372,10 @@ namespace Editor{
 						const std::string assetPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 						FaluEngine::SceneManager::get().loadSceneFromFile(assetPath);
 						sceneChanged = true;
+					}
+					else if (entry.type == AssetType::SpriteSheet)
+					{
+						m_openSpriteRequest = FaluEngine::PathResolver::toAssetPath(entry.path);
 					}
 					else
 					{
@@ -418,7 +425,7 @@ namespace Editor{
 
 		if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
 			ext == ".dds" || ext == ".tga" || ext == ".bmp") {
-			// ƒtƒ@ƒCƒ‹–¼‚É"normal" "norm" "nrm" ‚ªŠÜ‚Ü‚ê‚ê‚Î NormalMap
+			// ãƒ•ã‚¡ã‚¤ãƒ«åã«"normal" "norm" "nrm" ãŒå«ã¾ã‚Œã‚Œã° NormalMap
 			std::string stem = path.stem().string();
 			std::transform(stem.begin(), stem.end(), stem.begin(), ::tolower);
 			if (stem.find("normal") != std::string::npos ||
@@ -435,7 +442,8 @@ namespace Editor{
 		if (ext == ".h" || ext == ".hpp" || ext == ".cpp" || ext == ".hxx" || ext == ".inl" ||
 			ext == ".cpp" || ext == ".cc" || ext == ".cxx")
 			return AssetType::NativeScript;
-
+		if (ext == ".fsprite") return AssetType::SpriteSheet;
+		if (ext == ".fanim2d") return AssetType::SpriteClip;
 		return AssetType::Unknown;
 	}
 
@@ -451,6 +459,8 @@ namespace Editor{
 		case Editor::AssetType::Scene:		return "[SCN]";
 		case Editor::AssetType::Script:		return "[LUA]";
 		case Editor::AssetType::NativeScript: return "[C++]";
+		case Editor::AssetType::SpriteSheet: return "[SPR]";
+		case Editor::AssetType::SpriteClip: return "[ANM]";
 		default: return "[   ]";
 		}
 	}
@@ -467,13 +477,15 @@ namespace Editor{
 		case Editor::AssetType::Scene: return { 1.0f,1.0f,0.4f,1.0f };
 		case Editor::AssetType::Script: return { 0.4f,1.0f,0.8f,1.0f };
 		case Editor::AssetType::NativeScript: return { 0.5f,0.7f,1.0f,1.0f };
+		case Editor::AssetType::SpriteSheet: return { 1.0f,0.6f,0.8f,1.0f };
+		case Editor::AssetType::SpriteClip: return { 1.0f,0.8f,0.5f,1.0f };
 		default: return { 0.7f,0.7f,0.7f,1.0f };
 		}
 
 	}
 	void ContentBrowserPanel::applyToEntity(const ContentEntry& entry, FaluEngine::Scene* scene, entt::entity selected)
 	{
-		// C++ƒXƒNƒŠƒvƒg‚Íƒ_ƒuƒ‹ƒNƒŠƒbƒN‚ÅŠÖ˜A‚Â‚¯‚ç‚ê‚½ƒGƒfƒBƒ^(Visual	Studio)‚ÅŠJ‚­
+		// C++ã‚¹ã‚¯ãƒªãƒ—ãƒˆã¯ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã§é–¢é€£ã¤ã‘ã‚‰ã‚ŒãŸã‚¨ãƒ‡ã‚£ã‚¿(VisualStudio)ã§é–‹ã
 		if (entry.type == AssetType::NativeScript)
 		{
 			FaluEngine::ScriptProjectGenerator::openFile(entry.path);
@@ -493,7 +505,7 @@ namespace Editor{
 			m.meshPath = FaluEngine::PathResolver::toAssetPath(entry.path);
 			m.cachedMesh = nullptr;
 
-			// Animation•t‚«‚Ìƒ‚ƒfƒ‹‚Ìê‡Animator‚ğ©“®’Ç‰Á
+			// Animationæœˆã®ãƒ¢ãƒ‡ãƒ«ã®å ´åˆAnimatorã‚’è‡ªå‹•è¿½åŠ 
 			auto& clips = FaluEngine::AnimationCache::get().getAnimations(assetPath);
 			if (!clips.empty())
 			{
@@ -523,28 +535,42 @@ namespace Editor{
 	void ContentBrowserPanel::drawContextMenu()
 	{
 		auto& gen = FaluEngine::ScriptProjectGenerator::get();
-		if (!gen.isInitialized()) return;
+		const bool hasGen = gen.isInitialized(); // C++ ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆæœªåˆæœŸåŒ–ã§ã‚‚ã€ã‚¢ã‚»ãƒƒãƒˆä½œæˆãƒ¡ãƒ‹ãƒ¥ãƒ¼ã¯ä½¿ãˆã‚‹ã‚ˆã†ã«
 
 		if (ImGui::BeginPopupContextWindow("##ContentContext", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::BeginMenu("Create"))
 			{
-				if (ImGui::MenuItem("C++ Script"))
+				if (hasGen && ImGui::MenuItem("C++ Script"))
 				{
 					m_openScriptPopup = true;
 					m_newScriptName[0] = '\0';
 					m_scriptError.clear();
 				}
+				if (ImGui::MenuItem("Sprite Sheet (.fsprite)"))
+				{
+					m_createAssetKind = 1;
+					m_openAssetPopup = true;
+					m_newAssetName[0] = '\0';
+					m_assetError.clear();
+				}
+				if (ImGui::MenuItem("Sprite Clip (.fanim2d)"))
+				{
+					m_createAssetKind = 2;
+					m_openAssetPopup = true;
+					m_newAssetName[0] = '\0';
+					m_assetError.clear();
+				}
 				ImGui::EndMenu();
 			}
-			ImGui::Separator();
-			if (ImGui::MenuItem("Open C++ Project"))
+			if (hasGen) ImGui::Separator();
+			if (hasGen && ImGui::MenuItem("Open C++ Project"))
 			{
 				gen.regenerate();
 				if (!gen.openSolution())
 					LOG_ERROR("ContentBrowser: failed to open C++ project");
 			}
-			if (ImGui::MenuItem("Regenerate C++ Project"))
+			if (hasGen && ImGui::MenuItem("Regenerate C++ Project"))
 			{
 				const auto r = gen.regenerate();
 				if (r.changed) FaluEngine::HotReloadManager::get().requestRebuild();
@@ -579,13 +605,72 @@ namespace Editor{
 				if (gen.createNativeScript(m_currentPath, m_newScriptName, err))
 				{
 					refresh();
-					// V‹KƒXƒNƒŠƒvƒg‚ğ‚·‚®Inspector‚Å‘I‚×‚é‚æ‚¤‚Éƒrƒ‹ƒh{ƒŠƒ[ƒh‚ğ‘–‚ç‚¹‚é
+					// æ–°è¦ã‚¹ã‚¯ãƒªãƒ—ãƒˆã‚’ã™ãInspectorã§é¸ã¹ã‚‹ã‚ˆã†ã«ãƒ“ãƒ«ãƒ‰ï¼‹ãƒªãƒ­ãƒ¼ãƒ‰ã‚’èµ°ã‚‰ã›ã‚‹
 					FaluEngine::HotReloadManager::get().requestRebuild();
 					ImGui::CloseCurrentPopup();
 				}
 				else
 				{
 					m_scriptError = err;
+				}
+			}
+			ImGui::EndPopup();
+		}
+
+		//=== ã‚¢ã‚»ãƒƒãƒˆä½œæˆ =====
+		if (m_openAssetPopup)
+		{
+			ImGui::OpenPopup("Create Asset");
+			m_openAssetPopup = false;
+		}
+
+		if (ImGui::BeginPopupModal("Create Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			const char* ext = (m_createAssetKind == 1) ? ".fsprite" : ".fanim2d";
+			ImGui::TextDisabled("%s", FaluEngine::PathResolver::toUtf8(m_currentPath).c_str());
+			ImGui::SetNextItemWidth(260.0f);
+			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+			const bool enter = ImGui::InputText("##AssetName", m_newAssetName, sizeof(m_newAssetName),
+				ImGuiInputTextFlags_EnterReturnsTrue);
+			ImGui::SameLine();
+			ImGui::TextDisabled("%s", ext);
+
+			if (!m_assetError.empty())
+				ImGui::TextColored({ 1.0f,0.4f,0.4f,1.0f }, "%s", m_assetError.c_str());
+
+			const bool create = ImGui::Button("Create", { 100.0f,0.0f }) || enter;
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", { 100.0f,0.0f })) ImGui::CloseCurrentPopup();
+
+			if (create)
+			{
+				const std::string name = m_newAssetName;
+				if (name.empty() || name.find_first_of("\\/:*?\"<>|") != std::string::npos)
+				{
+					m_assetError = "Invalid file name.";
+				}
+				else
+				{
+					const auto path = m_currentPath / (name + ext);
+					if (std::filesystem::exists(path))
+					{
+						m_assetError = "File already exists.";
+					}
+					else
+					{
+						const std::string assetPath = FaluEngine::PathResolver::toAssetPath(path);
+						bool ok = false;
+						if (m_createAssetKind == 1) { FaluEngine::SpriteSheetAsset s; ok = FaluEngine::saveSpriteSheet(s, assetPath); }
+						else { FaluEngine::SpriteClipAsset c; ok = FaluEngine::saveSpriteClip(c, assetPath); }
+
+						if (ok)
+						{
+							refresh();
+							if (m_createAssetKind == 1) m_openSpriteRequest = assetPath; // ä½œæˆå¾Œãã®ã¾ã¾ã‚¨ãƒ‡ã‚£ã‚¿ã§é–‹ã
+							ImGui::CloseCurrentPopup();
+						}
+						else m_assetError = "Failed to create file.";
+					}
 				}
 			}
 			ImGui::EndPopup();

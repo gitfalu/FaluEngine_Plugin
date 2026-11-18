@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "TerrainComponent.h"
 #include <FaluEngine/EngineExport.h>
 #include <d3d11.h>
@@ -8,7 +8,7 @@ namespace FaluEngine
 	class Scene;
 	class Entity;
 
-	// TerrainComponent‚ğó‚¯æ‚è’nŒ`‚ÌƒƒbƒVƒ…‚ğ¶¬
+	// TerrainComponentã‚’å—ã‘å–ã‚Šåœ°å½¢ã®ãƒ¡ãƒƒã‚·ãƒ¥ã‚’ç”Ÿæˆ
 
 	FALU_SCENE_API Entity createTerrainEntity(
 		Scene& scene,
@@ -30,7 +30,7 @@ namespace FaluEngine
 		ID3D11Device* device
 	);
 
-	/// @brief ƒXƒJƒ‹ƒvƒg•ÒW—pFŒ»İ‚Ì‚‚³‚©‚çƒƒbƒVƒ…‚Ì‚İì‚è’¼‚·
+	/// @brief ã‚¹ã‚«ãƒ«ãƒ—ãƒˆç·¨é›†ç”¨ï¼šç¾åœ¨ã®é«˜ã•ã‹ã‚‰ãƒ¡ãƒƒã‚·ãƒ¥ã®ã¿ä½œã‚Šç›´ã™
 	/// @param scene 
 	/// @param entity 
 	/// @param device 
@@ -41,7 +41,7 @@ namespace FaluEngine
 		ID3D11Device* device
 	);
 
-	/// @brief ƒXƒJƒ‹ƒvƒg•ÒW—pFŒ»İ‚Ì‚‚³î•ñ‚©‚ç•¨—Œ`ó‚¾‚¯‚ğì‚è’¼‚·
+	/// @brief ã‚¹ã‚«ãƒ«ãƒ—ãƒˆç·¨é›†ç”¨ï¼šç¾åœ¨ã®é«˜ã•æƒ…å ±ã‹ã‚‰ç‰©ç†å½¢çŠ¶ã ã‘ã‚’ä½œã‚Šç›´ã™
 	/// @param scene 
 	/// @param entity 
 	/// @return 
@@ -50,7 +50,7 @@ namespace FaluEngine
 		Entity entity
 	);
 
-	/// @brief ƒVƒŠƒAƒ‰ƒCƒY•œŒ³—p
+	/// @brief ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºå¾©å…ƒç”¨
 	/// @param scene 
 	/// @param device 
 	/// @return 

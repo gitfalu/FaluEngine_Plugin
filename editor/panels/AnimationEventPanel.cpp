@@ -1,4 +1,4 @@
-#include "AnimationEventPanel.h"
+ï»¿#include "AnimationEventPanel.h"
 
 #include "FaluEngine/Scene.h"
 #include "FaluEngine/Component.h"
@@ -20,12 +20,12 @@ namespace Editor
 
 	namespace
 	{
-		constexpr float kRowHeight = 22.0f; // ˆês‚Ì‚‚³
+		constexpr float kRowHeight = 22.0f; // ä¸€è¡Œã®é«˜ã•
 		constexpr float kRulerHeight = 22.0f; // 
-		constexpr float kLabelWidth = 96.0f; // ƒ‰ƒxƒ‹‚Ì•
+		constexpr float kLabelWidth = 96.0f; // ãƒ©ãƒ™ãƒ«ã®å¹…
 		constexpr float kHandleWidth = 6.0f; // 
 
-		/// @brief “o˜^‚·‚éƒCƒxƒ“ƒg‚É‚æ‚Á‚Ä•\¦‚·‚éF‚ğ•Ï‚¦‚é
+		/// @brief ç™»éŒ²ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆã«ã‚ˆã£ã¦è¡¨ç¤ºã™ã‚‹è‰²ã‚’å¤‰ãˆã‚‹
 		/// @param t 
 		/// @param alpha 
 		/// @return 
@@ -48,7 +48,7 @@ namespace Editor
 			return ImGui::ColorConvertFloat4ToU32(v);
 		}
 
-		/// @brief ƒAƒNƒVƒ‡ƒ“‚É‚¨‚¢‚ÄƒfƒtƒHƒ‹ƒg‚ÌŒø‰ÊŠÔ‚ğ•Ô‚·
+		/// @brief ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã«ãŠã„ã¦ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®åŠ¹æœæ™‚é–“ã‚’è¿”ã™
 		/// @param t 
 		/// @param fallback 
 		/// @return 
@@ -56,10 +56,10 @@ namespace Editor
 		{
 			switch (t)
 			{
-			case ActionWindowType::Parry: return 8.0f; // ƒpƒŠƒB
-			case ActionWindowType::JustGuard: return 6.0f; // ƒWƒƒƒXƒgƒK[ƒh
-			case ActionWindowType::JustDodge: return 10.0f; // ƒWƒƒƒXƒg‰ñ”ğ
-			case ActionWindowType::Invincible: return 20.0f; // –³“GŠÔ
+			case ActionWindowType::Parry: return 8.0f; // ãƒ‘ãƒªã‚£
+			case ActionWindowType::JustGuard: return 6.0f; // ã‚¸ãƒ£ã‚¹ãƒˆã‚¬ãƒ¼ãƒ‰
+			case ActionWindowType::JustDodge: return 10.0f; // ã‚¸ãƒ£ã‚¹ãƒˆå›é¿
+			case ActionWindowType::Invincible: return 20.0f; // ç„¡æ•µæ™‚é–“
 			default: return static_cast<float>(fallback);
 			}
 		}
@@ -77,7 +77,7 @@ namespace Editor
 			return;
 		}
 
-		// Mesh/Animator‚ğ‚Á‚Ä‚¢‚é‚©Šm”F
+		// Mesh/Animatorã‚’æŒã£ã¦ã„ã‚‹ã‹ç¢ºèª
 		auto& reg = scene->registry();
 		auto* animator = reg.try_get<AnimatorComponent>(selected);
 		auto* mesh = reg.try_get<MeshComponent>(selected);
@@ -88,7 +88,7 @@ namespace Editor
 			return;
 		}
 
-		// AnimationClip‚ª“o˜^Ï‚İ‚©Šm”F
+		// AnimationClipãŒç™»éŒ²æ¸ˆã¿ã‹ç¢ºèª
 		const auto& clips = AnimationCache::get().getAnimations(mesh->meshPath);
 		if(clips.empty())
 		{
@@ -137,7 +137,7 @@ namespace Editor
 				animator->playing = false;
 				animator->playbackTime = std::min(frame / fps, clip->duration);
 				ActionEventSystem::resync(reg, selected, *animator, meshPath, clip->duration);
-				scene->sampleAnimationPoses();// ƒ|[ƒY‚ğXV‚·‚é
+				scene->sampleAnimationPoses();// ãƒãƒ¼ã‚ºã‚’æ›´æ–°ã™ã‚‹
 			};
 
 		if (ImGui::Button(animator->playing ? TR("Pause") : TR("Play")))
@@ -156,14 +156,14 @@ namespace Editor
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::SliderFloat(TR("Zoom"), &m_pixelPerFrame, 2.0f, 24.0f, "%.0f px/f");
 
-		//======== ƒ^ƒCƒ€ƒ‰ƒCƒ“ ===========
+		//======== ã‚¿ã‚¤ãƒ ãƒ©ã‚¤ãƒ³ ===========
 		const float rows = static_cast<float>(kActionWindowTypeCount) + 1.0f;
 		const float timelineHeight = kRulerHeight + rows * kRowHeight + 24.0f;
 		const float contentWidth = totalFrames * m_pixelPerFrame + 40.0f;
 
 		ImGui::BeginChild("##timeline", ImVec2(0, timelineHeight + ImGui::GetStyle().ScrollbarSize),
 			true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
-		{// •ÒW‚·‚é‰ÓŠ‚ğì¬A
+		{// ç·¨é›†ã™ã‚‹ç®‡æ‰€ã‚’ä½œæˆã€
 			ImDrawList* dl = ImGui::GetWindowDrawList();
 			const ImVec2 origin = ImGui::GetCursorScreenPos();
 			const float x0 = origin.x + kLabelWidth;
@@ -174,7 +174,7 @@ namespace Editor
 
 			ImGui::Dummy(ImVec2(kLabelWidth + contentWidth, timelineHeight));
 
-			// s”wŒi‚Æƒ‰ƒxƒ‹(ƒ‰ƒxƒ‹‚ÍƒXƒNƒ[ƒ‹‚Å—¬‚ê‚Ä‚¢‚¢ŠÈˆÕÀ‘•)
+			// è¡ŒèƒŒæ™¯ã¨ãƒ©ãƒ™ãƒ«(ãƒ©ãƒ™ãƒ«ã¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã§æµã‚Œã¦ã„ã„ç°¡æ˜“å®Ÿè£…)
 			for (uint32_t i = 0; i <= kActionWindowTypeCount; ++i)
 			{
 				const float y = yRows + i * kRowHeight;
@@ -187,7 +187,7 @@ namespace Editor
 				);
 			}
 
-			// ƒ‹[ƒ‰[iƒNƒŠƒbƒN/ƒhƒ‰ƒbƒO‚ÅƒXƒNƒ‰ƒuj
+			// ãƒ«ãƒ¼ãƒ©ãƒ¼ï¼ˆã‚¯ãƒªãƒƒã‚¯/ãƒ‰ãƒ©ãƒƒã‚°ã§ã‚¹ã‚¯ãƒ©ãƒ–ï¼‰
 			ImGui::SetCursorScreenPos({ x0,yRuler });
 			ImGui::InvisibleButton("##ruler", ImVec2(totalFrames * m_pixelPerFrame + 1.0f, kRulerHeight));
 			if (ImGui::IsItemActive())
@@ -207,7 +207,7 @@ namespace Editor
 				}
 			}
 
-			//====== ‘‹ ==========
+			//====== çª“ ==========
 			if (track)
 			{
 				for (int wi = 0; wi < static_cast<int>(track->windows.size()); ++wi)
@@ -224,7 +224,7 @@ namespace Editor
 						dl->AddRect({ xs,y }, { xs + barW,y + kRowHeight - 5.0f }, IM_COL32(255, 255, 255, 230), 3.0f, 0, 1.5f);
 
 					ImGui::PushID(wi);
-					// ƒnƒ“ƒhƒ‹(¶/–{‘Ì/‰E)
+					// ãƒãƒ³ãƒ‰ãƒ«(å·¦/æœ¬ä½“/å³)
 					const ImVec2 sz(kHandleWidth, kRowHeight - 5.0f);
 					const ImVec2 bodySz(std::max(barW - kHandleWidth * 2.0f, 1.0f), kRowHeight - 5.0f);
 
@@ -278,7 +278,7 @@ namespace Editor
 					}
 				}
 
-				//========= ƒ|ƒCƒ“ƒgƒCƒxƒ“ƒg =======================--
+				//========= ãƒã‚¤ãƒ³ãƒˆã‚¤ãƒ™ãƒ³ãƒˆ =======================--
 				const float yp = yRows + static_cast<float>(kActionWindowTypeCount) * kRowHeight + 2.0f;
 
 				for (int pi = 0; pi < static_cast<int>(track->points.size()); ++pi)
@@ -321,7 +321,7 @@ namespace Editor
 		ImGui::EndChild();
 
 
-		//============ ’Ç‰Áƒ{ƒ^ƒ“ =======================
+		//============ è¿½åŠ ãƒœã‚¿ãƒ³ =======================
 		ImGui::TextUnformatted(TR("Add at playhead:"));
 		for (uint32_t i = 0; i < kActionWindowTypeCount; ++i)
 		{
@@ -360,7 +360,7 @@ namespace Editor
 			lib.markEdited(meshPath);
 		}
 
-		//============- ‘I‘ğ’†ƒvƒƒpƒeƒB =====================-
+		//============- é¸æŠä¸­ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ =====================-
 		if (track)
 		{
 			ImGui::Separator();
@@ -437,7 +437,7 @@ namespace Editor
 				ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.3f, 1.0f), "! %s", issue.c_str());
 		}
 
-		//======== ƒ‰ƒCƒuó‘Ô ==========
+		//======== ãƒ©ã‚¤ãƒ–çŠ¶æ…‹ ==========
 		if (auto* s = reg.try_get<FaluEngine::ActionStateComponent>(selected))
 		{
 			ImGui::Separator();
@@ -455,7 +455,7 @@ namespace Editor
 			ImGui::Text("%s: %s", TR("If hit now"), toString(FaluEngine::DefenseJudge::resolve(*s)));
 		}
 
-		//============= •Û‘¶ =====================
+		//============= ä¿å­˜ =====================
 		ImGui::Separator();
 		const bool dirty = lib.isDirty(meshPath);
 		if (ImGui::Button(dirty ? TR("Save * ") : TR("Save")))

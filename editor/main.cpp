@@ -29,6 +29,8 @@
 #include "panels/GameViewPanel.h"
 #include "panels/LLMDebugPanel.h"
 #include "panels/AnimationEventPanel.h"
+#include "panels/SpriteEditorPanel.h"
+#include "panels/UILayoutPanel.h"
 #include "panels/FocusAnalysisPanel.h"
 #include "EditorSettings.h"
 #include "EditorLocalization.h"
@@ -318,7 +320,7 @@ public:
         auto* scene = getSceneManager().getActive();
 
 
-        std::wstring title = L"FaluEngine Editor";
+        std::wstring title = FaluEngine::PathResolver::toWide("FaluEngine Editor");
         if (scene)
         {
             title += L" - " + FaluEngine::PathResolver::fromUtf8(scene->getName()).wstring();
@@ -726,6 +728,18 @@ public:
 
         m_animEventPanel.draw(scene, m_hierarchy.getSelected());
 
+        //==== SpriteEditor ====
+        if (auto req = m_contentBrowser.takeSpriteEditorRequest(); !req.empty())
+            m_spriteEditorPanel.open(req);
+        m_spriteEditorPanel.draw();
+
+        //==== UI Layout =====
+        {
+            entt::entity uiSelected = m_hierarchy.getSelected();
+            m_uiLayoutPanel.draw(scene, uiSelected);
+            if (uiSelected != m_hierarchy.getSelected()) m_hierarchy.setSelected(uiSelected);
+        }
+
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f (%.3f ms)", m_fps, 1000.0f / (m_fps > 0 ? m_fps : 1));
         if (scene)
@@ -783,6 +797,8 @@ private:
     Editor::GameViewPanel m_gameView;
     Editor::LLMDebugPanel m_llmDebugPanel;
     Editor::AnimationEventPanel m_animEventPanel;
+    Editor::SpriteEditorPanel m_spriteEditorPanel;
+    Editor::UILayoutPanel m_uiLayoutPanel;
     Editor::FocusAnalysisPanel m_focusPanel;
     FaluEngine::Camera m_editorCamera;
 
