@@ -9,6 +9,7 @@
 #include "physics/RigidbodyComponent.h"
 #include "terrain/TerrainComponent.h"
 #include "terrain/TerrainFactory.h"
+#include "simulation/RippleComponent.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "renderer/dx11/DX11Renderer.h"
@@ -301,6 +302,40 @@ namespace FaluEngine
 				};
 			}
 
+			// Ripple(水面)：パラメータのみ保存
+			if (m_scene.registry().all_of<RippleComponent>(entity))
+			{
+				auto& r = m_scene.registry().get<RippleComponent>(entity);
+				json waves = json::array();
+				for (int i = 0; i < 4; ++i)
+				{
+					waves.push_back({
+						{"amplitude",r.waves[i].amplitude},
+						{"wavelength",r.waves[i].wavelength},
+						{"directionDeg",r.waves[i].directionDeg},
+						{"steepness",r.waves[i].steepness},
+						});
+				}
+				entityJson["ripple"] =
+				{
+					{"simulate",r.simulate},
+					{"resolution",r.resolution},
+					{"sizeX",r.sizeX},{"sizeZ",r.sizeZ},
+					{"centered",r.centered},
+					{"uvTiling",r.uvTiling},
+					{"waveSpeed",r.waveSpeed},
+					{"damping",r.damping},
+					{"maxHeight",r.maxHeight},
+					{"absorbWidth",r.absorbWidth},
+					{"waveTimeScale",r.waveTimeScale},
+					{"dropPerSecond",r.dropPerSecond},
+					{"dropStrength",r.dropStrength},
+					{"dropRadius",r.dropRadius},
+					{"seed",r.seed},
+					{"waves",waves},
+				};
+			}
+
 			// RelationshipComponent
 			if (m_scene.registry().all_of<RelationshipComponent>(entity))
 			{
@@ -579,6 +614,39 @@ namespace FaluEngine
 				{
 					LOG_WARN("SceneSerializer: terrain heights missing/size mismatch for '{}'. Will regenerate from noise.", name);
 					terrain.dirty = true;
+				}
+			}
+
+			// RippleComponent
+			if (entityJson.contains("ripple"))
+			{
+				auto& rj = entityJson["ripple"];
+				auto& r = entity.addComponent<RippleComponent>();
+				r.simulate = rj.value("simulate", true);
+				r.resolution = rj.value("resolution", 128u);
+				r.sizeX = rj.value("sizeX", 40.0f);
+				r.sizeZ = rj.value("sizeZ", 40.0f);
+				r.centered = rj.value("centered", true);
+				r.uvTiling = rj.value("uvTiling", 8.0f);
+				r.waveSpeed = rj.value("waveSpeed", 4.0f);
+				r.damping = rj.value("damping", 0.6f);
+				r.maxHeight = rj.value("maxHeight", 1.5f);
+				r.absorbWidth = rj.value("absorbWidth", 8);
+				r.waveTimeScale = rj.value("waveTimeScale", 1.0f);
+				r.dropPerSecond = rj.value("dropPerSecond", 0.0f);
+				r.dropStrength = rj.value("dropStrength", 0.4f);
+				r.dropRadius = rj.value("dropRadius", 1.0f);
+				r.seed = rj.value("seed", 1u);
+				if (rj.contains("waves") && rj["waves"].is_array())
+				{
+					for (size_t i = 0; i < 4 && i < rj["waves"].size(); ++i)
+					{
+						auto& wj = rj["waves"][i];
+						r.waves[i].amplitude = wj.value("amplitude", 0.0f);
+						r.waves[i].wavelength = wj.value("wavelength", 10.0f);
+						r.waves[i].directionDeg = wj.value("directionDeg", 0.0f);
+						r.waves[i].steepness = wj.value("steepness", 0.5f);
+					}
 				}
 			}
 		}

@@ -11,6 +11,7 @@
 #include "terrain/TerrainComponent.h"
 #include "terrain/TerrainFactory.h"
 #include "tools/TerrainSculptTool.h"
+#include "simulation/SimulationSystem.h"
 #include "core/PathResolver.h"
 #include "FaluEngine/UITypes.h"
 #include "audio/AudioClip.h"
@@ -61,6 +62,7 @@ namespace Editor
 		drawCameraComponent(scene, selected);
 		drawRigidbodyComponent(scene, selected);
 		drawTerrainComponent(scene, selected, device);
+		drawRippleComponent(scene, selected);
 
 		//==== Script ====
 		drawScriptComponent(scene, selected);
@@ -407,6 +409,74 @@ namespace Editor
 			}
 
 			ImGui::TextDisabled(TR("Vertices: %u x %u"), terrain.vertexCountX(), terrain.vertexCountZ());
+		}
+	}
+
+	void InspectorPanel::drawRippleComponent(FaluEngine::Scene* scene, entt::entity entity) 
+	{
+		if (!drawComponentHeader<FaluEngine::RippleComponent>("Water Ripple", scene, entity))return;
+		{
+			auto& r = scene->registry().get<FaluEngine::RippleComponent>(entity);
+
+			ImGui::Checkbox(TR("Simulate"), &r.simulate);
+
+			int res = static_cast<int>(r.resolution);
+			if (ImGui::DragInt(TR("Resolution"), &res, 1.0f, 2, 512))
+				r.resolution = static_cast<uint32_t>(res);
+			ImGui::DragFloat(TR("Size X"), &r.sizeX, 0.5f, 0.1f, 2000.0f);
+			ImGui::DragFloat(TR("Size Z"), &r.sizeZ, 0.5f, 0.1f, 2000.0f);
+			ImGui::Checkbox(TR("Centered"), &r.centered);
+			ImGui::DragFloat(TR("UV Tiling"), &r.uvTiling, 0.1f, 0.0f, 100.0f);
+
+			if (ImGui::TreeNodeEx(TR("Ripple"), ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragFloat(TR("Wave Speed"), &r.waveSpeed, 0.1f, 0.0f, 50.0f);
+				ImGui::DragFloat(TR("Damping"), &r.damping, 0.01f, 0.0f, 10.0f);
+				ImGui::DragFloat(TR("Max Height"), &r.maxHeight, 0.01f, 0.01f, 10.0f);
+				ImGui::DragInt(TR("Absorb Width"), &r.absorbWidth, 1.0f, 0, 64);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode(TR("Swell (Gerstner)")))
+			{
+				ImGui::DragFloat(TR("Time Scale"), &r.waveTimeScale, 0.01f, 0.0f, 10.0f);
+				for (int i = 0; i < 4; ++i)
+				{
+					ImGui::PushID(i);
+					ImGui::TextDisabled("Wave %d", i);
+					ImGui::DragFloat(TR("Amplitude"), &r.waves[i].amplitude, 0.005f, 0.0f, 5.0f);
+					ImGui::DragFloat(TR("Wavelength"), &r.waves[i].wavelength, 0.1f, 0.1f, 200.0f);
+					ImGui::DragFloat(TR("Direction"), &r.waves[i].directionDeg, 1.0f, -360.0f, 360.0f);
+					ImGui::DragFloat(TR("Steepness"), &r.waves[i].steepness, 0.01f, 0.0f, 1.0f);
+					ImGui::PopID();
+				}
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode(TR("Rain")))
+			{
+				ImGui::DragFloat(TR("Drops / sec"), &r.dropPerSecond, 0.1f, 0.0f, 200.0f);
+				ImGui::DragFloat(TR("Drop Strength"), &r.dropStrength, 0.01f, 0.0f, 5.0f);
+				ImGui::DragFloat(TR("Drop Radius"), &r.dropRadius, 0.05f, 0.05f, 20.0f);
+				int seed = static_cast<int>(r.seed);
+				if (ImGui::DragInt(TR("Seed"), &seed, 1.0f, 1, 1000000))
+					r.seed = static_cast<uint32_t>(seed);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::Button(TR("Drop at Center")))
+			{
+				glm::vec3 p = scene->registry().get<FaluEngine::TransformComponent>(entity).position;
+				FaluEngine::addRippleImpulse(*scene, entity, p, -r.dropStrength * 2.0f, r.dropRadius * 1.5f);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button(TR("Reset")))
+				FaluEngine::resetRipple(r);
+
+			ImGui::Separator();
+			ImGui::TextDisabled(TR("Verts: %u SubSteps: %d"), r.stats.vertexCount, r.stats.subSteps);
+			ImGui::TextDisabled(TR("Step %.3f ms / Mesh %.3f ms / Avg %.3f ms"),
+				r.stats.stepMs, r.stats.meshMs, r.stats.avgTotalMs);
 		}
 	}
 
@@ -1113,6 +1183,20 @@ namespace Editor
 					FaluEngine::SceneManager::get().markDirty();
 				}
 
+			}
+			ImGui::EndMenu();
+		}
+
+		//===== Water ======
+		if (ImGui::BeginMenu(TR("Water")))
+		{
+			if (!scene->registry().all_of<FaluEngine::RippleComponent>(entity))
+			{
+				if (ImGui::MenuItem(TR("Ripple Water Component")))
+				{
+					FaluEngine::addRippleComponents(*scene, e, FaluEngine::RippleComponent{});
+					FaluEngine::SceneManager::get().markDirty();
+				}
 			}
 			ImGui::EndMenu();
 		}

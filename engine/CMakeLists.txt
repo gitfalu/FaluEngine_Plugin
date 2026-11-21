@@ -176,6 +176,10 @@ falu_add_engine_module(FaluScene
         script/ScriptEngine.cpp
         script/ScriptInstance.cpp
 
+        simulation/DynamicMesh.cpp
+        simulation/RippleSolver.cpp
+        simulation/SimulationSystem.cpp
+
         terrain/TerrainFactory.cpp
         terrain/TerrainGenerator.cpp
 
@@ -188,7 +192,7 @@ falu_add_engine_module(FaluScene
         nlohmann_json::nlohmann_json
 )
 falu_add_module_headers(FaluScene
-    DIRS    scene physics script terrain animation replay tools
+    DIRS    scene physics script terrain animation replay tools simulation
     FILES   include/FaluEngine/Scene.h
             include/FaluEngine/Entity.h
             include/FaluEngine/Component.h

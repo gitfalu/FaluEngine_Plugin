@@ -16,6 +16,7 @@
 #include "script/ScriptInstance.h"
 #include "physics/PhysicsSystem.h"
 #include "physics/RigidbodyComponent.h"
+#include "simulation/SimulationSystem.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioClip.h"
 
@@ -106,6 +107,9 @@ void Scene::onUpdate(float deltaTime) {
     
     PhysicsSystem::get().step(deltaTime);
     PhysicsSystem::get().syncTransforms(*this);
+
+    //==== メッシュ変形シミュレーション(水面など) =====
+    updateSimulation(*this, deltaTime);
 
     //==== Audio update =====
     AudioEngine::get().update();
