@@ -26,7 +26,7 @@ namespace FaluEngine
 		{
 			if (s == 0)s = 0x9E3779B9u;
 			s ^= s << 13; s ^= s >> 17; s ^= s << 5;
-			return static_cast<float>(s & 0xFFFFFF) / static_cast<float>(0x100000);
+			return static_cast<float>(s & 0xFFFFFF) / static_cast<float>(0x1000000);
 		}
 
 		void sanitize(RippleComponent& r)
@@ -42,7 +42,14 @@ namespace FaluEngine
 		void ensureBuilt(RippleComponent& r, MeshComponent& mesh, ID3D11Device* device)
 		{
 			sanitize(r);
-			const bool upToDate = r.built && mesh.cachedMesh &&
+			// cachedMesh が自分で作ったものか(meshPath経由で別メッシュが入っていないか)も確認する
+			// 頂点数の違うメッシュへ書き込むとバッファ溢れ(ヒープ破壊)になるため
+			const size_t expectVerts = static_cast<size_t>(r.resolution) * r.resolution;
+			const bool ownsMesh = mesh.cachedMesh &&
+				r.ownedMesh.lock() == mesh.cachedMesh &&
+				mesh.cachedMesh->vertices.size() == expectVerts;
+
+			const bool upToDate = r.built && ownsMesh &&
 				r.builtResolution == r.resolution &&
 				r.builtSizeX == r.sizeX && r.builtSizeZ == r.sizeZ;
 			if (upToDate) return;
@@ -59,6 +66,7 @@ namespace FaluEngine
 
 			mesh.cachedMesh = createDynamicMeshAsset(device, std::move(verts), std::move(idx));
 			mesh.visible = true;
+			r.ownedMesh = mesh.cachedMesh;
 
 			r.built = true;
 			r.builtResolution = r.resolution;
@@ -77,8 +85,9 @@ namespace FaluEngine
 		if (view.begin() == view.end()) return;
 
 		auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer());
-		ID3D11Device* device = renderer ? renderer->getDevice() : nullptr;
-		ID3D11DeviceContext* ctx = renderer ? renderer->getContext() : nullptr;
+		if (!renderer) return; // 終了処理中などのレンダラーがない時はＧＰＵリソースは触らない
+		ID3D11Device* device = renderer->getDevice();
+		ID3D11DeviceContext* ctx = renderer->getContext();
 
 		const float cdt = (std::min)(dt, 1.0f / 30.0f); // スパイク時に波が暴れないよう上限をつける
 

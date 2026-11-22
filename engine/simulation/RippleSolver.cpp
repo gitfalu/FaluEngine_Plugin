@@ -48,7 +48,7 @@ namespace FaluEngine
 					const size_t i = row + x;
 					const float h = m_h[i];
 					const float lap = (m_h[i - 1] + m_h[i + 1] - 2.0f * h) * invDx2 +
-						(m_h[i - nx] + m_h[i + nx] - 2.0f * h) * invDx2;
+						(m_h[i - nx] + m_h[i + nx] - 2.0f * h) * invDz2;
 					m_v[i] += c2 * lap * sdt;
 				}
 			}

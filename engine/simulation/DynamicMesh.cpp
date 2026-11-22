@@ -45,6 +45,16 @@ namespace FaluEngine
 	{
 		if (!context || !asset.vertexBuffer || asset.vertices.empty()) return false;
 
+		// 頂点バッファの実サイズと一致しない場合は書き込まない(バッファ溢れ防止)
+		D3D11_BUFFER_DESC desc{};
+		asset.vertexBuffer->GetDesc(&desc);
+		if (desc.Usage != sizeof(Vertex) * asset.vertices.size())
+		{
+			LOG_ERROR("DynamicMesh: vertex count/buffer size mismatch (buffer {} bytes, cpu {} bytes)",
+				desc.ByteWidth, sizeof(Vertex) * asset.vertices.size());
+			return false;
+		}
+
 		D3D11_MAPPED_SUBRESOURCE mapped{};
 		if (FAILED(context->Map(asset.vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
 			return false;

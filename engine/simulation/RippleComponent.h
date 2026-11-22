@@ -8,11 +8,14 @@
 #pragma once
 #include "RippleSolver.h"
 #include <vector>
+#include <memory>
 #include <cstdint>
 #include <FaluEngine/EngineExport.h>
 
 namespace FaluEngine
 {
+	struct MeshAsset;
+
 	/// @brief シミュレーション負荷の計算値(Inspector表示・負荷チェック用)
 	struct SimStats
 	{
@@ -66,6 +69,7 @@ namespace FaluEngine
 		float time = 0.0f;
 		float dropAccum = 0.0f;
 		uint32_t rng = 0;
+		std::weak_ptr<MeshAsset> ownedMesh; // 自分が生成下メッシュ(ほかメッシュへの誤書き込み防止)
 		bool built = false;
 		uint32_t builtResolution = 0;
 		float builtSizeX = 0.0f, builtSizeZ = 0.0f;
