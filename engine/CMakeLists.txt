@@ -178,6 +178,7 @@ falu_add_engine_module(FaluScene
 
         simulation/DynamicMesh.cpp
         simulation/RippleSolver.cpp
+        simulation/ClothSolver.cpp
         simulation/SimulationSystem.cpp
 
         terrain/TerrainFactory.cpp

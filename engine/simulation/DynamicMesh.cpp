@@ -1,6 +1,7 @@
 ﻿#include "DynamicMesh.h"
 #include "core/Logger.h"
 #include <string>
+#include <cstring>
 
 namespace FaluEngine
 {

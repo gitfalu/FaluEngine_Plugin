@@ -20,7 +20,7 @@ namespace FaluEngine
 		}
 
 		/// @brief xorshift32: 同じシードで同じ雨滴列(再現性保持)
-		/// @param s 
+		/// @param s シード値
 		/// @return 
 		float nextRand01(uint32_t& s)
 		{
@@ -29,6 +29,8 @@ namespace FaluEngine
 			return static_cast<float>(s & 0xFFFFFF) / static_cast<float>(0x1000000);
 		}
 
+		/// @brief 境界値によって制限し無害化
+		/// @param r 水面コンポーネント
 		void sanitize(RippleComponent& r)
 		{
 			r.resolution = std::clamp(r.resolution, 2u, 512u);
@@ -39,6 +41,10 @@ namespace FaluEngine
 			r.maxHeight = (std::max)(r.maxHeight, 0.001f);
 		}
 
+		/// @brief 波情報の更新を確実に行うための関数
+		/// @param r 
+		/// @param mesh 
+		/// @param device 
 		void ensureBuilt(RippleComponent& r, MeshComponent& mesh, ID3D11Device* device)
 		{
 			sanitize(r);
@@ -48,26 +54,27 @@ namespace FaluEngine
 			const bool ownsMesh = mesh.cachedMesh &&
 				r.ownedMesh.lock() == mesh.cachedMesh &&
 				mesh.cachedMesh->vertices.size() == expectVerts;
-
+			// 変更が加わっていたら波情報を更新するようにする
 			const bool upToDate = r.built && ownsMesh &&
 				r.builtResolution == r.resolution &&
 				r.builtSizeX == r.sizeX && r.builtSizeZ == r.sizeZ;
 			if (upToDate) return;
-
+			// 波の情報を初期化する
 			r.grid.resize(r.resolution, r.resolution, r.sizeX, r.sizeZ);
 			r.pending.clear();
 			r.dropAccum = 0.0f;
 			if (r.rng == 0) r.rng = r.seed ? r.seed : 1u;
-
+			// 波の頂点情報をビルドする
 			std::vector<Vertex> verts;
 			buildRippleVertices<Vertex>(r.grid, r.waves, 4, r.time * r.waveTimeScale,
 				r.centered, r.uvTiling, r.scratch, verts);
+			// グリッドのインデックス情報もビルド
 			auto idx = buildGridIndices(r.resolution, r.resolution);
-
+			// 動的メッシュを作成しメッシュをキャッシュ化する
 			mesh.cachedMesh = createDynamicMeshAsset(device, std::move(verts), std::move(idx));
 			mesh.visible = true;
 			r.ownedMesh = mesh.cachedMesh;
-
+			// 波のコンポーネントを初期状態にする
 			r.built = true;
 			r.builtResolution = r.resolution;
 			r.builtSizeX = r.sizeX;
@@ -78,12 +85,16 @@ namespace FaluEngine
 
 
 	
-	void updateSimulation(Scene& scene, float dt)
+	/// @brief 水面更新関数(秘匿)
+	/// @param scene 
+	/// @param dt 
+	static void updateRipples(Scene& scene, float dt)
 	{
+		// レジストリから水面とメッシュのコンポーネントを取得
 		auto& reg = scene.registry();
 		auto view = reg.view<RippleComponent, MeshComponent>();
 		if (view.begin() == view.end()) return;
-
+		// レンダラーを取得してデバイスとコンテキストを取得
 		auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer());
 		if (!renderer) return; // 終了処理中などのレンダラーがない時はＧＰＵリソースは触らない
 		ID3D11Device* device = renderer->getDevice();
@@ -109,6 +120,7 @@ namespace FaluEngine
 					while (r.dropAccum >= 1.0f)
 					{
 						r.dropAccum -= 1.0f;
+						// 雨滴位置を範囲から計算
 						const float margin = r.dropRadius;
 						const float x = margin + nextRand01(r.rng) * (std::max)(r.sizeX - 2.0f * margin, 0.0f);
 						const float z = margin + nextRand01(r.rng) * (std::max)(r.sizeZ - 2.0f * margin, 0.0f);
@@ -136,7 +148,7 @@ namespace FaluEngine
 				r.centered, r.uvTiling, r.scratch, mesh.cachedMesh->vertices);
 			uploadDynamicVertices(ctx, *mesh.cachedMesh);
 			r.stats.meshMs = msSince(tMesh);
-
+			// 
 			const float total = r.stats.stepMs + r.stats.meshMs;
 			r.stats.avgTotalMs = r.stats.avgTotalMs == 0.0f ? total
 				: r.stats.avgTotalMs + (total - r.stats.avgTotalMs) * 0.05f;
@@ -147,11 +159,13 @@ namespace FaluEngine
 	{
 		(void)scene;
 		if (entity.hasComponent<RippleComponent>())
-		{
+		{// コンポーネントが二重に付くことを防ぐ
 			LOG_WARN("addRippleComponents: entity already has a RippleComponent.");
 			return;
 		}
+		// 水面コンポーネントをパラメータを適用して付与
 		entity.addComponent<RippleComponent>(std::move(params));
+		// メッシュコンポーネントがない場合は付与する
 		if (!entity.hasComponent<MeshComponent>())
 			entity.addComponent<MeshComponent>();
 	}
@@ -160,11 +174,11 @@ namespace FaluEngine
 	{
 		auto& reg = scene.registry();
 		if (!reg.valid(entity) || !reg.all_of<RippleComponent, TransformComponent>(entity)) return;
-
+		// 波をワールドからローカルの座標に変換
 		auto& r = reg.get<RippleComponent>(entity);
 		const glm::mat4 inv = glm::inverse(reg.get<TransformComponent>(entity).worldMatrix);
 		const glm::vec3 local = glm::vec3(inv * glm::vec4(worldPos, 1.0f));
-
+		// ローカルの座標として保存
 		const float lx = local.x + (r.centered ? 0.5f * r.sizeX : 0.0f);
 		const float lz = local.z + (r.centered ? 0.5f * r.sizeZ : 0.0f);
 		r.pending.push_back({ lx,lz,strength,radius });
@@ -178,5 +192,70 @@ namespace FaluEngine
 		ripple.dropAccum = 0.0f;
 		ripple.rng = ripple.seed ? ripple.seed : 1u;
 	}
+
+	/*
+	
+	風
+
+	*/
+
+	namespace
+	{
+		WindParams g_wind; // 今のフレームのシーン風
+		float g_simTime = 0.0f; // 全シミュレーション共通の時間
+	}
+
+	const WindParams& getSceneWind()
+	{	
+		return g_wind;
+	}
+
+	/// @brief 風更新関数(秘匿)
+	/// @param scene 
+	/// @param dt 
+	static void updateWind(Scene& scene, float dt)
+	{
+		g_simTime += (std::min)(dt, 1.0f / 30.0f);
+		g_wind = WindParams{};
+		g_wind.speed = 0.0f;
+		auto view = scene.registry().view<WindComponent>();
+		for (auto e : view)
+		{
+			const auto& w = view.get<WindComponent>(e);
+			if (!w.enabled) continue;
+			g_wind = w.params;
+			break; // 最初の有効な風を使用するためループを終了する
+		}
+	}
+
+	/*
+	
+	布
+
+	*/
+
+	namespace
+	{
+		void sanitize(ClothComponent& c)
+		{
+			
+		}
+	}
+
+	glm::vec3 sampleSceneWind(const glm::vec3& world)
+	{
+		
+	}
+
+
+	void addClothComponents(Scene& scene, Entity entity, ClothComponents params)
+	{
+		return ;
+	}
+
+	void resetCloth(Scene& scene, entt::entity entity)
+	{
+	}
+
 
 }
