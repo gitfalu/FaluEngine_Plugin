@@ -52,7 +52,7 @@ namespace FaluEngine
 	/// @param entity 付与対象のエンティティ
 	/// @param params 付与する際の情報
 	/// @return 
-	FALU_SCENE_API void addClothComponents(Scene& scene, Entity entity, ClothComponents params = {});
+	FALU_SCENE_API void addClothComponents(Scene& scene, Entity entity, ClothComponent params = {});
 
 	/// @brief 布の状態をリセットする
 	/// @param scene 

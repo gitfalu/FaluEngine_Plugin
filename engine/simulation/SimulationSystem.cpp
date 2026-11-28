@@ -210,6 +210,11 @@ namespace FaluEngine
 		return g_wind;
 	}
 
+	glm::vec3 sampleSceneWind(const glm::vec3& world)
+	{
+		return evalWind(g_wind, world, g_simTime);
+	}
+
 	/// @brief 風更新関数(秘匿)
 	/// @param scene 
 	/// @param dt 
@@ -238,24 +243,132 @@ namespace FaluEngine
 	{
 		void sanitize(ClothComponent& c)
 		{
-			
+			c.resX = std::clamp(c.resX, 2u, 128u);
+			c.resY = std::clamp(c.resY, 2u, 128u);
+			c.width = (std::max)(c.width, 0.01f);
+			c.height = (std::max)(c.height, 0.01f);
+			c.pinMode = std::clamp(c.pinMode, 0, 2);
+			c.substeps = std::clamp(c.substeps, 1, 16);
+			c.iterations = std::clamp(c.iterations, 1, 32);
+			c.areaDensity = (std::max)(c.areaDensity, 0.001f);
+		}
+
+		void ensureClothBuilt(ClothComponent& c, MeshComponent& mesh, ID3D11Device* device,
+			const glm::mat4& world)
+		{
+			sanitize(c);
+			const size_t n = static_cast<size_t>(c.resX) * c.resY;
+			const size_t expectVerts = c.doubleSided ? n * 2 : n;
+			const bool ownsMesh = mesh.cachedMesh && c.ownedMesh.lock() == mesh.cachedMesh &&
+				mesh.cachedMesh->vertices.size() == expectVerts;
+			const bool upToDate = c.built && ownsMesh &&
+				c.builtResX == c.resX && c.builtResY == c.resY &&
+				c.builtW == c.width && c.builtH == c.height &&
+				c.builtPin == c.pinMode && c.builtDouble == c.doubleSided;
+			if (upToDate) return;
+
+			c.sim.build(c.resX, c.resY, c.width, c.height, static_cast<ClothPinMode>(c.pinMode), world);
+			const glm::mat4 inv = glm::inverse(world);
+
+			std::vector<Vertex> verts;
+			buildClothVertices<Vertex>(c.sim, inv, c.uvTiling, c.doubleSided, c.scratchPos, c.scratchNrm, verts);
+			auto idx = buildClothIndices(c.resX, c.resY, c.doubleSided);
+
+			mesh.cachedMesh = createDynamicMeshAsset(device, std::move(verts), std::move(idx));
+			mesh.visible = true;
+			c.ownedMesh = mesh.cachedMesh;
+
+			c.built = true;
+			c.builtResX = c.resX; c.builtResY = c.resY;
+			c.builtW = c.width; c.builtH = c.height;
+			c.builtPin = c.pinMode; c.builtDouble = c.doubleSided;
+			c.warmup = 2; // ワールド行列は前フレーム値なので最初のフレームは再配置する
+			c.stats.vertexCount = static_cast<uint32_t>(expectVerts);
 		}
 	}
 
-	glm::vec3 sampleSceneWind(const glm::vec3& world)
+	void addClothComponents(Scene& scene, Entity entity, ClothComponent params)
 	{
-		
-	}
-
-
-	void addClothComponents(Scene& scene, Entity entity, ClothComponents params)
-	{
-		return ;
+		(void)scene;
+		if (entity.hasComponent<ClothComponent>())
+		{
+			LOG_WARN("addClothComponents: entity already has a ClothComponent.");
+			return;
+		}
+		entity.addComponent<ClothComponent>(std::move(params));
+		if (!entity.hasComponent<MeshComponent>())
+			entity.addComponent<MeshComponent>();
 	}
 
 	void resetCloth(Scene& scene, entt::entity entity)
 	{
+		auto& reg = scene.registry();
+		if (!reg.valid(entity) || !reg.all_of<ClothComponent, TransformComponent>(entity)) return;
+
+		auto& c = reg.get<ClothComponent>(entity);
+		if (c.built) c.sim.reset(reg.get<TransformComponent>(entity).worldMatrix);
+		c.time = 0.0f;
+	}
+	 
+	static void updateCloths(Scene& scene, float dt)
+	{
+		auto& reg = scene.registry();
+		auto view = reg.view<ClothComponent, MeshComponent, TransformComponent>();
+		if (view.begin() == view.end()) return;
+
+		auto* renderer = static_cast<DX11Renderer*>(getActiveRenderer());
+		if (!renderer) return;
+		ID3D11Device* device = renderer->getDevice();
+		ID3D11DeviceContext* ctx = renderer->getContext();
+		const float cdt = (std::min)(dt, 1.0f / 30.0f);
+
+		for (auto e : view)
+		{
+			auto& c = view.get<ClothComponent>(e);
+			auto& mesh = view.get<MeshComponent>(e);
+			const glm::mat4& world = view.get<TransformComponent>(e).worldMatrix;
+
+			ensureClothBuilt(c, mesh, device, world);
+			if (!mesh.cachedMesh) continue;
+
+			const auto tStep = Clock::now();
+			if (c.warmup > 0) { c.sim.reset(world); --c.warmup; }
+			if (c.simulate)
+			{
+				ClothParams p;
+				p.substeps = c.substeps; p.iterations = c.iterations;
+				p.stiffness = c.stiffness; p.bendStiffness = c.bendStiffness;
+				p.damping = c.damping; p.gravity = c.gravity;
+				p.airDrag = c.airDrag; p.areaDensity = c.areaDensity;
+				p.thickness = c.thickness; p.groundEnabled = c.groundEnabed;
+				p.groundY = c.groundY; p.friction = c.friction;
+
+				WindParams wind = g_wind;
+				wind.speed *= c.windInfluence;
+
+				c.sim.updatePins(world);
+				c.sim.step(cdt, p, wind, g_simTime, c.spheres, 4);
+				c.time += cdt;
+			}
+			c.stats.stepMs = msSince(tStep);
+
+			const auto tMesh = Clock::now();
+			buildClothVertices<Vertex>(c.sim, glm::inverse(world), c.uvTiling, c.doubleSided,
+				c.scratchPos, c.scratchNrm, mesh.cachedMesh->vertices);
+			uploadDynamicVertices(ctx, *mesh.cachedMesh);
+			c.stats.meshMs = msSince(tMesh);
+
+			const float total = c.stats.stepMs + c.stats.meshMs;
+			c.stats.avgTotalMs = c.stats.avgTotalMs == 0.0f ? total
+				: c.stats.avgTotalMs + (total - c.stats.avgTotalMs) * 0.05f;
+
+		}
 	}
 
-
+	void FaluEngine::updateSimulation(Scene& scene, float dt)
+	{
+		updateWind(scene, dt);
+		updateRipples(scene, dt);
+		updateCloths(scene, dt);
+	}
 }

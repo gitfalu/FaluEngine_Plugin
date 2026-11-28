@@ -62,7 +62,11 @@ namespace Editor
 		drawCameraComponent(scene, selected);
 		drawRigidbodyComponent(scene, selected);
 		drawTerrainComponent(scene, selected, device);
+
+		//=== 物理シミュ ======
 		drawRippleComponent(scene, selected);
+		drawClothComponent(scene, selected);
+		drawWindComponent(scene, selected);
 
 		//==== Script ====
 		drawScriptComponent(scene, selected);
@@ -477,6 +481,82 @@ namespace Editor
 			ImGui::TextDisabled(TR("Verts: %u SubSteps: %d"), r.stats.vertexCount, r.stats.subSteps);
 			ImGui::TextDisabled(TR("Step %.3f ms / Mesh %.3f ms / Avg %.3f ms"),
 				r.stats.stepMs, r.stats.meshMs, r.stats.avgTotalMs);
+		}
+	}
+
+	void InspectorPanel::drawClothComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::ClothComponent>("Cloth", scene, entity)) return;
+		{
+			auto& c = scene->registry().get<FaluEngine::ClothComponent>(entity);
+
+			ImGui::Checkbox(TR("Simulate"), &c.simulate);
+
+			int rx = static_cast<int>(c.resX), ry = static_cast<int>(c.resY);
+			if (ImGui::DragInt(TR("Resolution X"), &rx, 1.0f, 2, 120)) c.resX = static_cast<uint32_t>(rx);
+			if (ImGui::DragInt(TR("Resolution Y"), &ry, 1.0f, 2, 120)) c.resY = static_cast<uint32_t>(ry);
+			ImGui::DragFloat(TR("Width"), &c.width, 0.005f, 0.05f, 100.0f);
+			ImGui::DragFloat(TR("Height"), &c.height, 0.005f, 0.05f, 100.0f);
+			const char* pinItems[] = { "top Edge","Top Corners","None" };
+			ImGui::Combo(TR("Pin"), &c.pinMode, pinItems, 3);
+			ImGui::Checkbox(TR("Double Sided"), &c.doubleSided);
+			ImGui::DragFloat(TR("UV Tiling"), &c.uvTiling, 0.05f, 0.0f, 50.0f);
+
+			if (ImGui::TreeNodeEx(TR("Physics"), ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragInt(TR("Substeps"), &c.substeps, 0.2f, 1, 16);
+				ImGui::DragInt(TR("Iterations"), &c.iterations, 0.2f, 1, 32);
+				ImGui::SliderFloat(TR("Stiffness"), &c.stiffness, 0.0f, 1.0f);
+				ImGui::SliderFloat(TR("Bend Stiffness"), &c.bendStiffness, 0.0f, 1.0f);
+				ImGui::DragFloat(TR("Damping"), &c.damping, 0.01f, 0.0f, 10.0f);
+				ImGui::DragFloat(TR("Gravity"), &c.gravity, 0.1f, 0.0f, 50.0f);
+				ImGui::DragFloat(TR("Area Density"), &c.areaDensity, 0.01f, 0.01f, 10.0f);
+				ImGui::DragFloat(TR("Air Drag"), &c.airDrag, 0.005f, 0.0f, 5.0f);
+				ImGui::DragFloat(TR("Wind Influence"), &c.windInfluence, 0.05f, 0.0f, 10.0f);
+				ImGui::DragFloat(TR("Thickness"), &c.thickness, 0.001f, 0.0f, 0.5f);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode(TR("Collision")))
+			{
+				ImGui::Checkbox(TR("Ground"), &c.groundEnabed);
+				ImGui::DragFloat(TR("Ground Y"), &c.groundY, 0.05f);
+				ImGui::SliderFloat(TR("Friction"), &c.friction, 0.0f, 1.0f);
+				for (int i = 0; i < 4; ++i)
+				{
+					ImGui::PushID(i);
+					ImGui::TextDisabled("Sphere %d (radius 0 = off)", 1);
+					ImGui::DragFloat3(TR("Center"), &c.spheres[i].center.x, 0.05f);
+					ImGui::DragFloat(TR("Radius"), &c.spheres[i].radius, 0.02f, 0.0f, 100.0f);
+					ImGui::PopID();
+				}
+				ImGui::TreePop();
+			}
+
+			if (ImGui::Button(TR("Reset Cloth")))
+			{
+				FaluEngine::resetCloth(*scene, entity);
+			}
+
+			ImGui::Separator();
+			ImGui::TextDisabled(TR("Verts: %u"), c.stats.vertexCount);
+			ImGui::TextDisabled(TR("Step %.3f ms / Mesh %.3f ms / Avg %.3f ms"),
+				c.stats.stepMs, c.stats.meshMs, c.stats.avgTotalMs);
+		}
+	}
+
+	void InspectorPanel::drawWindComponent(FaluEngine::Scene* scene, entt::entity entity)
+	{
+		if (!drawComponentHeader<FaluEngine::WindComponent>("Wind", scene, entity)) return;
+		{
+			auto& w = scene->registry().get<FaluEngine::WindComponent>(entity);
+			ImGui::Checkbox(TR("Enabled"), &w.enabled);
+			ImGui::DragFloat(TR("Direction (deg)"), &w.params.directionDeg, 1.0f, -360.0f, 360.0f);
+			ImGui::DragFloat(TR("Pitch (deg)"), &w.params.pitchDeg, 1.0f, -90.0f, 90.0f);
+			ImGui::DragFloat(TR("Speed (m/s)"), &w.params.speed,0.1f, 0.0f, 100.0f);
+			ImGui::SliderFloat(TR("Gust Strength"), &w.params.gustStrength, 0.0f, 1.5f);
+			ImGui::DragFloat(TR("Turbulence"), &w.params.turbulence, 0.01f,0.0f, 1.0f);
+			ImGui::DragFloat(TR("Turbulence Scale"), &w.params.turbulenceScale, 0.01f, 0.0f,3.0f);
 		}
 	}
 
@@ -1195,6 +1275,28 @@ namespace Editor
 				if (ImGui::MenuItem(TR("Ripple Water Component")))
 				{
 					FaluEngine::addRippleComponents(*scene, e, FaluEngine::RippleComponent{});
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+			ImGui::EndMenu();
+		}
+
+		//==== Cloth / Wind ======
+		if (ImGui::BeginMenu(TR("Cloth / Wind")))
+		{
+			if (!scene->registry().all_of<FaluEngine::ClothComponent>(entity))
+			{
+				if (ImGui::MenuItem(TR("Cloth Component")))
+				{
+					FaluEngine::addClothComponents(*scene, e, FaluEngine::ClothComponent{});
+					FaluEngine::SceneManager::get().markDirty();
+				}
+			}
+			if (!scene->registry().all_of<FaluEngine::WindComponent>(entity))
+			{
+				if (ImGui::MenuItem(TR("Wind Component")))
+				{
+					scene->registry().emplace<FaluEngine::WindComponent>(entity);
 					FaluEngine::SceneManager::get().markDirty();
 				}
 			}

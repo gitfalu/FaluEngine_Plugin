@@ -10,6 +10,8 @@
 #include "terrain/TerrainComponent.h"
 #include "terrain/TerrainFactory.h"
 #include "simulation/RippleComponent.h"
+#include "simulation/ClothComponent.h"
+#include "simulation/WindComponent.h"
 #include "core/Logger.h"
 #include "core/PathResolver.h"
 #include "renderer/dx11/DX11Renderer.h"
@@ -81,9 +83,9 @@ namespace FaluEngine
 					visit(child);
 			}
 		};
-		for (auto root : m_scene.getRootOrder())
+		for (auto rootOrd : m_scene.getRootOrder())
 		{
-			visit(root);
+			visit(rootOrd);
 		}
 
 		std::unordered_map<entt::entity, uint32_t> entityToId;
@@ -336,6 +338,44 @@ namespace FaluEngine
 				};
 			}
 
+			// 布/風のパラメータ
+			if (m_scene.registry().all_of<ClothComponent>(entity))
+			{
+				auto& c = m_scene.registry().get<ClothComponent>(entity);
+				json spheres = json::array();
+				for (int i = 0; i < 4; ++i)
+				{
+					spheres.push_back({
+						{"center",{c.spheres[i].center.x,c.spheres[i].center.y,c.spheres[i].center.z}},
+						{"radius",c.spheres[i].radius}
+						});
+				}
+				entityJson["cloth"] =
+				{
+					{"simulate",c.simulate},{"resX",c.resX},{"resY",c.resY},
+					{"width",c.width},{"height",c.height},{"pinMode",c.pinMode},
+					{"doubleSided",c.doubleSided},{"uvTiling",c.uvTiling},
+					{"subSteps",c.substeps},{"iterations",c.iterations},
+					{"damping",c.damping},{"gravity",c.gravity},
+					{"airDrag",c.airDrag},{"areaDensity",c.areaDensity},
+					{"thickness",c.thickness},{"windInfluence",c.windInfluence},
+					{"groundEnabed",c.groundEnabed},{"groundY",c.groundY},
+					{"friction",c.friction},{"spheres",spheres}
+				};
+			}
+			if (m_scene.registry().all_of<WindComponent>(entity))
+			{
+				auto& w = m_scene.registry().get<WindComponent>(entity);
+				entityJson["wind"] =
+				{
+					{"enabled",w.enabled},
+					{"directionDeg",w.params.directionDeg},{"pitchDeg",w.params.pitchDeg},
+					{"speed",w.params.speed},{"gustStrength",w.params.gustStrength},
+					{"gustFrequency",w.params.gustFrequency},{"turbulence",w.params.turbulence},
+					{"turbulenceScale",w.params.turbulenceScale}
+				};
+			}
+
 			// RelationshipComponent
 			if (m_scene.registry().all_of<RelationshipComponent>(entity))
 			{
@@ -425,7 +465,7 @@ namespace FaluEngine
 				auto& t = entity.getComponent<TransformComponent>();
 				auto& tj = entityJson["transform"];
 				t.position = vec3FromJson(tj["position"]);
-				t.rotation = quatFromJson(tj["rotation"]);
+				t.rotation = quatFromJson(tj["rotation"],t.rotation);
 				t.scale = vec3FromJson(tj["scale"]);
 			}
 
@@ -648,6 +688,57 @@ namespace FaluEngine
 						r.waves[i].steepness = wj.value("steepness", 0.5f);
 					}
 				}
+			}
+
+			// ClothComponent
+			if (entityJson.contains("cloth"))
+			{
+				auto& cj = entityJson["cloth"];
+				auto& c = entity.addComponent<ClothComponent>();
+				c.simulate = cj.value("simulate", true);
+				c.resX = cj.value("resX", 24u); c.resY = cj.value("resY", 24u);
+				c.width = cj.value("width", 2.0f); c.height = cj.value("height", 2.0f);
+				c.pinMode = cj.value("pinMode", 0);
+				c.doubleSided = cj.value("doubleSided", true);
+				c.uvTiling = cj.value("uvTiling", 1.0f);
+				c.substeps = cj.value("substeps", 4); c.iterations = cj.value("iterations", 6);
+				c.stiffness = cj.value("stiffness", 1.0f);
+				c.bendStiffness = cj.value("bendStiffness", 0.3f);
+				c.damping = cj.value("damping", 0.2f);
+				c.gravity = cj.value("gravity", 9.8f);
+				c.airDrag = cj.value("airDrag", 0.25f);
+				c.areaDensity = cj.value("areaDensity", 0.5f);
+				c.thickness = cj.value("thickness", 0.02f);
+				c.windInfluence = cj.value("windInfluence", 1.0f);
+				c.groundEnabed = cj.value("groundEnabled", false);
+				c.groundY = cj.value("groundY",0.0f);
+				c.friction = cj.value("friction", 0.5f);
+				if (cj.contains("spheres") && cj["spheres"].is_array())
+				{
+					for (size_t i = 0; i < 4 && i < cj["spheres"].size(); ++i)
+					{
+						auto& sj = cj["spheres"][1];
+						if (sj.contains("center") && sj["center"].is_array() &&
+							sj["center"].size() == 3)
+							c.spheres[i].center = { sj["center"][0].get<float>(),sj["center"][1].get<float>(),sj["center"][2].get<float>() };
+						c.spheres[i].radius = sj.value("radius", 0.0f);
+					}
+				}
+			}
+
+			// WindComponent
+			if (entityJson.contains("wind"))
+			{
+				auto& wj = entityJson["wind"];
+				auto& w = entity.addComponent<WindComponent>();
+				w.enabled = wj.value("enabled", true);
+				w.params.directionDeg = wj.value("directionDeg", 0.0f);
+				w.params.pitchDeg = wj.value("pitchDeg", 0.0f);
+				w.params.speed = wj.value("speed", 4.0f);
+				w.params.gustStrength = wj.value("gustStrength", 0.4f);
+				w.params.gustFrequency = wj.value("gustFrequency", 0.3f);
+				w.params.turbulence = wj.value("turbulence", 0.25f);
+				w.params.turbulenceScale = wj.value("turbulenceScale", 0.35f);
 			}
 		}
 

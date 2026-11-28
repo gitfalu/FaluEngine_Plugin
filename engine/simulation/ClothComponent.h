@@ -32,6 +32,7 @@ namespace FaluEngine
 		int substeps = 4;
 		int iterations = 6;
 		float stiffness = 1.0f;
+		float bendStiffness = 0.3f;
 		float damping = 0.2f;
 		float gravity = 9.8f;
 		float airDrag = 0.25f;
@@ -54,7 +55,7 @@ namespace FaluEngine
 		uint32_t builtResX = 0, builtResY = 0;
 		float builtW = 0.0f, builtH = 0.0f;
 		int builtPin = -1;
-		bool buildDouble = false;
+		bool builtDouble = false;
 		SimStats stats;
 	};
 }
